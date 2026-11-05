@@ -36,7 +36,7 @@ html:not(.phone) #panel .det{max-height:none}}
 <header><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div></header>
 <main><section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section><section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
 <aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside><nav><button data-v="ygo" class="on"><span>🐉</span>Yu-Gi-Oh</button><button data-v="mtg"><span>🧙</span>Magic</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="chart.min.js?1793896031" defer></script><script src="data.js?1793896031"></script>
+<script src="chart.min.js?1793896090" defer></script><script src="data.js?1793896090"></script>
 <script>
 const $=s=>document.querySelector(s),m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
 cad=(c,k)=>c[k+'_cad']!=null?'C$'+Math.round(c[k+'_cad']).toLocaleString()+'<div class=sm>'+m(c[k])+' US</div>':m(c[k]),lp=l=>l.total_cad!=null?'C$'+(+l.total_cad).toFixed(2):l.cad!=null?'C$'+(+l.cad).toFixed(2):m(l.price),
