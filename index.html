@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0f1a"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0b0f1a"><script>(function(){var c=matchMedia("(pointer:coarse)").matches,w=Math.min(screen.width,screen.height);if(c&&w<900){document.documentElement.classList.add("phone");var z=innerWidth/screen.width;if(z>1.3)document.documentElement.style.zoom=z;}})()</script><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><title>Card Deals</title>
 <style>
 :root{--bg:#0b0f1a;--card:#141a2b;--line:#222b44;--tx:#e8ecf6;--mu:#8b95b0;--gold:#d4af37;--up:#3ddc97;--dn:#ff6b6b}
@@ -20,21 +20,37 @@ main{padding:0 14px}.view{display:none;animation:f .25s ease}.view.on{display:bl
 nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(14,19,33,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:9}
 nav button{flex:1;background:none;border:0;color:var(--mu);padding:10px 0 9px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s}
 nav button span{font-size:21px}nav button.on{color:var(--gold)}.empty{color:var(--mu);text-align:center;padding:40px 10px}
+
+.mut{opacity:.55}.bd{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:#1f2740;color:var(--mu);margin:6px 4px 0 0}.bd.ok{background:#163a2b;color:var(--up)}.bd.bad{background:#3a1616;color:var(--dn)}
+.sm{font-size:11px;color:var(--mu);font-weight:400}#panel{display:none}
+@media(min-width:900px){html:not(.phone) body{padding:0 0 0 210px}
+html:not(.phone) nav{top:0;bottom:0;right:auto;width:210px;flex-direction:column;justify-content:flex-start;padding:90px 10px 0;border-top:0;border-right:1px solid var(--line)}
+html:not(.phone) nav button{flex:0;flex-direction:row;font-size:15px;gap:12px;padding:12px 14px;border-radius:12px;justify-content:flex-start}html:not(.phone) nav button.on{background:#1a2136}
+html:not(.phone) header{position:fixed;left:0;top:0;width:210px;background:none;z-index:10}html:not(.phone) .sub{display:none}
+html:not(.phone) main{padding:22px 24px;margin-right:440px}html:not(.phone) .view{display:none;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}html:not(.phone) .view.on{display:grid}
+html:not(.phone) .view>.banner,html:not(.phone) .view>.note,html:not(.phone) .view>.empty{grid-column:1/-1}html:not(.phone) .c{margin:0;cursor:pointer}html:not(.phone) .c.sel{border-color:var(--gold)}
+html:not(.phone) .c .det{display:none}html:not(.phone) #v-trends{grid-template-columns:1fr 1fr}
+html:not(.phone) #panel{display:block;position:fixed;right:0;top:0;bottom:0;width:440px;overflow:auto;padding:22px;border-left:1px solid var(--line);background:#0e1321}
+html:not(.phone) #panel .det{max-height:none}}
 </style></head><body>
 <header><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div></header>
 <main><section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section><section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
-<nav><button data-v="ygo" class="on"><span>🐉</span>Yu-Gi-Oh</button><button data-v="mtg"><span>🧙</span>Magic</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="chart.min.js?1793895380" defer></script><script src="data.js?1793895380"></script>
+<aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside><nav><button data-v="ygo" class="on"><span>🐉</span>Yu-Gi-Oh</button><button data-v="mtg"><span>🧙</span>Magic</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
+<script src="chart.min.js?1793896031" defer></script><script src="data.js?1793896031"></script>
 <script>
 const $=s=>document.querySelector(s),m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
+cad=(c,k)=>c[k+'_cad']!=null?'C$'+Math.round(c[k+'_cad']).toLocaleString()+'<div class=sm>'+m(c[k])+' US</div>':m(c[k]),lp=l=>l.total_cad!=null?'C$'+(+l.total_cad).toFixed(2):l.cad!=null?'C$'+(+l.cad).toFixed(2):m(l.price),
+unv=l=>l&&(l.vetted===false||l.vetted==='unverified'||l.cert_ok===false),
+bd=o=>{let h='';if(!o)return h;if(o.vetted===true)h+='<span class="bd ok">✓ vetted</span>';if(unv(o))h+='<span class="bd">unverified</span>';if(o.cert_ok===true)h+='<span class="bd ok">cert ok</span>';if(o.fake_risk!=null)h+=`<span class="bd ${/high/i.test(o.fake_risk)||o.fake_risk>=0.5?'bad':''}">fake risk ${typeof o.fake_risk=='number'?Math.round(o.fake_risk*100)+'%':o.fake_risk}</span>`;if(o.condition)h+=`<span class=bd>${e(o.condition)}</span>`;if(o.seller_score!=null)h+=`<span class=bd>seller ${e(o.seller_score)}</span>`;return h},
+lb=(l,lab,cls)=>!l?`<a class="btn g">No live ${lab}</a>`:unv(l)?`<a class="btn g mut" style="height:auto;padding:8px;font-size:12px;font-weight:400" href="${e(l.url)}" target=_blank rel=noopener>${lab} ${lp(l)} (unverified)</a>`:`<a class="btn ${cls}" href="${e(l.url)}" target=_blank rel=noopener>${lab} ${lp(l)} ↗</a>`,
 p=v=>v==null?'–':`<span class="${v>=0?'up':'dn'}">${v>=0?'+':''}${Math.round(v)}%</span>`,e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
 $('#sub').textContent='Updated '+D.built+' · prices USD · advice only, never auto-buys';
 function list(k){const d=D[k];let h=d.sample?'<div class="banner">SAMPLE data: this tracker has not produced results yet. Real picks appear after its first run.</div>':'';
  if(!d.cards.length)return h+'<div class="empty">No picks yet.</div>';
  d.cards.forEach((c,i)=>{h+=`<div class="c" data-k="${k}" data-i="${i}"><div class="top"><div class="rk">${i+1}</div><div><div class="nm">${e(c.name)}${c.deal?'<span class="tag">BUY ZONE</span>':''}</div>
  <div class="meta">12-mo raw ${p(c.t12)} · PSA 10 ${p(c.t12g)}</div></div><div class="sc"><b>${Math.round(c.score)}</b><small>score</small></div></div>
- <div class="row"><div class="st"><small>Raw</small><b>${m(c.raw)}</b></div><div class="st"><small>PSA 9</small><b>${m(c.p9)}</b></div><div class="st"><small>PSA 10</small><b>${m(c.p10)}</b></div></div>
- <div class="btns">${c.lr?`<a class="btn" href="${e(c.lr.url)}" target="_blank" rel="noopener">Raw ${m(c.lr.price)} ↗</a>`:'<a class="btn g">No live raw</a>'}${c.lg?`<a class="btn g" href="${e(c.lg.url)}" target="_blank" rel="noopener">PSA 10 ${m(c.lg.price)} ↗</a>`:'<a class="btn g">No live PSA 10</a>'}</div>
+ <div class="row"><div class="st"><small>Raw</small><b>${cad(c,'raw')}</b></div><div class="st"><small>PSA 9</small><b>${cad(c,'p9')}</b></div><div class="st"><small>PSA 10</small><b>${cad(c,'p10')}</b></div></div>
+ <div>${bd(c)}${bd(c.lr)}</div><div class="btns">${lb(c.lr,'Raw','')}${lb(c.lg,'PSA 10','g')}</div>
  <button class="btn g rq" style="width:100%;border:1px solid var(--gold);color:var(--gold);font-size:15px" data-k="${k}" data-i="${i}">⭐ Request purchase</button><div class="det"><div class="row"><div class="st"><small>3 mo</small><b>${p(c.t3)}</b></div><div class="st"><small>6 mo</small><b>${p(c.t6)}</b></div><div class="st"><small>Buy zone ≤</small><b>${m(c.buy)}</b></div></div>
  <canvas height="190"></canvas><div class="note">Sold-price history (PriceCharting). Gold dashed = buy zone. Live listings are cheapest eBay Buy It Now at run time and may be a different print or condition, so check before buying.${c.url?` <a style="color:var(--gold)" href="${e(c.url)}" target="_blank">Sold data ↗</a>`:''}</div></div></div>`});return h}
 function chart(el,c){if(el.dataset.done||!window.Chart)return;el.dataset.done=1;const H=c.hist||{},col={raw:'#7aa2ff',p9:'#3ddc97',p10:'#d4af37'},nm={raw:'Raw',p9:'PSA 9',p10:'PSA 10'};
@@ -50,7 +66,8 @@ let trDone;function trends(){if(trDone||!window.Chart)return;trDone=1;const cs=D
  new Chart($('#tc'),{type:'bar',data:{labels:lb,datasets:[{data:cs.map(c=>c.score),backgroundColor:'#d4af37'}]},options:o});
  new Chart($('#tg'),{type:'bar',data:{labels:lb,datasets:[{data:cs.map(c=>c.t12||0),backgroundColor:cs.map(c=>(c.t12||0)>=0?'#3ddc97':'#ff6b6b')}]},options:o})}
 document.addEventListener('click',ev=>{const b=ev.target.closest('nav button');if(b){document.querySelectorAll('nav button,.view').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#v-'+b.dataset.v).classList.add('on');scrollTo({top:0});if(b.dataset.v=='trends')trends();return}
- const q=ev.target.closest('.rq');if(q){req(D[q.dataset.k].cards[q.dataset.i],q.dataset.k);return}const x=ev.target.closest('[data-del]');if(x){W.splice(+x.dataset.del,1);sv();return}const sh=ev.target.closest('[data-sh]');if(sh){send(W[+sh.dataset.sh].t);return}if(ev.target.closest('a'))return;const c=ev.target.closest('.c[data-k]');if(c){c.classList.toggle('open');const cv=c.querySelector('canvas');cv&&chart(cv,D[c.dataset.k].cards[c.dataset.i])}});
+ const q=ev.target.closest('.rq');if(q){req(D[q.dataset.k].cards[q.dataset.i],q.dataset.k);return}const x=ev.target.closest('[data-del]');if(x){W.splice(+x.dataset.del,1);sv();return}const sh=ev.target.closest('[data-sh]');if(sh){send(W[+sh.dataset.sh].t);return}if(ev.target.closest('a'))return;const c=ev.target.closest('.c[data-k]');if(c&&desk()){document.querySelectorAll('.c.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');const P=$('#panel');P.innerHTML=c.innerHTML;P.querySelector('.det').style.display='block';const cv=P.querySelector('canvas');cv&&chart(cv,D[c.dataset.k].cards[c.dataset.i]);return}if(c){c.classList.toggle('open');const cv=c.querySelector('canvas');cv&&chart(cv,D[c.dataset.k].cards[c.dataset.i])}});
+const desk=()=>!document.documentElement.classList.contains('phone')&&matchMedia('(min-width:900px)').matches;
 let W=JSON.parse(localStorage.getItem('wish')||'[]');
 function sv(){localStorage.setItem('wish',JSON.stringify(W));$('#v-wish').innerHTML=(W.length?W.map((w,i)=>`<div class="c"><div class="meta">${e(w.d)}</div><div class="nm">${e(w.n)}</div><div class="meta">${e(w.p)}</div><div class="btns"><button class="btn" data-sh="${i}" style="border:0">Share / copy</button><button class="btn g" data-del="${i}" style="border:0">Remove</button></div></div>`).join(''):'<div class="empty">Tap ⭐ Request purchase on any card to save it here.</div>')+'<div class="note">Saved only on this phone. Sharing just sends text; nothing is bought.</div>'}
 function toast(t){const d=Object.assign(document.createElement('div'),{textContent:t});d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#d4af37;color:#111;padding:10px 16px;border-radius:20px;font-weight:600;z-index:20;transition:opacity .4s';document.body.appendChild(d);setTimeout(()=>d.style.opacity=0,1600);setTimeout(()=>d.remove(),2100)}
