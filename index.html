@@ -1,5 +1,8 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0f1a"><script>(function(){var c=matchMedia("(pointer:coarse)").matches,w=Math.min(screen.width,screen.height);if(c&&w<900){document.documentElement.classList.add("phone");var z=innerWidth/screen.width;if(z>1.3)document.documentElement.style.zoom=z;}})()</script><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0b0f1a"><script>(function(){var d=document.documentElement,n=navigator,ua=n.userAgent||'',tp=n.maxTouchPoints||0,mm=function(q){return matchMedia(q).matches},sw=Math.min(screen.width,screen.height),
+f=localStorage.getItem('view'),ph=(n.userAgentData&&n.userAgentData.mobile)||/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||(tp>0&&sw<900&&mm('(pointer:coarse)'))||(devicePixelRatio>=2&&tp>0&&!mm('(any-pointer:fine)'));
+if(f)ph=f=='phone';d.classList.add(ph?'phone':'desktop');
+if(ph){var v=document.querySelector('meta[name=viewport]');v&&v.setAttribute('content','width=device-width,initial-scale=1,viewport-fit=cover');if(innerWidth>screen.width*1.3)d.style.zoom=innerWidth/screen.width}})()</script><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><title>Card Deals</title>
 <style>
 :root{--bg:#0b0f1a;--card:#141a2b;--line:#222b44;--tx:#e8ecf6;--mu:#8b95b0;--gold:#d4af37;--up:#3ddc97;--dn:#ff6b6b}
@@ -23,20 +26,20 @@ nav button span{font-size:21px}nav button.on{color:var(--gold)}.empty{color:var(
 
 .mut{opacity:.55}.bd{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:#1f2740;color:var(--mu);margin:6px 4px 0 0}.bd.ok{background:#163a2b;color:var(--up)}.bd.bad{background:#3a1616;color:var(--dn)}
 .sm{font-size:11px;color:var(--mu);font-weight:400}#panel{display:none}
-@media(min-width:900px){html:not(.phone) body{padding:0 0 0 210px}
-html:not(.phone) nav{top:0;bottom:0;right:auto;width:210px;flex-direction:column;justify-content:flex-start;padding:90px 10px 0;border-top:0;border-right:1px solid var(--line)}
-html:not(.phone) nav button{flex:0;flex-direction:row;font-size:15px;gap:12px;padding:12px 14px;border-radius:12px;justify-content:flex-start}html:not(.phone) nav button.on{background:#1a2136}
-html:not(.phone) header{position:fixed;left:0;top:0;width:210px;background:none;z-index:10}html:not(.phone) .sub{display:none}
-html:not(.phone) main{padding:22px 24px;margin-right:440px}html:not(.phone) .view{display:none;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}html:not(.phone) .view.on{display:grid}
-html:not(.phone) .view>.banner,html:not(.phone) .view>.note,html:not(.phone) .view>.empty{grid-column:1/-1}html:not(.phone) .c{margin:0;cursor:pointer}html:not(.phone) .c.sel{border-color:var(--gold)}
-html:not(.phone) .c .det{display:none}html:not(.phone) #v-trends{grid-template-columns:1fr 1fr}
-html:not(.phone) #panel{display:block;position:fixed;right:0;top:0;bottom:0;width:440px;overflow:auto;padding:22px;border-left:1px solid var(--line);background:#0e1321}
-html:not(.phone) #panel .det{max-height:none}}
+@media(min-width:900px){html.desktop body{padding:0 0 0 210px}
+html.desktop nav{top:0;bottom:0;right:auto;width:210px;flex-direction:column;justify-content:flex-start;padding:90px 10px 0;border-top:0;border-right:1px solid var(--line)}
+html.desktop nav button{flex:0;flex-direction:row;font-size:15px;gap:12px;padding:12px 14px;border-radius:12px;justify-content:flex-start}html.desktop nav button.on{background:#1a2136}
+html.desktop header{position:fixed;left:0;top:0;width:210px;background:none;z-index:10}html.desktop .sub{display:none}
+html.desktop main{padding:22px 24px;margin-right:440px}html.desktop .view{display:none;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}html.desktop .view.on{display:grid}
+html.desktop .view>.banner,html.desktop .view>.note,html.desktop .view>.empty{grid-column:1/-1}html.desktop .c{margin:0;cursor:pointer}html.desktop .c.sel{border-color:var(--gold)}
+html.desktop .c .det{display:none}html.desktop #v-trends{grid-template-columns:1fr 1fr}
+html.desktop #panel{display:block;position:fixed;right:0;top:0;bottom:0;width:440px;overflow:auto;padding:22px;border-left:1px solid var(--line);background:#0e1321}
+html.desktop #panel .det{max-height:none}}
 </style></head><body>
-<header><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div></header>
+<header><button id="vt" style="float:right;margin-top:2px;background:#1f2740;color:var(--mu);border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:12px"></button><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div></header>
 <main><section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section><section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
 <aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside><nav><button data-v="ygo" class="on"><span>🐉</span>Yu-Gi-Oh</button><button data-v="mtg"><span>🧙</span>Magic</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="chart.min.js?1793896090" defer></script><script src="data.js?1793896090"></script>
+<script src="chart.min.js?1793896208" defer></script><script src="data.js?1793896208"></script>
 <script>
 const $=s=>document.querySelector(s),m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
 cad=(c,k)=>c[k+'_cad']!=null?'C$'+Math.round(c[k+'_cad']).toLocaleString()+'<div class=sm>'+m(c[k])+' US</div>':m(c[k]),lp=l=>l.total_cad!=null?'C$'+(+l.total_cad).toFixed(2):l.cad!=null?'C$'+(+l.cad).toFixed(2):m(l.price),
@@ -67,7 +70,8 @@ let trDone;function trends(){if(trDone||!window.Chart)return;trDone=1;const cs=D
  new Chart($('#tg'),{type:'bar',data:{labels:lb,datasets:[{data:cs.map(c=>c.t12||0),backgroundColor:cs.map(c=>(c.t12||0)>=0?'#3ddc97':'#ff6b6b')}]},options:o})}
 document.addEventListener('click',ev=>{const b=ev.target.closest('nav button');if(b){document.querySelectorAll('nav button,.view').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#v-'+b.dataset.v).classList.add('on');scrollTo({top:0});if(b.dataset.v=='trends')trends();return}
  const q=ev.target.closest('.rq');if(q){req(D[q.dataset.k].cards[q.dataset.i],q.dataset.k);return}const x=ev.target.closest('[data-del]');if(x){W.splice(+x.dataset.del,1);sv();return}const sh=ev.target.closest('[data-sh]');if(sh){send(W[+sh.dataset.sh].t);return}if(ev.target.closest('a'))return;const c=ev.target.closest('.c[data-k]');if(c&&desk()){document.querySelectorAll('.c.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');const P=$('#panel');P.innerHTML=c.innerHTML;P.querySelector('.det').style.display='block';const cv=P.querySelector('canvas');cv&&chart(cv,D[c.dataset.k].cards[c.dataset.i]);return}if(c){c.classList.toggle('open');const cv=c.querySelector('canvas');cv&&chart(cv,D[c.dataset.k].cards[c.dataset.i])}});
-const desk=()=>!document.documentElement.classList.contains('phone')&&matchMedia('(min-width:900px)').matches;
+const PH=document.documentElement.classList.contains('phone');$('#vt').textContent=PH?'🖥 PC view':'📱 Phone view';$('#vt').onclick=()=>{localStorage.setItem('view',PH?'desktop':'phone');location.reload()};
+const desk=()=>!PH&&matchMedia('(min-width:900px)').matches;
 let W=JSON.parse(localStorage.getItem('wish')||'[]');
 function sv(){localStorage.setItem('wish',JSON.stringify(W));$('#v-wish').innerHTML=(W.length?W.map((w,i)=>`<div class="c"><div class="meta">${e(w.d)}</div><div class="nm">${e(w.n)}</div><div class="meta">${e(w.p)}</div><div class="btns"><button class="btn" data-sh="${i}" style="border:0">Share / copy</button><button class="btn g" data-del="${i}" style="border:0">Remove</button></div></div>`).join(''):'<div class="empty">Tap ⭐ Request purchase on any card to save it here.</div>')+'<div class="note">Saved only on this phone. Sharing just sends text; nothing is bought.</div>'}
 function toast(t){const d=Object.assign(document.createElement('div'),{textContent:t});d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#d4af37;color:#111;padding:10px 16px;border-radius:20px;font-weight:600;z-index:20;transition:opacity .4s';document.body.appendChild(d);setTimeout(()=>d.style.opacity=0,1600);setTimeout(()=>d.remove(),2100)}
