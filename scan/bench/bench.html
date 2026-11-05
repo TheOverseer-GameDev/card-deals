@@ -1,0 +1,109 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scan bench</title>
+<pre id="out">running</pre>
+<script type="module">
+import { openReader, readCardImage } from '../ocr.js';
+import { catalogFromSite, matchText } from '../engine.js';
+
+function draw(lines) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 900;
+  canvas.height = 1260;
+  const g = canvas.getContext('2d');
+  g.fillStyle = '#f7f4ea';
+  g.fillRect(0, 0, canvas.width, canvas.height);
+  g.fillStyle = '#111';
+  g.font = 'bold 72px sans-serif';
+  lines.forEach((line, i) => g.fillText(line, 48, 180 + i * 110));
+  g.font = '64px monospace';
+  g.fillText(lines[lines.length - 1], 48, 1100);
+  return canvas;
+}
+
+function blurOf(source) {
+  const small = document.createElement('canvas');
+  small.width = 90;
+  small.height = 126;
+  small.getContext('2d').drawImage(source, 0, 0, 90, 126);
+  const canvas = document.createElement('canvas');
+  canvas.width = 900;
+  canvas.height = 1260;
+  const g = canvas.getContext('2d');
+  g.imageSmoothingEnabled = true;
+  g.drawImage(small, 0, 0, 900, 1260);
+  return canvas;
+}
+
+const rows = catalogFromSite({
+  built: 'bench',
+  ygo: { cards: [
+    { name: 'Gemini Elf [1st Edition] LON-000', id: 'g', raw: 1, p9: 1, p10: 1 },
+    { name: 'Blue-Eyes White Dragon [Ultra Rare] LC01-EN004', id: 'b', raw: 1, p9: 1, p10: 1 },
+  ] },
+  mtg: { cards: [] },
+  coll: [],
+});
+
+function summarize(text) {
+  const match = matchText(rows, text);
+  return {
+    text,
+    codes: match.readCodes,
+    keys: match.candidates.map((item) => item.key),
+    exact: match.candidates.filter((item) => item.exactCode).map((item) => item.key),
+    confirmation: match.confirmation,
+  };
+}
+
+const out = document.querySelector('#out');
+try {
+  const sharp = draw(['Gemini Elf', '1st Edition', 'LON-000']);
+  const other = draw(['Blue-Eyes White Dragon', 'LC01-EN004']);
+  const soft = blurOf(sharp);
+  const session = openReader();
+  const marks = [];
+  const started = performance.now();
+  const coldText = await session.read(sharp, {
+    psm: '6',
+    onProgress(message) {
+      marks.push({
+        ms: Math.round(performance.now() - started),
+        status: message && message.status,
+        progress: message && message.progress,
+      });
+    },
+  });
+  const coldMs = Math.round(performance.now() - started);
+  const warmStart = performance.now();
+  const warmSameText = await session.read(sharp, { psm: '6' });
+  const warmSameMs = Math.round(performance.now() - warmStart);
+  const otherStart = performance.now();
+  const otherText = await session.read(other, { psm: '6' });
+  const warmOtherMs = Math.round(performance.now() - otherStart);
+  const fullStart = performance.now();
+  const fullText = await readCardImage(session, sharp, {});
+  const warmIdentifyMs = Math.round(performance.now() - fullStart);
+  const softStart = performance.now();
+  const softText = await session.read(soft, { psm: '6' });
+  const softMs = Math.round(performance.now() - softStart);
+  const recognizeAt = marks.find((mark) => mark.status === 'recognizing text');
+  out.textContent = JSON.stringify({
+    coldMs,
+    initMs: recognizeAt ? recognizeAt.ms : null,
+    recognizeColdMs: recognizeAt ? coldMs - recognizeAt.ms : null,
+    warmSameMs,
+    warmOtherMs,
+    warmIdentifyMs,
+    softMs,
+    cold: summarize(coldText),
+    warmSame: summarize(warmSameText),
+    other: summarize(otherText),
+    full: summarize(fullText),
+    soft: summarize(softText),
+    marks,
+  });
+} catch (err) {
+  out.textContent = JSON.stringify({ error: String(err && err.stack || err) });
+}
+</script>

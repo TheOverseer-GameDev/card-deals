@@ -129,4 +129,7 @@ const VER='1793899820';
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update()})});
  let rl;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rl&&!sessionStorage.getItem('cc'+VER)){rl=1;sessionStorage.setItem('cc'+VER,1);location.reload()}})}
 render();
-</script></body></html>
+</script><!-- card-scan:start -->
+<script type="module" src="scan/boot.js"></script>
+<!-- card-scan:end -->
+</body></html>

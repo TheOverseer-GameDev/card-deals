@@ -1,0 +1,18 @@
+Local OCR assets for on-device text reading. The page loads these from the same origin.
+No card photo is sent to the projects that published these files.
+
+tesseract.js 5.1.1
+https://github.com/naptha/tesseract.js
+Apache License 2.0 (see LICENSE-tesseract.js.txt)
+
+tesseract.js-core 5.1.1 LSTM builds
+https://github.com/naptha/tesseract.js-core
+Apache License 2.0
+
+English traineddata, LSTM integer model 4.0.0_best_int
+https://github.com/naptha/tessdata
+Apache License 2.0
+
+The copies under scan/vendor/ are what the scanner uses.
+The worker script still contains a CDN address as an unused fallback if paths are omitted.
+This app always passes same-origin workerPath, corePath, and langPath.
