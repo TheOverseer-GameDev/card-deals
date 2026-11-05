@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0f1a"><script>(function(){var d=document.documentElement,n=navigator,ua=n.userAgent||'',tp=n.maxTouchPoints||0,mm=function(q){return matchMedia(q).matches},sw=Math.min(screen.width,screen.height),
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="theme-color" content="#0b0f1a"><script>(function(){var d=document.documentElement,n=navigator,ua=n.userAgent||'',tp=n.maxTouchPoints||0,mm=function(q){return matchMedia(q).matches},sw=Math.min(screen.width,screen.height),
 f=localStorage.getItem('view'),ph=(n.userAgentData&&n.userAgentData.mobile)||/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||(tp>0&&sw<900&&mm('(pointer:coarse)'))||(devicePixelRatio>=2&&tp>0&&!mm('(any-pointer:fine)'));
 if(f)ph=f=='phone';d.classList.add(ph?'phone':'desktop');
 if(ph){var v=document.querySelector('meta[name=viewport]');v&&v.setAttribute('content','width=device-width,initial-scale=1,viewport-fit=cover');if(innerWidth>screen.width*1.3)d.style.zoom=innerWidth/screen.width}})()</script><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png">
@@ -25,35 +25,40 @@ nav button{flex:1;background:none;border:0;color:var(--mu);padding:10px 0 9px;fo
 nav button span{font-size:21px}nav button.on{color:var(--gold)}.empty{color:var(--mu);text-align:center;padding:40px 10px}
 
 .mut{opacity:.55}.bd{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:#1f2740;color:var(--mu);margin:6px 4px 0 0}.bd.ok{background:#163a2b;color:var(--up)}.bd.bad{background:#3a1616;color:var(--dn)}
-.sm{font-size:11px;color:var(--mu);font-weight:400}#panel{display:none}
+.sm{font-size:11px;color:var(--mu);font-weight:400}#panel{display:none}.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}.chip{border:1px solid var(--line);background:#1a2136;color:var(--mu);border-radius:20px;padding:6px 12px;font-size:12.5px}.chip.on{border-color:var(--gold);color:var(--gold);background:#2a2410}
 @media(min-width:900px){html.desktop body{padding:0 0 0 210px}
 html.desktop nav{top:0;bottom:0;right:auto;width:210px;flex-direction:column;justify-content:flex-start;padding:90px 10px 0;border-top:0;border-right:1px solid var(--line)}
 html.desktop nav button{flex:0;flex-direction:row;font-size:15px;gap:12px;padding:12px 14px;border-radius:12px;justify-content:flex-start}html.desktop nav button.on{background:#1a2136}
 html.desktop header{position:fixed;left:0;top:0;width:210px;background:none;z-index:10}html.desktop .sub{display:none}
 html.desktop main{padding:22px 24px;margin-right:440px}html.desktop .view{display:none;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}html.desktop .view.on{display:grid}
-html.desktop .view>.banner,html.desktop .view>.note,html.desktop .view>.empty{grid-column:1/-1}html.desktop .c{margin:0;cursor:pointer}html.desktop .c.sel{border-color:var(--gold)}
+html.desktop .view>.chips,html.desktop .view>.banner,html.desktop .view>.note,html.desktop .view>.empty{grid-column:1/-1}html.desktop .c{margin:0;cursor:pointer}html.desktop .c.sel{border-color:var(--gold)}
 html.desktop .c .det{display:none}html.desktop #v-trends{grid-template-columns:1fr 1fr}
 html.desktop #panel{display:block;position:fixed;right:0;top:0;bottom:0;width:440px;overflow:auto;padding:22px;border-left:1px solid var(--line);background:#0e1321}
 html.desktop #panel .det{max-height:none}}
+#vt{display:block;width:100%;margin:0 0 10px;padding:11px 14px;border-radius:12px;background:var(--gold);color:#111;font-weight:700;font-size:15px;border:0}
 </style></head><body>
-<header><button id="vt" style="float:right;margin-top:2px;background:#1f2740;color:var(--mu);border:1px solid var(--line);border-radius:20px;padding:5px 11px;font-size:12px"></button><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div></header>
+<header><button id="vt"></button><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div></header>
 <main><section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section><section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
 <aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside><nav><button data-v="ygo" class="on"><span>🐉</span>Yu-Gi-Oh</button><button data-v="mtg"><span>🧙</span>Magic</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="chart.min.js?1793896208" defer></script><script src="data.js?1793896208"></script>
+<script src="chart.min.js?1793896622" defer></script><script src="data.js?1793896622"></script>
 <script>
 const $=s=>document.querySelector(s),m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
-cad=(c,k)=>c[k+'_cad']!=null?'C$'+Math.round(c[k+'_cad']).toLocaleString()+'<div class=sm>'+m(c[k])+' US</div>':m(c[k]),lp=l=>l.total_cad!=null?'C$'+(+l.total_cad).toFixed(2):l.cad!=null?'C$'+(+l.cad).toFixed(2):m(l.price),
+cad=(c,k)=>c[k+'_cad']!=null?'C$'+Math.round(c[k+'_cad']).toLocaleString()+'<div class=sm>'+m(c[k])+' US</div>':m(c[k]),lp=l=>l.cad_total!=null?'C$'+(+l.cad_total).toFixed(2):l.total_cad!=null?'C$'+(+l.total_cad).toFixed(2):l.cad!=null?'C$'+(+l.cad).toFixed(2):m(l.price),
 unv=l=>l&&(l.vetted===false||l.vetted==='unverified'||l.cert_ok===false),
-bd=o=>{let h='';if(!o)return h;if(o.vetted===true)h+='<span class="bd ok">✓ vetted</span>';if(unv(o))h+='<span class="bd">unverified</span>';if(o.cert_ok===true)h+='<span class="bd ok">cert ok</span>';if(o.fake_risk!=null)h+=`<span class="bd ${/high/i.test(o.fake_risk)||o.fake_risk>=0.5?'bad':''}">fake risk ${typeof o.fake_risk=='number'?Math.round(o.fake_risk*100)+'%':o.fake_risk}</span>`;if(o.condition)h+=`<span class=bd>${e(o.condition)}</span>`;if(o.seller_score!=null)h+=`<span class=bd>seller ${e(o.seller_score)}</span>`;return h},
+bd=o=>{let h='';if(!o)return h;if(o.vetted===true)h+='<span class="bd ok">✓ vetted</span>';if(unv(o))h+='<span class="bd">unverified</span>';if(o.cert_ok===true)h+='<span class="bd ok">cert ok</span>';if(o.fake_risk!=null)h+=`<span class="bd ${/high/i.test(o.fake_risk)||(o.fake_risk>1?o.fake_risk>=50:o.fake_risk>=0.5)?'bad':''}">fake risk ${typeof o.fake_risk=='number'?Math.round(o.fake_risk>1?o.fake_risk:o.fake_risk*100)+'%':o.fake_risk}</span>`;if(o.condition)h+=`<span class=bd>cond ${e(o.condition)}</span>`;if(o.seller_score!=null)h+=`<span class=bd>seller ${e(o.seller_score)}</span>`;return h},
 lb=(l,lab,cls)=>!l?`<a class="btn g">No live ${lab}</a>`:unv(l)?`<a class="btn g mut" style="height:auto;padding:8px;font-size:12px;font-weight:400" href="${e(l.url)}" target=_blank rel=noopener>${lab} ${lp(l)} (unverified)</a>`:`<a class="btn ${cls}" href="${e(l.url)}" target=_blank rel=noopener>${lab} ${lp(l)} ↗</a>`,
 p=v=>v==null?'–':`<span class="${v>=0?'up':'dn'}">${v>=0?'+':''}${Math.round(v)}%</span>`,e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
 $('#sub').textContent='Updated '+D.built+' · prices USD · advice only, never auto-buys';
+const BUD=D.budget_tiers||[100,500,2000]; let BFIL={ygo:'all',mtg:'all'};
+function costOf(c){return c.entry_cad??c.cad_total??(c.raw!=null?c.raw*1.4:null)}
 function list(k){const d=D[k];let h=d.sample?'<div class="banner">SAMPLE data: this tracker has not produced results yet. Real picks appear after its first run.</div>':'';
- if(!d.cards.length)return h+'<div class="empty">No picks yet.</div>';
- d.cards.forEach((c,i)=>{h+=`<div class="c" data-k="${k}" data-i="${i}"><div class="top"><div class="rk">${i+1}</div><div><div class="nm">${e(c.name)}${c.deal?'<span class="tag">BUY ZONE</span>':''}</div>
- <div class="meta">12-mo raw ${p(c.t12)} · PSA 10 ${p(c.t12g)}</div></div><div class="sc"><b>${Math.round(c.score)}</b><small>score</small></div></div>
+ const tiers=['all',...BUD]; h+=`<div class="chips" data-game="${k}">`+tiers.map(t=>`<button type="button" class="chip ${BFIL[k]==String(t)?'on':''}" data-b="${t}">${t==='all'?'All':('≤ C$'+Number(t).toLocaleString())}</button>`).join('')+`</div>`;
+ const cards=d.cards.map((c,i)=>({c,i})).filter(({c})=>{const lim=BFIL[k]; if(lim==='all')return true; const cost=costOf(c); return cost!=null && cost>0 && cost<=+lim});
+ if(!cards.length)return h+'<div class="empty">No picks in this budget.</div>';
+ cards.forEach(({c,i},n)=>{h+=`<div class="c" data-k="${k}" data-i="${i}"><div class="top"><div class="rk">${n+1}</div><div><div class="nm">${e(c.name)}${c.deal?'<span class="tag">BUY ZONE</span>':''}${c.rl?'<span class="tag">RL</span>':''}</div>
+ <div class="meta">12-mo raw ${p(c.t12)} · PSA 10 ${p(c.t12g)}${c.ret_pct!=null?` · ret ${p(c.ret_pct)}`:''}${c.entry_cad!=null?` · entry C$${Math.round(c.entry_cad)}`:''}</div></div><div class="sc"><b>${Math.round(c.score)}</b><small>score</small></div></div>
  <div class="row"><div class="st"><small>Raw</small><b>${cad(c,'raw')}</b></div><div class="st"><small>PSA 9</small><b>${cad(c,'p9')}</b></div><div class="st"><small>PSA 10</small><b>${cad(c,'p10')}</b></div></div>
- <div>${bd(c)}${bd(c.lr)}</div><div class="btns">${lb(c.lr,'Raw','')}${lb(c.lg,'PSA 10','g')}</div>
+ <div>${bd(c.lr||c)}</div><div class="btns">${lb(c.lr,'Raw','')}${lb(c.lg,'PSA 10','g')}</div>
  <button class="btn g rq" style="width:100%;border:1px solid var(--gold);color:var(--gold);font-size:15px" data-k="${k}" data-i="${i}">⭐ Request purchase</button><div class="det"><div class="row"><div class="st"><small>3 mo</small><b>${p(c.t3)}</b></div><div class="st"><small>6 mo</small><b>${p(c.t6)}</b></div><div class="st"><small>Buy zone ≤</small><b>${m(c.buy)}</b></div></div>
  <canvas height="190"></canvas><div class="note">Sold-price history (PriceCharting). Gold dashed = buy zone. Live listings are cheapest eBay Buy It Now at run time and may be a different print or condition, so check before buying.${c.url?` <a style="color:var(--gold)" href="${e(c.url)}" target="_blank">Sold data ↗</a>`:''}</div></div></div>`});return h}
 function chart(el,c){if(el.dataset.done||!window.Chart)return;el.dataset.done=1;const H=c.hist||{},col={raw:'#7aa2ff',p9:'#3ddc97',p10:'#d4af37'},nm={raw:'Raw',p9:'PSA 9',p10:'PSA 10'};
@@ -68,7 +73,7 @@ $('#v-trends').innerHTML='<div class="c"><div class="nm">Score by card (YGO)</di
 let trDone;function trends(){if(trDone||!window.Chart)return;trDone=1;const cs=D.ygo.cards.concat(D.mtg.sample?[]:D.mtg.cards),lb=cs.map(c=>c.name.replace(/\[1st Edition\]/,'1st').slice(0,26)),o={indexAxis:'y',animation:{duration:300},plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b95b0'},grid:{color:'#1a2136'}},y:{ticks:{color:'#e8ecf6',font:{size:10}},grid:{display:false}}}};
  new Chart($('#tc'),{type:'bar',data:{labels:lb,datasets:[{data:cs.map(c=>c.score),backgroundColor:'#d4af37'}]},options:o});
  new Chart($('#tg'),{type:'bar',data:{labels:lb,datasets:[{data:cs.map(c=>c.t12||0),backgroundColor:cs.map(c=>(c.t12||0)>=0?'#3ddc97':'#ff6b6b')}]},options:o})}
-document.addEventListener('click',ev=>{const b=ev.target.closest('nav button');if(b){document.querySelectorAll('nav button,.view').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#v-'+b.dataset.v).classList.add('on');scrollTo({top:0});if(b.dataset.v=='trends')trends();return}
+document.addEventListener('click',ev=>{const ch=ev.target.closest('.chip[data-b]');if(ch){const g=ch.parentElement.dataset.game;BFIL[g]=ch.dataset.b;$('#v-'+g).innerHTML=list(g);return}const b=ev.target.closest('nav button');if(b){document.querySelectorAll('nav button,.view').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#v-'+b.dataset.v).classList.add('on');scrollTo({top:0});if(b.dataset.v=='trends')trends();return}
  const q=ev.target.closest('.rq');if(q){req(D[q.dataset.k].cards[q.dataset.i],q.dataset.k);return}const x=ev.target.closest('[data-del]');if(x){W.splice(+x.dataset.del,1);sv();return}const sh=ev.target.closest('[data-sh]');if(sh){send(W[+sh.dataset.sh].t);return}if(ev.target.closest('a'))return;const c=ev.target.closest('.c[data-k]');if(c&&desk()){document.querySelectorAll('.c.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');const P=$('#panel');P.innerHTML=c.innerHTML;P.querySelector('.det').style.display='block';const cv=P.querySelector('canvas');cv&&chart(cv,D[c.dataset.k].cards[c.dataset.i]);return}if(c){c.classList.toggle('open');const cv=c.querySelector('canvas');cv&&chart(cv,D[c.dataset.k].cards[c.dataset.i])}});
 const PH=document.documentElement.classList.contains('phone');$('#vt').textContent=PH?'🖥 PC view':'📱 Phone view';$('#vt').onclick=()=>{localStorage.setItem('view',PH?'desktop':'phone');location.reload()};
 const desk=()=>!PH&&matchMedia('(min-width:900px)').matches;
@@ -79,5 +84,8 @@ async function send(t){try{if(navigator.share){await navigator.share({title:'Car
 function req(c,k){const l=c.lr||c.lg,p=l?`Live ${m(l.price)} USD`:`Raw sold ${m(c.raw)} USD`,t=`Purchase request (${k=='ygo'?'Yu-Gi-Oh':'Magic'}): ${c.name}\nPrint/details: ${l?l.title||'':''}\nPrice: ${p} (raw ${m(c.raw)} / PSA 9 ${m(c.p9)} / PSA 10 ${m(c.p10)})\nBuy zone: ≤ ${m(c.buy)}\nLink: ${l?l.url:c.url||''}\nPlease verify print, condition and total cost in CAD before buying.`;
  W.unshift({n:c.name,p:p,t:t,d:new Date().toLocaleDateString('en-CA')});sv();toast('Added to Wishlist');send(t)}
 sv();
-if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
+const VER='1793896622';
+(async()=>{try{const r=await fetch('version.json?'+Date.now(),{cache:'no-store'}),j=await r.json();if(j.v!==VER&&!sessionStorage.getItem('rl'+j.v)){sessionStorage.setItem('rl'+j.v,1);if(window.caches)for(const k of await caches.keys())await caches.delete(k);const g=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();g&&await g.update();location.reload()}}catch(_){}})();
+if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update()})});
+ let rl;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rl&&!sessionStorage.getItem('cc'+VER)){rl=1;sessionStorage.setItem('cc'+VER,1);location.reload()}})}
 </script></body></html>
