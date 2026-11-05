@@ -36,58 +36,97 @@ html.desktop .c .det{display:none}html.desktop #v-trends{grid-template-columns:1
 html.desktop #panel{display:block;position:fixed;right:0;top:0;bottom:0;width:440px;overflow:auto;padding:22px;border-left:1px solid var(--line);background:#0e1321}
 html.desktop #panel .det{max-height:none}}
 #vt{display:block;width:100%;margin:0 0 10px;padding:11px 14px;border-radius:12px;background:var(--gold);color:#111;font-weight:700;font-size:15px;border:0}
+#health{font-size:12px;margin-top:4px;cursor:pointer;opacity:.9}.hb.ok{color:#3ddc84}.hb.warn{color:#ffb020}.hb.stop{color:#ff5a5a}.hp{display:none;color:#c9d1e0;margin-top:3px}.hb.open .hp{display:block}
+.gt{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#111729;border:1px solid var(--line);border-radius:14px;padding:4px;margin:6px 0 10px}
+.gt button,.st3 button{border:0;background:none;color:var(--mu);font-weight:700;font-size:16px;padding:10px;border-radius:10px;transition:background .2s,color .2s}
+.gt button.on{background:var(--gold);color:#111}.st3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 10px}.st3 button{font-size:14px;background:#141a2b;border:1px solid var(--line)}.st3 button.on{border-color:var(--gold);color:var(--gold)}
+.tools{display:flex;gap:8px;margin:0 0 8px}.tools input,.tools select{flex:1;min-width:0;background:#141a2b;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px}.tools select{flex:0 0 120px}
+.why{font-size:13px;color:#c9d1e0;margin-top:8px}.rl{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;margin-left:6px}.rl.Low{background:#163a2b;color:var(--up)}.rl.Medium{background:#3a2f12;color:#ffc65a}.rl.High{background:#3a1616;color:var(--dn)}
+.mv{font-size:11px;display:block;text-align:center;margin-top:2px}.spark{display:block;width:100%;height:34px;margin-top:8px}
+.vt2{display:block;font-size:10.5px;font-weight:400;opacity:.75}.cnt{color:var(--mu);font-size:12.5px;margin:2px 0 10px}
+.rg{display:flex;gap:4px;flex-wrap:wrap;margin-top:12px}.rg button{background:#141a2b;border:1px solid var(--line);color:var(--mu);border-radius:8px;padding:5px 9px;font-size:12px}.rg button.on{color:var(--gold);border-color:var(--gold)}
+header{position:static}.top>div:first-child{flex:0 0 34px}.btn{height:auto;min-height:46px;padding:6px 8px;text-align:center;line-height:1.2}html.desktop nav{padding-top:130px!important}
+html.desktop #lists .view{display:none}html.desktop #lists .view.on{display:grid}
 </style></head><body>
-<header><button id="vt"></button><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div></header>
-<main><section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section><section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
-<aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside><nav><button data-v="ygo" class="on"><span>🐉</span>Yu-Gi-Oh</button><button data-v="mtg"><span>🧙</span>Magic</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="chart.min.js?1793897259" defer></script><script src="data.js?1793897259"></script>
+<header><button id="vt"></button><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div><div id="health"></div></header>
+<main><div id="lists"><div class="gt"><button data-g="ygo" class="on">Yugioh</button><button data-g="mtg">Magic</button></div>
+<div class="st3"><button data-l="top" class="on">Top buys</button><button data-l="risky">Risky buys</button><button data-l="safe">Safe buys</button></div>
+<div class="tools"><input id="q" type="search" placeholder="Search cards"><select id="so"><option value="rank">Sort: rank</option><option value="price">Price ↑</option><option value="ret">Return ↓</option></select></div>
+<div class="chips" id="chips"></div><div class="cnt" id="cnt"></div>
+<section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section></div>
+<section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
+<aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside>
+<nav><button data-v="lists" class="on"><span>🏆</span>Lists</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
+<script src="chart.min.js?1793899720" defer></script><script src="data.js?1793899720"></script>
 <script>
-const $=s=>document.querySelector(s),m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
-cad=(c,k)=>c[k+'_cad']!=null?'C$'+Math.round(c[k+'_cad']).toLocaleString()+'<div class=sm>'+m(c[k])+' US</div>':m(c[k]),lp=l=>l.cad_total!=null?'C$'+(+l.cad_total).toFixed(2):l.total_cad!=null?'C$'+(+l.total_cad).toFixed(2):l.cad!=null?'C$'+(+l.cad).toFixed(2):m(l.price),
-unv=l=>l&&(l.vetted===false||l.vetted==='unverified'||l.cert_ok===false),
-bd=o=>{let h='';if(!o)return h;if(o.vetted===true)h+='<span class="bd ok">✓ vetted</span>';if(unv(o))h+='<span class="bd">unverified</span>';if(o.cert_ok===true)h+='<span class="bd ok">cert ok</span>';if(o.fake_risk!=null)h+=`<span class="bd ${/high/i.test(o.fake_risk)||(o.fake_risk>1?o.fake_risk>=50:o.fake_risk>=0.5)?'bad':''}">fake risk ${typeof o.fake_risk=='number'?Math.round(o.fake_risk>1?o.fake_risk:o.fake_risk*100)+'%':o.fake_risk}</span>`;if(o.condition)h+=`<span class=bd>cond ${e(o.condition)}</span>`;if(o.seller_score!=null)h+=`<span class=bd>seller ${e(o.seller_score)}</span>`;return h},
-lb=(l,lab,cls)=>!l?`<a class="btn g">No live ${lab}</a>`:(l.verified===false||unv(l))?`<a class="btn g">no verified listing</a>`:`<a class="btn ${cls}" href="${e(l.url)}" target=_blank rel=noopener>${lab}${l.site?` · ${e(l.site)}`:''} ${lp(l)} ↗</a>`,
-offersHtml=(c)=>{const os=(c.offers||[]).filter(o=>o&&o.verified&&o.url).slice(0,3); if(!os.length) return `<a class="btn g">no verified listing</a>`; return os.map((o,i)=>`<a class="btn ${i? 'g':'y'}" href="${e(o.url)}" target=_blank rel=noopener>${e(o.site||'Offer')} · C$${Math.round(o.cad_total||o.price||0)} ↗</a>`).join('');},
-
-p=v=>v==null?'–':`<span class="${v>=0?'up':'dn'}">${v>=0?'+':''}${Math.round(v)}%</span>`,e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
-$('#sub').textContent='Updated '+D.built+' · prices USD · advice only, never auto-buys';
-const BUD=D.budget_tiers||[100,500,2000]; let BFIL={ygo:'all',mtg:'all'};
-function costOf(c){return c.entry_cad??c.cad_total??(c.raw!=null?c.raw*1.4:null)}
-function list(k){const d=D[k];let h=d.sample?'<div class="banner">SAMPLE data: this tracker has not produced results yet. Real picks appear after its first run.</div>':'';
- const tiers=['all',...BUD]; h+=`<div class="chips" data-game="${k}">`+tiers.map(t=>`<button type="button" class="chip ${BFIL[k]==String(t)?'on':''}" data-b="${t}">${t==='all'?'All':('≤ C$'+Number(t).toLocaleString())}</button>`).join('')+`</div>`;
- const cards=d.cards.map((c,i)=>({c,i})).filter(({c})=>{const lim=BFIL[k]; if(lim==='all')return true; const cost=costOf(c); return cost!=null && cost>0 && cost<=+lim});
- if(!cards.length)return h+'<div class="empty">No picks in this budget.</div>';
- cards.forEach(({c,i},n)=>{h+=`<div class="c" data-k="${k}" data-i="${i}"><div class="top"><div class="rk">${n+1}</div><div><div class="nm">${e(c.name)}${c.deal?'<span class="tag">BUY ZONE</span>':''}${c.rl?'<span class="tag">RL</span>':''}</div>
- <div class="meta">12-mo raw ${p(c.t12)} · PSA 10 ${p(c.t12g)}${c.ret_pct!=null?` · ret ${p(c.ret_pct)}`:''}${c.entry_cad!=null?` · entry C$${Math.round(c.entry_cad)}`:''}</div></div><div class="sc"><b>${Math.round(c.score)}</b><small>score</small></div></div>
- <div class="row"><div class="st"><small>Raw</small><b>${cad(c,'raw')}</b></div><div class="st"><small>PSA 9</small><b>${cad(c,'p9')}</b></div><div class="st"><small>PSA 10</small><b>${cad(c,'p10')}</b></div></div>
- <div>${bd(c.lr||c)}</div><div class="btns">${lb(c.lr,'Raw','')}${lb(c.lg,'PSA 10','g')}</div>
- <button class="btn g rq" style="width:100%;border:1px solid var(--gold);color:var(--gold);font-size:15px" data-k="${k}" data-i="${i}">⭐ Request purchase</button><div class="det"><div class="row"><div class="st"><small>3 mo</small><b>${p(c.t3)}</b></div><div class="st"><small>6 mo</small><b>${p(c.t6)}</b></div><div class="st"><small>Buy zone ≤</small><b>${m(c.buy)}</b></div></div>
- <canvas height="190"></canvas><div class="note">Sold-price history (PriceCharting). Gold dashed = buy zone. Live listings are cheapest eBay Buy It Now at run time and may be a different print or condition, so check before buying.${c.url?` <a style="color:var(--gold)" href="${e(c.url)}" target="_blank">Sold data ↗</a>`:''}</div></div></div>`});return h}
-function chart(el,c){if(el.dataset.done||!window.Chart)return;el.dataset.done=1;const H=c.hist||{},col={raw:'#7aa2ff',p9:'#3ddc97',p10:'#d4af37'},nm={raw:'Raw',p9:'PSA 9',p10:'PSA 10'};
- const ds=Object.keys(col).filter(k=>H[k]&&H[k].length).map(k=>({label:nm[k],data:H[k].map(([t,v])=>({x:t,y:v})),borderColor:col[k],pointRadius:0,tension:.3,borderWidth:2}));
- if(!ds.length){el.replaceWith(Object.assign(document.createElement('div'),{className:'note',textContent:'No price history yet.'}));return}
- if(c.buy){const xs=ds[0].data;ds.push({label:'Buy zone',data:[{x:xs[0].x,y:c.buy},{x:xs[xs.length-1].x,y:c.buy}],borderColor:'#d4af37',borderDash:[5,5],pointRadius:0,borderWidth:1})}
- new Chart(el,{type:'line',data:{datasets:ds},options:{animation:{duration:300},parsing:false,scales:{x:{type:'linear',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>new Date(v).toLocaleDateString('en-CA',{month:'short',year:'2-digit'})},grid:{color:'#1a2136'}},y:{type:'logarithmic',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>'$'+v},grid:{color:'#1a2136'}}},plugins:{legend:{labels:{color:'#e8ecf6',boxWidth:10}}}}})}
-$('#v-ygo').innerHTML=list('ygo');$('#v-mtg').innerHTML=list('mtg');
-$('#v-coll').innerHTML=D.coll.length?D.coll.map(r=>`<div class="c"><div class="nm">${e(r.name)}</div><div class="meta">${e(r.set_code)} · ${e(r.rarity)} · ${e(r.condition)}</div></div>`).join('')+'<div class="note">Add cards in ygo_cards/my_collection.csv.</div>':'<div class="empty">No cards in your collection yet.</div>';
+const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';'),
+m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
+C=v=>v==null?'–':'C$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
+p=v=>v==null?'–':`<span class="${v>=0?'up':'dn'}">${v>=0?'+':''}${Math.round(v)}%</span>`,
+ago=t=>{if(!t)return'';const s=(Date.now()-(typeof t=='number'?t*1000:Date.parse(t)))/1000;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<172800?Math.round(s/3600)+' h ago':Math.round(s/86400)+' d ago'},
+FX=1.4,usd2c=v=>v==null?null:v*FX;
+const LN={top:'Top buys',risky:'Risky buys',safe:'Safe buys'};let G='ygo',LS='top',BF='all',Q='',SO='rank';
+const BUD=D.budget_tiers||[100,500,2000];
+function sub(){$('#sub').textContent=`Ranked ${ago(D.ranked_at)} · prices in CAD · advice only, never auto-buys`}sub();setInterval(sub,60000);
+(function(){const H=D.health||{},el=$('#health'),lv=H.level||'warn',lc=H.links_checked_oldest_top20,ag=lc?Math.round((Date.now()-Date.parse(lc))/36e5):null;
+el.className='hb '+lv;el.innerHTML=(lv=='ok'?'● Healthy':lv=='stop'?'■ Paused':'▲ Check')+(ag!=null?` · links checked ${ag<1?'<1':ag}h ago`:'')+((H.problems||[]).length?`<div class="hp">${H.problems.map(e).join('<br>')}</div>`:'');el.onclick=()=>el.classList.toggle('open')})();
+const offer=c=>[c.lr,c.lg].find(l=>l&&l.url&&l.verified===true&&l.vetted!==false);
+const cost=c=>{const o=offer(c);return o&&o.cad_total!=null?+o.cad_total:(c.entry_cad??c.cad_total??null)};
+const ret=c=>c.exp_return_pct??c.ret_pct;
+function spark(a){if(!a||a.length<2)return'';const mn=Math.min(...a),mx=Math.max(...a),w=300,h=34,d=a.map((v,i)=>`${(i/(a.length-1)*w).toFixed(1)},${(h-2-(mx>mn?(v-mn)/(mx-mn):.5)*(h-4)).toFixed(1)}`).join(' ');
+ return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="${a[a.length-1]>=a[0]?'#3ddc97':'#ff6b6b'}" stroke-width="2" points="${d}"/></svg>`}
+function btn(l,lab,cls){if(!l)return`<a class="btn g">No live ${lab}</a>`;if(l.verified!==true||l.vetted===false)return`<a class="btn g mut" href="${e(l.url)}" target=_blank rel=noopener style="font-size:12px;font-weight:400">${lab} (unverified)</a>`;
+ return `<a class="btn ${cls}" style="flex-direction:column;gap:0" href="${e(l.url)}" target=_blank rel=noopener>${lab}${l.site?' · '+e(l.site):''} ${l.cad_total!=null?C(l.cad_total):m(l.price)} ↗<span class="vt2">verified ${ago(l.verified_at)||'–'}</span></a>`}
+function card(k,x){const c=D[k].cards[x.i],r=ret(c),pr=c.exp_profit_cad??c.ev_net,mv=x.mv==='new'?'<span class="mv" style="color:var(--gold)">new</span>':x.mv>0?`<span class="mv up">▲${x.mv}</span>`:x.mv<0?`<span class="mv dn">▼${-x.mv}</span>`:'<span class="mv" style="color:var(--mu)">–</span>';
+ return `<div class="c" data-k="${k}" data-i="${x.i}"><div class="top"><div><div class="rk">${x.rank}</div>${mv}</div><div style="flex:1;min-width:0"><div class="nm">${e(c.name)}<span class="rl ${x.risk_level}">${x.risk_level} risk</span>${c.rl?'<span class="tag">Reserved List</span>':''}</div>
+ <div class="why">${e(x.why)}</div></div><div class="sc"><b>${r!=null?p(r):'–'}</b><small>${pr!=null?(pr>=0?'+':'−')+'C$'+Math.abs(Math.round(pr))+' after fees':'exp. return'}</small></div></div>
+ ${spark(c.spark)}<div class="row"><div class="st"><small>Raw</small><b>${C(usd2c(c.raw))}</b></div><div class="st"><small>PSA 9</small><b>${C(usd2c(c.p9))}</b></div><div class="st"><small>PSA 10</small><b>${C(usd2c(c.p10))}</b></div></div>
+ <div class="btns">${btn(c.lr,'Raw','')}${btn(c.lg,'PSA 10','g')}</div>
+ <button class="btn g rq" style="width:100%;border:1px solid var(--gold);color:var(--gold);font-size:15px" data-k="${k}" data-i="${x.i}">⭐ Request purchase</button>
+ <div class="det"><div class="row"><div class="st"><small>3 mo</small><b>${p(c.t3)}</b></div><div class="st"><small>12 mo</small><b>${p(c.t12)}</b></div><div class="st"><small>Cost all-in</small><b>${C(cost(c))}</b></div></div>
+ <div class="rg"></div><canvas height="200"></canvas><div class="note h0"></div><div class="note">Sold-price history from PriceCharting, real data only. Buy links are re-checked to match the exact card and price.${c.url?` <a style="color:var(--gold)" href="${e(c.url)}" target="_blank">Sold data ↗</a>`:''}</div></div></div>`}
+function render(){const k=G,L=(D[k].lists||{})[LS]||[];let xs=L.filter(x=>{const c=D[k].cards[x.i];if(Q&&!c.name.toLowerCase().includes(Q))return false;if(BF!=='all'){const v=cost(c);return v!=null&&v<=+BF}return true});
+ if(SO=='price')xs=[...xs].sort((a,b)=>(cost(D[k].cards[a.i])??1e12)-(cost(D[k].cards[b.i])??1e12));if(SO=='ret')xs=[...xs].sort((a,b)=>(ret(D[k].cards[b.i])??-1e9)-(ret(D[k].cards[a.i])??-1e9));
+ $('#chips').innerHTML=['all',...BUD].map(t=>`<button class="chip ${BF==String(t)?'on':''}" data-b="${t}">${t==='all'?'All':'≤ C$'+Number(t).toLocaleString()}</button>`).join('');
+ $('#cnt').textContent=L.length<50?`${L.length} of 50 qualify, more being researched. Only cards with a verified exact-match listing can rank.`:'50 of 50';
+ ['ygo','mtg'].forEach(g=>{$('#v-'+g).classList.toggle('on',g==k);$('#v-'+g).innerHTML=g==k?(xs.length?xs.map(x=>card(k,x)).join(''):`<div class="empty">${L.length?'No matches.':'No cards qualify for '+LN[LS]+' yet.'}</div>`):''})}
+const RG=[['1M',31],['6M',183],['1Y',366],['5Y',1827],['10Y',3653],['All',0]],HC={};
+async function chart(box,c,k){const cv=box.querySelector('canvas');if(!cv||cv.dataset.done||!window.Chart)return;cv.dataset.done=1;
+ let H=HC[c.id];if(!H){try{H=HC[c.id]=await (await fetch(`h/${k}/${c.id}.json?`+VER)).json()}catch(_){H={}}}
+ const col={raw:'#7aa2ff',p9:'#3ddc97',p10:'#d4af37'},nm={raw:'Raw',p9:'PSA 9',p10:'PSA 10'},keys=Object.keys(col).filter(s=>H[s]&&H[s].length);
+ if(!keys.length){cv.replaceWith(Object.assign(document.createElement('div'),{className:'note',textContent:'No price history yet.'}));return}
+ const t0=Math.min(...keys.map(s=>H[s][0][0]));box.querySelector('.h0').textContent='Earliest real data: '+new Date(t0).toLocaleDateString('en-CA',{year:'numeric',month:'short'})+' (nothing before this is shown or estimated). Prices USD.';
+ let lg=true,rg=0;const ch=new Chart(cv,{type:'line',data:{datasets:[]},options:{animation:{duration:250},parsing:false,scales:{x:{type:'linear',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>new Date(v).toLocaleDateString('en-CA',{month:'short',year:'2-digit'})},grid:{color:'#1a2136'}},y:{type:'logarithmic',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>'$'+v},grid:{color:'#1a2136'}}},plugins:{legend:{labels:{color:'#e8ecf6',boxWidth:10}}}}});
+ function upd(){const end=Math.max(...keys.map(s=>H[s][H[s].length-1][0])),from=rg?end-rg*864e5:0;ch.data.datasets=keys.map(s=>({label:nm[s],data:H[s].filter(q=>q[0]>=from).map(([x,y])=>({x,y})),borderColor:col[s],pointRadius:rg&&rg<200?2:0,tension:.25,borderWidth:2}));ch.options.scales.y.type=lg?'logarithmic':'linear';ch.update();
+  box.querySelector('.rg').innerHTML=RG.map(([l,d])=>`<button data-rg="${d}" class="${d==rg?'on':''}">${l}</button>`).join('')+`<button data-lg class="${lg?'on':''}">Log</button>`}
+ box.querySelector('.rg').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;ev.stopPropagation();if(b.dataset.lg!==undefined)lg=!lg;else rg=+b.dataset.rg;upd()};upd()}
+$('#v-coll').innerHTML=D.coll.length?D.coll.map(r=>`<div class="c"><div class="nm">${e(r.name)}</div><div class="meta">${e(r.set_code)} · ${e(r.rarity)} · ${e(r.condition)}</div></div>`).join(''):'<div class="empty">No cards in your collection yet.</div>';
 $('#v-alerts').innerHTML=D.alerts.length?D.alerts.map(a=>`<a class="c" style="display:block;color:inherit;text-decoration:none" href="${e(a.u)}" target="_blank"><div class="meta">${e(a.g)} · ${e(a.t)}</div><div class="nm">${e(a.name)}</div><div class="meta">${e(a.msg)}</div></a>`).join(''):'<div class="empty">No alerts right now.</div>';
-$('#v-trends').innerHTML='<div class="c"><div class="nm">Score by card (YGO)</div><canvas id="tc" height="'+(D.ygo.cards.length*18+40)+'"></canvas></div><div class="c"><div class="nm">12-month raw change</div><canvas id="tg" height="'+(D.ygo.cards.length*18+40)+'"></canvas></div>';
-let trDone;function trends(){if(trDone||!window.Chart)return;trDone=1;const cs=D.ygo.cards.concat(D.mtg.sample?[]:D.mtg.cards),lb=cs.map(c=>c.name.replace(/\[1st Edition\]/,'1st').slice(0,26)),o={indexAxis:'y',animation:{duration:300},plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b95b0'},grid:{color:'#1a2136'}},y:{ticks:{color:'#e8ecf6',font:{size:10}},grid:{display:false}}}};
- new Chart($('#tc'),{type:'bar',data:{labels:lb,datasets:[{data:cs.map(c=>c.score),backgroundColor:'#d4af37'}]},options:o});
- new Chart($('#tg'),{type:'bar',data:{labels:lb,datasets:[{data:cs.map(c=>c.t12||0),backgroundColor:cs.map(c=>(c.t12||0)>=0?'#3ddc97':'#ff6b6b')}]},options:o})}
-document.addEventListener('click',ev=>{const ch=ev.target.closest('.chip[data-b]');if(ch){const g=ch.parentElement.dataset.game;BFIL[g]=ch.dataset.b;$('#v-'+g).innerHTML=list(g);return}const b=ev.target.closest('nav button');if(b){document.querySelectorAll('nav button,.view').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#v-'+b.dataset.v).classList.add('on');scrollTo({top:0});if(b.dataset.v=='trends')trends();return}
- const q=ev.target.closest('.rq');if(q){req(D[q.dataset.k].cards[q.dataset.i],q.dataset.k);return}const x=ev.target.closest('[data-del]');if(x){W.splice(+x.dataset.del,1);sv();return}const sh=ev.target.closest('[data-sh]');if(sh){send(W[+sh.dataset.sh].t);return}if(ev.target.closest('a'))return;const c=ev.target.closest('.c[data-k]');if(c&&desk()){document.querySelectorAll('.c.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');const P=$('#panel');P.innerHTML=c.innerHTML;P.querySelector('.det').style.display='block';const cv=P.querySelector('canvas');cv&&chart(cv,D[c.dataset.k].cards[c.dataset.i]);return}if(c){c.classList.toggle('open');const cv=c.querySelector('canvas');cv&&chart(cv,D[c.dataset.k].cards[c.dataset.i])}});
+$('#v-trends').innerHTML='<div class="c"><div class="nm">12-month raw change, ranked cards</div><canvas id="tg" height="300"></canvas></div>';
+let trDone;function trends(){if(trDone||!window.Chart)return;trDone=1;const seen=new Set(),cs=[];['ygo','mtg'].forEach(g=>Object.values(D[g].lists||{}).flat().forEach(x=>{const c=D[g].cards[x.i];if(!seen.has(c.id)){seen.add(c.id);cs.push(c)}}));
+ $('#tg').height=cs.length*20+40;new Chart($('#tg'),{type:'bar',data:{labels:cs.map(c=>c.name.slice(0,26)),datasets:[{data:cs.map(c=>c.t12||0),backgroundColor:cs.map(c=>(c.t12||0)>=0?'#3ddc97':'#ff6b6b')}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b95b0'}},y:{ticks:{color:'#e8ecf6',font:{size:10}}}}}})}
+$('#q').oninput=ev=>{Q=ev.target.value.trim().toLowerCase();render()};$('#so').onchange=ev=>{SO=ev.target.value;render()};
+document.addEventListener('click',ev=>{const t=ev.target;
+ const gb=t.closest('.gt button');if(gb){G=gb.dataset.g;document.querySelectorAll('.gt button').forEach(b=>b.classList.toggle('on',b==gb));render();return}
+ const lb=t.closest('.st3 button');if(lb){LS=lb.dataset.l;document.querySelectorAll('.st3 button').forEach(b=>b.classList.toggle('on',b==lb));render();return}
+ const ch=t.closest('.chip[data-b]');if(ch){BF=ch.dataset.b;render();return}
+ const b=t.closest('nav button');if(b){document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x==b));$('#lists').style.display=b.dataset.v=='lists'?'':'none';['coll','alerts','trends','wish'].forEach(v=>$('#v-'+v).classList.toggle('on',v==b.dataset.v));scrollTo({top:0});if(b.dataset.v=='trends')trends();return}
+ const q=t.closest('.rq');if(q){req(D[q.dataset.k].cards[q.dataset.i],q.dataset.k);return}const x=t.closest('[data-del]');if(x){W.splice(+x.dataset.del,1);sv();return}const sh=t.closest('[data-sh]');if(sh){send(W[+sh.dataset.sh].t);return}
+ if(t.closest('a')||t.closest('.rg'))return;const c=t.closest('.c[data-k]');if(!c)return;const cd=D[c.dataset.k].cards[c.dataset.i];
+ if(desk()){document.querySelectorAll('.c.sel').forEach(z=>z.classList.remove('sel'));c.classList.add('sel');const P=$('#panel');P.innerHTML=c.innerHTML;P.querySelector('.det').style.display='block';chart(P,cd,c.dataset.k);return}
+ c.classList.toggle('open');chart(c,cd,c.dataset.k)});
 const PH=document.documentElement.classList.contains('phone');$('#vt').textContent=PH?'🖥 PC view':'📱 Phone view';$('#vt').onclick=()=>{localStorage.setItem('view',PH?'desktop':'phone');location.reload()};
 const desk=()=>!PH&&matchMedia('(min-width:900px)').matches;
 let W=JSON.parse(localStorage.getItem('wish')||'[]');
 function sv(){localStorage.setItem('wish',JSON.stringify(W));$('#v-wish').innerHTML=(W.length?W.map((w,i)=>`<div class="c"><div class="meta">${e(w.d)}</div><div class="nm">${e(w.n)}</div><div class="meta">${e(w.p)}</div><div class="btns"><button class="btn" data-sh="${i}" style="border:0">Share / copy</button><button class="btn g" data-del="${i}" style="border:0">Remove</button></div></div>`).join(''):'<div class="empty">Tap ⭐ Request purchase on any card to save it here.</div>')+'<div class="note">Saved only on this phone. Sharing just sends text; nothing is bought.</div>'}
 function toast(t){const d=Object.assign(document.createElement('div'),{textContent:t});d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#d4af37;color:#111;padding:10px 16px;border-radius:20px;font-weight:600;z-index:20;transition:opacity .4s';document.body.appendChild(d);setTimeout(()=>d.style.opacity=0,1600);setTimeout(()=>d.remove(),2100)}
 async function send(t){try{if(navigator.share){await navigator.share({title:'Card purchase request',text:t});return}}catch(_){return}try{await navigator.clipboard.writeText(t);toast('Copied, paste it to your bot')}catch(_){prompt('Copy this:',t)}}
-function req(c,k){const l=c.lr||c.lg,p=l?`Live ${m(l.price)} USD`:`Raw sold ${m(c.raw)} USD`,t=`Purchase request (${k=='ygo'?'Yu-Gi-Oh':'Magic'}): ${c.name}\nPrint/details: ${l?l.title||'':''}\nPrice: ${p} (raw ${m(c.raw)} / PSA 9 ${m(c.p9)} / PSA 10 ${m(c.p10)})\nBuy zone: ≤ ${m(c.buy)}\nLink: ${l?l.url:c.url||''}\nPlease verify print, condition and total cost in CAD before buying.`;
+function req(c,k){const l=c.lr||c.lg,p=l?`Live ${l.cad_total!=null?'C$'+(+l.cad_total).toFixed(2):m(l.price)+' USD'}`:`Raw sold ${m(c.raw)} USD`,t=`Purchase request (${k=='ygo'?'Yu-Gi-Oh':'Magic'}): ${c.name}\nPrint/details: ${l?l.title||'':''}\nPrice: ${p} (raw ${m(c.raw)} / PSA 9 ${m(c.p9)} / PSA 10 ${m(c.p10)})\nBuy zone: ≤ ${m(c.buy)}\nLink: ${l?l.url:c.url||''}\nPlease verify print, condition and total cost in CAD before buying.`;
  W.unshift({n:c.name,p:p,t:t,d:new Date().toLocaleDateString('en-CA')});sv();toast('Added to Wishlist');send(t)}
 sv();
-const VER='1793897259';
+const VER='1793899720';
 (async()=>{try{const r=await fetch('version.json?'+Date.now(),{cache:'no-store'}),j=await r.json();if(j.v!==VER&&!sessionStorage.getItem('rl'+j.v)){sessionStorage.setItem('rl'+j.v,1);if(window.caches)for(const k of await caches.keys())await caches.delete(k);const g=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();g&&await g.update();location.reload()}}catch(_){}})();
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update()})});
  let rl;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rl&&!sessionStorage.getItem('cc'+VER)){rl=1;sessionStorage.setItem('cc'+VER,1);location.reload()}})}
+render();
 </script></body></html>
