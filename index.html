@@ -40,13 +40,15 @@ html.desktop #panel .det{max-height:none}}
 <header><button id="vt"></button><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div></header>
 <main><section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section><section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
 <aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside><nav><button data-v="ygo" class="on"><span>🐉</span>Yu-Gi-Oh</button><button data-v="mtg"><span>🧙</span>Magic</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="chart.min.js?1793896622" defer></script><script src="data.js?1793896622"></script>
+<script src="chart.min.js?1793897259" defer></script><script src="data.js?1793897259"></script>
 <script>
 const $=s=>document.querySelector(s),m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
 cad=(c,k)=>c[k+'_cad']!=null?'C$'+Math.round(c[k+'_cad']).toLocaleString()+'<div class=sm>'+m(c[k])+' US</div>':m(c[k]),lp=l=>l.cad_total!=null?'C$'+(+l.cad_total).toFixed(2):l.total_cad!=null?'C$'+(+l.total_cad).toFixed(2):l.cad!=null?'C$'+(+l.cad).toFixed(2):m(l.price),
 unv=l=>l&&(l.vetted===false||l.vetted==='unverified'||l.cert_ok===false),
 bd=o=>{let h='';if(!o)return h;if(o.vetted===true)h+='<span class="bd ok">✓ vetted</span>';if(unv(o))h+='<span class="bd">unverified</span>';if(o.cert_ok===true)h+='<span class="bd ok">cert ok</span>';if(o.fake_risk!=null)h+=`<span class="bd ${/high/i.test(o.fake_risk)||(o.fake_risk>1?o.fake_risk>=50:o.fake_risk>=0.5)?'bad':''}">fake risk ${typeof o.fake_risk=='number'?Math.round(o.fake_risk>1?o.fake_risk:o.fake_risk*100)+'%':o.fake_risk}</span>`;if(o.condition)h+=`<span class=bd>cond ${e(o.condition)}</span>`;if(o.seller_score!=null)h+=`<span class=bd>seller ${e(o.seller_score)}</span>`;return h},
-lb=(l,lab,cls)=>!l?`<a class="btn g">No live ${lab}</a>`:unv(l)?`<a class="btn g mut" style="height:auto;padding:8px;font-size:12px;font-weight:400" href="${e(l.url)}" target=_blank rel=noopener>${lab} ${lp(l)} (unverified)</a>`:`<a class="btn ${cls}" href="${e(l.url)}" target=_blank rel=noopener>${lab} ${lp(l)} ↗</a>`,
+lb=(l,lab,cls)=>!l?`<a class="btn g">No live ${lab}</a>`:(l.verified===false||unv(l))?`<a class="btn g">no verified listing</a>`:`<a class="btn ${cls}" href="${e(l.url)}" target=_blank rel=noopener>${lab}${l.site?` · ${e(l.site)}`:''} ${lp(l)} ↗</a>`,
+offersHtml=(c)=>{const os=(c.offers||[]).filter(o=>o&&o.verified&&o.url).slice(0,3); if(!os.length) return `<a class="btn g">no verified listing</a>`; return os.map((o,i)=>`<a class="btn ${i? 'g':'y'}" href="${e(o.url)}" target=_blank rel=noopener>${e(o.site||'Offer')} · C$${Math.round(o.cad_total||o.price||0)} ↗</a>`).join('');},
+
 p=v=>v==null?'–':`<span class="${v>=0?'up':'dn'}">${v>=0?'+':''}${Math.round(v)}%</span>`,e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
 $('#sub').textContent='Updated '+D.built+' · prices USD · advice only, never auto-buys';
 const BUD=D.budget_tiers||[100,500,2000]; let BFIL={ygo:'all',mtg:'all'};
@@ -84,7 +86,7 @@ async function send(t){try{if(navigator.share){await navigator.share({title:'Car
 function req(c,k){const l=c.lr||c.lg,p=l?`Live ${m(l.price)} USD`:`Raw sold ${m(c.raw)} USD`,t=`Purchase request (${k=='ygo'?'Yu-Gi-Oh':'Magic'}): ${c.name}\nPrint/details: ${l?l.title||'':''}\nPrice: ${p} (raw ${m(c.raw)} / PSA 9 ${m(c.p9)} / PSA 10 ${m(c.p10)})\nBuy zone: ≤ ${m(c.buy)}\nLink: ${l?l.url:c.url||''}\nPlease verify print, condition and total cost in CAD before buying.`;
  W.unshift({n:c.name,p:p,t:t,d:new Date().toLocaleDateString('en-CA')});sv();toast('Added to Wishlist');send(t)}
 sv();
-const VER='1793896622';
+const VER='1793897259';
 (async()=>{try{const r=await fetch('version.json?'+Date.now(),{cache:'no-store'}),j=await r.json();if(j.v!==VER&&!sessionStorage.getItem('rl'+j.v)){sessionStorage.setItem('rl'+j.v,1);if(window.caches)for(const k of await caches.keys())await caches.delete(k);const g=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();g&&await g.update();location.reload()}}catch(_){}})();
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update()})});
  let rl;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rl&&!sessionStorage.getItem('cc'+VER)){rl=1;sessionStorage.setItem('cc'+VER,1);location.reload()}})}
