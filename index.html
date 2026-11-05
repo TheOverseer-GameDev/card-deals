@@ -24,7 +24,7 @@ nav button span{font-size:21px}nav button.on{color:var(--gold)}.empty{color:var(
 <header><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div></header>
 <main><section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section><section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section></main>
 <nav><button data-v="ygo" class="on"><span>🐉</span>Yu-Gi-Oh</button><button data-v="mtg"><span>🧙</span>Magic</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="chart.min.js?1793895223" defer></script><script src="data.js?1793895223"></script>
+<script src="chart.min.js?1793895228" defer></script><script src="data.js?1793895228"></script>
 <script>
 const $=s=>document.querySelector(s),m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
 p=v=>v==null?'–':`<span class="${v>=0?'up':'dn'}">${v>=0?'+':''}${Math.round(v)}%</span>`,e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
