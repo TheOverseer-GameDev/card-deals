@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "game": "ygo",
+  "id": "2572fe162092",
+  "print_id": "ygo:2572fe162092",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [
+    {
+      "price": 40.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/ash-blossom-&-joyous-spring-starlight-rare-ra05-en091",
+      "observed_at": "2026-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 31.35,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/ash-blossom-&-joyous-spring-starlight-rare-ra05-en091",
+      "observed_at": "2026-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 29.91,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/ash-blossom-&-joyous-spring-starlight-rare-ra05-en091",
+      "observed_at": "2026-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 24.19,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/ash-blossom-&-joyous-spring-starlight-rare-ra05-en091",
+      "observed_at": "2026-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 23.33,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/ash-blossom-&-joyous-spring-starlight-rare-ra05-en091",
+      "observed_at": "2026-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 22.44,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/ash-blossom-&-joyous-spring-starlight-rare-ra05-en091",
+      "observed_at": "2026-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 20.15,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/ash-blossom-&-joyous-spring-starlight-rare-ra05-en091",
+      "observed_at": "2026-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 20.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/ash-blossom-&-joyous-spring-starlight-rare-ra05-en091",
+      "observed_at": "2026-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    }
+  ],
+  "asks": [],
+  "scenarios": [],
+  "flags": []
+}

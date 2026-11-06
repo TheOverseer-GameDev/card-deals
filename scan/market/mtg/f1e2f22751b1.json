@@ -1,0 +1,628 @@
+{
+  "schema": 1,
+  "game": "mtg",
+  "id": "f1e2f22751b1",
+  "print_id": "mtg:f1e2f22751b1",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [
+    {
+      "price": 532.7,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2021-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 532.7,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2021-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 532.69,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2021-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 532.69,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2021-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 532.69,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2021-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 567.54,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2021-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 601.3,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 567.48,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 600.21,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 570.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 570.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 570.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 547.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 547.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 547.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 540.77,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 463.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 463.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2022-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 463.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 463.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 463.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 463.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 461.56,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 549.33,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 530.49,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 515.79,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 463.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 424.58,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 322.22,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 322.22,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2023-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 322.22,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 322.22,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 322.22,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 322.22,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 363.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 363.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 363.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 262.49,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 369.58,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 368.83,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 356.75,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 356.75,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2024-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 356.75,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 359.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 393.09,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 392.35,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 404.85,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 434.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 481.29,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 476.58,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 434.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 466.29,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 407.31,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 491.98,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2025-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 527.5,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 565.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 668.89,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 963.1,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 950.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1000.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 775.25,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 815.28,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 790.73,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 749.95,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 749.95,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-urzas-destiny/replenish-foil-15",
+      "observed_at": "2026-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    }
+  ],
+  "asks": [
+    {
+      "price": 1457.42,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/336463930607",
+      "observed_at": "2026-11-06T13:09:24Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    },
+    {
+      "price": 1457.42,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/336463930607",
+      "observed_at": "2026-11-05T17:47:21Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    },
+    {
+      "price": 1512.87,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/318573340125",
+      "observed_at": "2026-11-05T17:47:21Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    }
+  ],
+  "scenarios": [],
+  "flags": [
+    "cad-stored"
+  ]
+}

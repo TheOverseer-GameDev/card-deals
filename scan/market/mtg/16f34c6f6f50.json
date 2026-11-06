@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "game": "mtg",
+  "id": "16f34c6f6f50",
+  "print_id": "mtg:16f34c6f6f50",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [
+    {
+      "price": 81.98,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 81.98,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 81.98,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 81.98,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 81.98,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 81.98,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 81.98,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 83.55,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 83.44,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 62.29,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2025-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 62.29,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 62.29,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 64.86,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 52.27,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 52.27,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 52.27,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 57.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 57.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 57.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 57.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-international-edition/shivan-dragon",
+      "observed_at": "2026-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    }
+  ],
+  "asks": [
+    {
+      "price": 293.27,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/317829695582",
+      "observed_at": "2026-11-06T13:09:56Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    },
+    {
+      "price": 293.27,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/317829695582",
+      "observed_at": "2026-11-05T17:56:53Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    }
+  ],
+  "scenarios": [],
+  "flags": [
+    "cad-stored"
+  ]
+}

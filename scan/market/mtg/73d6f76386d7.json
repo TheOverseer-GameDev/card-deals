@@ -1,0 +1,583 @@
+{
+  "schema": 1,
+  "game": "mtg",
+  "id": "73d6f76386d7",
+  "print_id": "mtg:73d6f76386d7",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [
+    {
+      "price": 69.5,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2021-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 69.5,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2021-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 50.39,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 50.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 50.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 99.07,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 109.69,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 55.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 55.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 53.5,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 63.5,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 63.14,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 62.61,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 62.61,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2022-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 62.61,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 63.5,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 74.99,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 74.99,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 72.49,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 72.49,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 72.49,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 72.49,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 72.49,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 70.24,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 70.4,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 70.04,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2023-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 70.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 70.27,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 69.99,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 64.68,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 65.67,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.58,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.58,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.58,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 59.11,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 59.28,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 59.29,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.39,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2024-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.2,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.2,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.32,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.54,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.24,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.21,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 50.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 50.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 50.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 55.66,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 50.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 57.78,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2025-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 58.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 60.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 60.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 60.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 60.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 63.25,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 64.18,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 64.22,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 67.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 65.12,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-modern-masters/sword-of-fire-and-ice-foil",
+      "observed_at": "2026-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    }
+  ],
+  "asks": [
+    {
+      "price": 94.23,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/940033763079",
+      "observed_at": "2026-11-06T13:09:46Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    },
+    {
+      "price": 94.23,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/940033763079",
+      "observed_at": "2026-11-05T17:55:10Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    },
+    {
+      "price": 136.66,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/226849269451",
+      "observed_at": "2026-11-05T17:55:11Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    }
+  ],
+  "scenarios": [],
+  "flags": [
+    "cad-stored"
+  ]
+}

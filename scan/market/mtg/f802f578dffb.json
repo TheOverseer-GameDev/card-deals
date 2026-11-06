@@ -1,0 +1,646 @@
+{
+  "schema": 1,
+  "game": "mtg",
+  "id": "f802f578dffb",
+  "print_id": "mtg:f802f578dffb",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [
+    {
+      "price": 1154.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2021-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1025.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2021-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1025.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2021-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 947.83,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2021-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1202.5,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2021-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1100.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2021-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1123.17,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2021-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1190.95,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1101.39,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1186.51,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1201.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1187.97,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1179.16,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 999.12,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1045.5,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 934.2,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 916.13,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 894.42,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 824.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2022-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 810.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 879.35,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 870.4,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 888.09,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 870.04,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 880.13,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 759.38,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 750.98,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 758.21,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 776.65,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 706.69,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 703.82,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2023-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 700.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 700.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 737.45,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 842.43,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 700.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 640.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 700.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 698.69,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 695.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 663.82,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 691.25,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 644.88,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2024-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 665.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 645.89,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 705.62,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 679.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 699.92,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 739.38,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 733.01,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 757.3,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 855.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 802.39,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 777.99,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 814.42,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2025-12-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 873.84,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-01-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 875.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-02-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 820.76,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-03-01T07:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 775.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 825.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 814.91,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 803.73,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 821.52,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 825.32,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 842.54,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 790.0,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/magic-legends/moat",
+      "observed_at": "2026-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    }
+  ],
+  "asks": [
+    {
+      "price": 1102.06,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/167319649930",
+      "observed_at": "2026-11-06T15:07:42Z",
+      "condition": "valutata",
+      "kind": "ask"
+    },
+    {
+      "price": 1102.94,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/167319649930",
+      "observed_at": "2026-11-05T17:52:45Z",
+      "condition": "valutata",
+      "kind": "ask"
+    },
+    {
+      "price": 1266.35,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/940033400976",
+      "observed_at": "2026-11-05T17:52:46Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    },
+    {
+      "price": 1303.22,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/168790067263",
+      "observed_at": "2026-11-05T17:52:47Z",
+      "condition": "ungraded",
+      "kind": "ask"
+    }
+  ],
+  "scenarios": [],
+  "flags": [
+    "cad-stored"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "game": "ygo",
+  "id": "b820707e6c2d",
+  "print_id": "ygo:b820707e6c2d",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [
+    {
+      "price": 14.22,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-magnificent-monsters/divine-arsenal-aa-zeus-sky-thunder-starlight-rare-mamo-en035",
+      "observed_at": "2026-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 10.7,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-magnificent-monsters/divine-arsenal-aa-zeus-sky-thunder-starlight-rare-mamo-en035",
+      "observed_at": "2026-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 10.69,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-magnificent-monsters/divine-arsenal-aa-zeus-sky-thunder-starlight-rare-mamo-en035",
+      "observed_at": "2026-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    }
+  ],
+  "asks": [],
+  "scenarios": [],
+  "flags": []
+}

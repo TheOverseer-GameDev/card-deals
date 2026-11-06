@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "game": "ygo",
+  "id": "48d2f7f4902c",
+  "print_id": "ygo:48d2f7f4902c",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [
+    {
+      "price": 21.37,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/infinite-impermanence-starlight-rare-ra05-en140",
+      "observed_at": "2026-04-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 13.92,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/infinite-impermanence-starlight-rare-ra05-en140",
+      "observed_at": "2026-05-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 11.89,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/infinite-impermanence-starlight-rare-ra05-en140",
+      "observed_at": "2026-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 12.82,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/infinite-impermanence-starlight-rare-ra05-en140",
+      "observed_at": "2026-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 11.44,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/infinite-impermanence-starlight-rare-ra05-en140",
+      "observed_at": "2026-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 11.15,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/infinite-impermanence-starlight-rare-ra05-en140",
+      "observed_at": "2026-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 9.99,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/infinite-impermanence-starlight-rare-ra05-en140",
+      "observed_at": "2026-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 10.2,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-rarity-collection-5/infinite-impermanence-starlight-rare-ra05-en140",
+      "observed_at": "2026-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    }
+  ],
+  "asks": [],
+  "scenarios": [],
+  "flags": []
+}

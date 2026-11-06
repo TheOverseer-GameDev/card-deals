@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "game": "ygo",
+  "id": "0224ab7bd54b",
+  "print_id": "ygo:0224ab7bd54b",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [],
+  "asks": [
+    {
+      "price": 3.09,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/168490501848",
+      "observed_at": "2026-11-06T18:52:08Z",
+      "condition": null,
+      "kind": "ask"
+    }
+  ],
+  "scenarios": [],
+  "flags": [
+    "cad-stored"
+  ]
+}

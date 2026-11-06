@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "game": "ygo",
+  "id": "5643ef40a170",
+  "print_id": "ygo:5643ef40a170",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [
+    {
+      "price": 1.73,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-magnificent-monsters/divine-arsenal-aa-zeus-sky-thunder-secret-rare-mamo-en035",
+      "observed_at": "2026-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1.7,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-magnificent-monsters/divine-arsenal-aa-zeus-sky-thunder-secret-rare-mamo-en035",
+      "observed_at": "2026-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 1.4,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-magnificent-monsters/divine-arsenal-aa-zeus-sky-thunder-secret-rare-mamo-en035",
+      "observed_at": "2026-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    }
+  ],
+  "asks": [
+    {
+      "price": 2.26,
+      "currency": "CAD",
+      "source": "eBay",
+      "source_url": "https://www.ebay.com/itm/377520682401",
+      "observed_at": "2026-11-06T18:52:29Z",
+      "condition": null,
+      "kind": "ask"
+    }
+  ],
+  "scenarios": [],
+  "flags": [
+    "cad-stored"
+  ]
+}

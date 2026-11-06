@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "game": "ygo",
+  "id": "0e2128abc9db",
+  "print_id": "ygo:0e2128abc9db",
+  "released_at": null,
+  "currency_note": "Prices are stored as supplied. Nothing was converted.",
+  "sales": [
+    {
+      "price": 276.48,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-battles-of-legend-glorious-gallery/underworld-goddess-of-the-closed-world-starlight-rare-blgg-en144",
+      "observed_at": "2026-06-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 212.01,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-battles-of-legend-glorious-gallery/underworld-goddess-of-the-closed-world-starlight-rare-blgg-en144",
+      "observed_at": "2026-07-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 164.6,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-battles-of-legend-glorious-gallery/underworld-goddess-of-the-closed-world-starlight-rare-blgg-en144",
+      "observed_at": "2026-08-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 140.66,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-battles-of-legend-glorious-gallery/underworld-goddess-of-the-closed-world-starlight-rare-blgg-en144",
+      "observed_at": "2026-09-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 118.53,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-battles-of-legend-glorious-gallery/underworld-goddess-of-the-closed-world-starlight-rare-blgg-en144",
+      "observed_at": "2026-10-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    },
+    {
+      "price": 113.26,
+      "currency": "USD",
+      "source": "PriceCharting",
+      "source_url": "https://www.pricecharting.com/game/yugioh-battles-of-legend-glorious-gallery/underworld-goddess-of-the-closed-world-starlight-rare-blgg-en144",
+      "observed_at": "2026-11-01T06:00:00Z",
+      "condition": "ungraded",
+      "kind": "sold"
+    }
+  ],
+  "asks": [],
+  "scenarios": [],
+  "flags": []
+}
