@@ -3,3 +3,9 @@ scan/tmp/
 **/__pycache__/
 *.pyc
 *.log
+# not needed on the public site
+scan/test/
+scan/bench/
+package.json
+package-lock.json
+.pages-rebuild
