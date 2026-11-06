@@ -21,9 +21,14 @@ scan/boot.js
 scan/engine.js
 scan/lookup.js
 scan/image.js
+scan/prices.js
+scan/charts.js
+scan/gauges.js
 scan/scan.css
 scan/verified-prices.json
 ```
+
+`scan/ocr.js` and everything under `scan/vendor/` stay out of that list. So do `scan/market/` shards. Those are fetched after a catalog row is confirmed, or when Read text is pressed.
 
 `scan/boot.js` only adds a Scan button and a hidden section. Lists, the phone/PC toggle, charts, and the existing service-worker rules stay in the generated page.
 
@@ -68,5 +73,25 @@ The script also reads these files when they exist:
 A grade is copied only when it already has a positive price, a 3-letter currency, a source name, and `observed_at`. Optional `sales_count` must be a non-negative integer. Optional `source_url` must be `http` or `https`. Price `0`, a missing source, and unknown grade names are rejected and listed. PSA 7 is not filled from PSA 8. The script does not scrape and does not call a model.
 
 If those tracker files are absent, the exporter leaves `scan/verified-prices.json` unchanged.
+
+## Optional sold and asking shards
+
+Completed sales and asking prices are not taken from `data.js`. When a free local tracker file already has them, run:
+
+```bash
+python3 scan/tools/export_market.py /path/to/market.json
+```
+
+The script also reads these files when they exist:
+
+- `/workspace/ygo_cards/market.json`
+- `/workspace/mtg_cards/market.json`
+- `scan/market-input.json`
+
+A row is written only with a positive price, a 3-letter currency, a source, `observed_at`, and an exact `ygo` or `mtg` print id. Price `0`, a missing source, a missing print id, and a sold row marked as an ask are rejected. The script writes `scan/market/<game>/<id>.json` plus `scan/market/index.json`. It does not scrape and it does not convert currency.
+
+If those tracker files are absent, existing market shards are left unchanged. The page then shows completed sales and asking prices as unavailable.
+
+`scan/market/` is not part of the install precache. Add a new first-paint file to `ASSETS` in `integrate.py` only. Do not add shard JSON there.
 
 This feature is not live for visitors until this branch is merged, the generator keeps the hook, and the deployed site is checked in a browser.

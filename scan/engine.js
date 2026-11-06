@@ -79,7 +79,11 @@ export function localPath(path) {
   if (!p || /^[a-z][a-z0-9+.-]*:/i.test(p) || p.startsWith('//') || p.startsWith('/') || p.startsWith('\\') || p.includes('..') || p.includes('\\') || p.includes('\0') || p.includes('?') || p.includes('#')) {
     throw new Error('refusing non-local path');
   }
-  if (p === 'scan/verified-prices.json' || /^h\/(ygo|mtg)\/[a-z0-9]+\.json$/i.test(p)) return p;
+  if (
+    p === 'scan/verified-prices.json'
+    || /^h\/(ygo|mtg)\/[a-z0-9]+\.json$/i.test(p)
+    || /^scan\/market\/(ygo|mtg)\/[a-z0-9]+\.json$/i.test(p)
+  ) return p;
   throw new Error('refusing non-local path');
 }
 
@@ -427,18 +431,31 @@ export function searchCatalog(rows, query) {
 
 export function identityFields(row) {
   const p = row.parsed || {};
-  const list = row.kind === 'collection' ? 'Collection note' : row.game === 'ygo' ? 'Yu-Gi-Oh deals' : row.game === 'mtg' ? 'Magic deals' : 'Unknown';
+  const missing = 'Unavailable';
+  const game = row.game === 'ygo' ? 'Yu-Gi-Oh' : row.game === 'mtg' ? 'Magic' : row.game === 'coll' ? 'Collection note' : missing;
+  const list = row.kind === 'collection' ? 'Collection note' : row.game === 'ygo' ? 'Yu-Gi-Oh deals' : row.game === 'mtg' ? 'Magic deals' : missing;
+  const link = safeHttpUrl(row.url);
   return [
-    ['Name', row.name || 'Unknown'],
+    ['Game', game],
+    ['Name', row.name || missing],
     ['List', list],
-    ['Set code', p.setCode || 'Unknown'],
-    ['Edition', p.edition || 'Unknown'],
-    ['Rarity', p.rarity || 'Unknown'],
-    ['Language', p.language || 'Unknown'],
-    ['Finish', p.finish || 'Unknown'],
-    ['Collector number', p.collectorNumber || 'Unknown'],
-    ['Price page', row.slug || 'Unknown'],
+    ['Set code', p.setCode || missing],
+    ['Set name', row.setName || missing],
+    ['Edition', p.edition || missing],
+    ['Rarity', p.rarity || missing],
+    ['Language', p.language || missing],
+    ['Finish', p.finish || missing],
+    ['Collector number', p.collectorNumber || missing],
+    ['Catalog id', row.id || missing],
+    ['Price page', row.slug || missing],
+    ['Catalog link', link || missing],
   ];
+}
+
+export function formatMoney(amount, currency) {
+  if (currency === 'USD') return formatUsd(amount);
+  const v = Math.round(Number(amount) * 100) / 100;
+  return `${v.toFixed(2)} ${currency || ''}`.trim();
 }
 
 export function formatUsd(n) {
@@ -794,6 +811,127 @@ export function suggestCrop(gray, width, height) {
   };
 }
 
+/** Original short side of a region, in pixels, below which that region fails. */
+export const REGION_MIN_SHORT_PX = 32;
+/** Sampled region short side below which blur and glare abstain. */
+export const REGION_SAMPLE_MIN = 12;
+/** This many critical regions in fail or unknown blocks a numeric estimate. */
+export const PSA_BLOCK_AT = 4;
+
+export const REGION_GEOM = {
+  corner_tl: { x: 0, y: 0, w: 0.10, h: 0.10 },
+  corner_tr: { x: 0.90, y: 0, w: 0.10, h: 0.10 },
+  corner_bl: { x: 0, y: 0.90, w: 0.10, h: 0.10 },
+  corner_br: { x: 0.90, y: 0.90, w: 0.10, h: 0.10 },
+  edge_top: { x: 0.10, y: 0, w: 0.80, h: 0.08 },
+  edge_bottom: { x: 0.10, y: 0.92, w: 0.80, h: 0.08 },
+  edge_left: { x: 0, y: 0.10, w: 0.08, h: 0.80 },
+  edge_right: { x: 0.92, y: 0.10, w: 0.08, h: 0.80 },
+  center_field: { x: 0.15, y: 0.15, w: 0.70, h: 0.70 },
+  print_register: { x: 0.18, y: 0.12, w: 0.64, h: 0.22 },
+  border_box: { x: 0, y: 0, w: 1, h: 1 },
+};
+
+export const CRITICAL_REGIONS = [
+  'corner_tl', 'corner_tr', 'corner_bl', 'corner_br',
+  'edge_top', 'edge_right', 'edge_bottom', 'edge_left',
+  'center_field',
+];
+
+export const GROUP_IDS = {
+  corners: ['corner_tl', 'corner_tr', 'corner_bl', 'corner_br'],
+  edges: ['edge_top', 'edge_right', 'edge_bottom', 'edge_left'],
+  surface: ['center_field'],
+};
+
+export const REGION_LABEL = {
+  corner_tl: 'top-left corner',
+  corner_tr: 'top-right corner',
+  corner_bl: 'bottom-left corner',
+  corner_br: 'bottom-right corner',
+  edge_top: 'top edge',
+  edge_right: 'right edge',
+  edge_bottom: 'bottom edge',
+  edge_left: 'left edge',
+  center_field: 'center surface',
+  print_register: 'print / title area',
+  border_box: 'borders',
+};
+
+const RETAKE_WHY = {
+  glare: 'specular glare (clipped highlights)',
+  blur: 'blur / low detail',
+  'low-resolution': 'resolution is too low to inspect this region',
+  'not-assessable': 'detail is not assessable in this photo',
+  'out-of-frame': 'region is out of frame',
+};
+
+const RETAKE_TIP = {
+  glare: 'Tilt slightly or use softer side light.',
+  blur: 'Tap to focus on the edge; hold steady; no digital zoom.',
+  'low-resolution': 'Move closer with the rear camera at 1×. No digital zoom.',
+  'not-assessable': 'Retake with the card flat, in focus, and evenly lit.',
+  'out-of-frame': 'Fit the whole card inside the outline with a margin of background around it.',
+};
+
+const WEAR_CAP = { corners: 7, edges: 6, surface: 7 };
+
+export const PSA_LABEL = 'Potential PSA grade estimate (not a certification)';
+export const PSA_DISCLAIMER = 'Photos cannot prove hidden defects, alterations, or authenticity. PSA may grade higher or lower.';
+export const ESTIMATE_UNAVAILABLE = 'Estimate unavailable — retake required';
+
+export const COPY = {
+  psaUi: 'Potential PSA grade estimate — not a PSA certification.',
+  privacy: 'Photos stay on this device. Nothing is uploaded to grade or identify your card.',
+  sold: 'Completed sales',
+  ask: 'Asking prices',
+  gap: 'No sourced sales in this period.',
+  future: 'Future potential is scenario-based, not a promise.',
+  authenticity: 'This app cannot verify authenticity or alterations.',
+  confirm: 'You confirmed this catalog print. This is not proof of authenticity or of the physical edition in hand.',
+  risk: 'Risk score from listed factors — not a probability of loss.',
+  value: 'Describes data quality / level of current comps, not a price target.',
+};
+
+export function classifyRegion({ variance, clipped, shortPx, sampleShort }) {
+  if (!(shortPx >= REGION_MIN_SHORT_PX)) return { status: 'fail', reasons: ['low-resolution'] };
+  if (!(sampleShort >= REGION_SAMPLE_MIN)) return { status: 'unknown', reasons: ['not-assessable'] };
+  if (clipped > 0.2) return { status: 'unknown', reasons: ['glare'] };
+  if (clipped >= 0.005) return { status: 'fail', reasons: ['glare'] };
+  if (!(variance > BLUR_HIGH)) {
+    if (variance < BLUR_LOW) return { status: 'fail', reasons: ['blur'] };
+    return { status: 'unknown', reasons: ['not-assessable'] };
+  }
+  if (clipped >= 0.002) return { status: 'warn', reasons: ['glare'] };
+  return { status: 'pass', reasons: [] };
+}
+
+function sliceGray(gray, width, height, geom) {
+  let x0 = Math.round(geom.x * width);
+  let y0 = Math.round(geom.y * height);
+  let w = Math.max(1, Math.round(geom.w * width));
+  let h = Math.max(1, Math.round(geom.h * height));
+  if (x0 >= width) x0 = width - 1;
+  if (y0 >= height) y0 = height - 1;
+  if (x0 + w > width) w = width - x0;
+  if (y0 + h > height) h = height - y0;
+  const out = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) out[y * w + x] = gray[(y0 + y) * width + (x0 + x)] || 0;
+  }
+  return { gray: out, width: w, height: h };
+}
+
+function borderBoxRegion(centering, shortSide) {
+  if (shortSide < LIMITS.minShortEdge) {
+    return { id: 'border_box', status: 'fail', reasons: ['low-resolution'], shortPx: shortSide, variance: 0, clipped: 0 };
+  }
+  if (!centering || centering.state !== 'measured') {
+    return { id: 'border_box', status: 'unknown', reasons: ['not-assessable'], shortPx: shortSide, variance: 0, clipped: 0 };
+  }
+  return { id: 'border_box', status: 'pass', reasons: [], shortPx: shortSide, variance: 0, clipped: 0 };
+}
+
 export function assessPhoto({ gray, width, height, originalWidth, originalHeight }) {
   const ow = originalWidth || width;
   const oh = originalHeight || height;
@@ -808,6 +946,33 @@ export function assessPhoto({ gray, width, height, originalWidth, originalHeight
   let glareState = 'not-assessable';
   if (fraction < 0.005) glareState = 'no-large-clipped-highlight';
   else if (fraction <= 0.2) glareState = 'possible-glare';
+  const centering = measureCentering(gray, width, height);
+  const regions = {};
+  if (gray && width > 0 && height > 0) {
+    for (const [id, geom] of Object.entries(REGION_GEOM)) {
+      if (id === 'border_box') continue;
+      const slice = sliceGray(gray, width, height, geom);
+      const regionVariance = laplacianVariance(slice.gray, slice.width, slice.height);
+      const regionClipped = clippedFraction(slice.gray);
+      const shortPx = Math.min(geom.w * ow, geom.h * oh);
+      const sampleShort = Math.min(slice.width, slice.height);
+      const classified = classifyRegion({
+        variance: regionVariance,
+        clipped: regionClipped,
+        shortPx,
+        sampleShort,
+      });
+      regions[id] = {
+        id,
+        status: classified.status,
+        reasons: classified.reasons,
+        variance: regionVariance,
+        clipped: regionClipped,
+        shortPx,
+      };
+    }
+  }
+  regions.border_box = borderBoxRegion(centering, shortSide);
   return {
     resolution: {
       state: shortSide < LIMITS.minShortEdge ? 'low' : 'ok',
@@ -818,6 +983,178 @@ export function assessPhoto({ gray, width, height, originalWidth, originalHeight
     },
     blur: { state: blurState, variance },
     glare: { state: glareState, fraction },
-    centering: measureCentering(gray, width, height),
+    centering,
+    regions,
+  };
+}
+
+export function retakePrompts(side, report) {
+  if (!report || !report.regions) return [];
+  const sideLabel = side === 'back' ? 'Back' : 'Front';
+  const prompts = [];
+  for (const [id, region] of Object.entries(report.regions)) {
+    if (!region || (region.status !== 'fail' && region.status !== 'unknown')) continue;
+    const reason = (region.reasons && region.reasons[0]) || 'not-assessable';
+    const why = RETAKE_WHY[reason] || RETAKE_WHY['not-assessable'];
+    const tip = RETAKE_TIP[reason] || RETAKE_TIP['not-assessable'];
+    const label = REGION_LABEL[id] || id;
+    prompts.push({
+      side: side === 'back' ? 'back' : 'front',
+      regionId: id,
+      label,
+      reason,
+      why,
+      tip,
+      line: `Retake needed: ${sideLabel} ${label} — Why: ${why} — Tip: ${tip}`,
+    });
+  }
+  return prompts;
+}
+
+export function groupBlocked(report, group) {
+  const ids = GROUP_IDS[group] || [];
+  if (!report || !report.regions) return true;
+  return ids.some((id) => {
+    const status = report.regions[id] && report.regions[id].status;
+    return status !== 'pass' && status !== 'warn';
+  });
+}
+
+export function groupReadable(report, group) {
+  const ids = GROUP_IDS[group] || [];
+  if (!report || !report.regions) return false;
+  return ids.some((id) => {
+    const status = report.regions[id] && report.regions[id].status;
+    return status === 'pass' || status === 'warn';
+  });
+}
+
+export function centeringCeiling(centering, side) {
+  if (!centering || centering.state !== 'measured') return null;
+  const worst = Math.max(centering.leftPct, centering.rightPct, centering.topPct, centering.bottomPct);
+  const table = side === 'back'
+    ? [[75, 10], [90, 9]]
+    : [[55, 10], [65, 9], [70, 8], [75, 7], [80, 6], [85, 5], [90, 3]];
+  for (const [limit, grade] of table) {
+    if (worst <= limit) return grade;
+  }
+  return 1;
+}
+
+function unavailableResult(blockedReasons) {
+  return {
+    label: PSA_LABEL,
+    range: null,
+    basis: [],
+    blocked_reasons: blockedReasons,
+    message: ESTIMATE_UNAVAILABLE,
+    disclaimer: PSA_DISCLAIMER,
+  };
+}
+
+function hasWarn(report) {
+  if (!report || !report.regions) return false;
+  return Object.values(report.regions).some((region) => region && region.status === 'warn');
+}
+
+function applyNotes(report, notes, sideLabel, basis, lower) {
+  for (const group of Object.keys(WEAR_CAP)) {
+    if (notes[group] === 'wear' && groupReadable(report, group)) {
+      lower(WEAR_CAP[group]);
+      basis.push(`${sideLabel} ${group}: wear visible in the photo — ceiling reduced`);
+    }
+  }
+}
+
+function noteIgnoredClean(report, notes, sideLabel, basis) {
+  for (const group of Object.keys(WEAR_CAP)) {
+    if (notes[group] === 'clean' && groupBlocked(report, group)) {
+      basis.push(`${sideLabel} ${group}: a clean note was not counted because the photo check failed or abstained`);
+    }
+  }
+}
+
+function centeringCap(report, sideLabel, basis) {
+  const centering = report && report.centering;
+  const side = sideLabel === 'Back' ? 'back' : 'front';
+  if (!centering || centering.state !== 'measured') {
+    basis.push(`${sideLabel} centering: unknown — ceiling reduced`);
+    return 8;
+  }
+  const cap = centeringCeiling(centering, side);
+  const lr = `${Math.round(centering.leftPct)}/${Math.round(centering.rightPct)}`;
+  const tb = `${Math.round(centering.topPct)}/${Math.round(centering.bottomPct)}`;
+  basis.push(`${sideLabel} centering measured ${lr} left/right and ${tb} top/bottom (assessable). This is not a PSA centering subgrade.`);
+  return cap == null ? 8 : cap;
+}
+
+export function psaEstimate(input) {
+  const mode = input && input.mode === 'front-and-back' ? 'front-and-back' : 'front-only';
+  const front = input && input.front;
+  const back = input && input.back;
+  const notes = (input && input.notes) || {};
+  const frontNotes = notes.front || {};
+  const backNotes = notes.back || {};
+  if (!front) {
+    return unavailableResult([
+      'Retake needed: Front — Why: no front photo — Tip: Photograph the front with the rear camera at 1×.',
+    ]);
+  }
+  if (mode === 'front-and-back' && !back) {
+    return unavailableResult([
+      'Retake needed: Back — Why: back photo is missing — Tip: Photograph the back with the rear camera at 1×, parallel to the card.',
+    ]);
+  }
+  const blocked = [];
+  for (const prompt of retakePrompts('front', front)) blocked.push(prompt);
+  if (back) {
+    for (const prompt of retakePrompts('back', back)) blocked.push(prompt);
+  }
+  const critical = blocked.filter((item) => CRITICAL_REGIONS.includes(item.regionId));
+  if (critical.length >= PSA_BLOCK_AT) {
+    const result = unavailableResult(blocked.map((item) => item.line));
+    result.basis = blocked.map((item) => `${item.side === 'back' ? 'Back' : 'Front'} ${item.label}: ${item.why} — not counted as clean`);
+    noteIgnoredClean(front, frontNotes, 'Front', result.basis);
+    if (back) noteIgnoredClean(back, backNotes, 'Back', result.basis);
+    return result;
+  }
+  let high = 10;
+  const basis = [];
+  if (critical.length) {
+    high -= critical.length;
+    for (const item of critical) {
+      basis.push(`${item.side === 'back' ? 'Back' : 'Front'} ${item.label}: ${item.why} — ceiling reduced`);
+    }
+  }
+  const extras = blocked.filter((item) => !CRITICAL_REGIONS.includes(item.regionId) && item.regionId !== 'border_box');
+  if (extras.length) {
+    high -= extras.length;
+    for (const item of extras) {
+      basis.push(`${item.side === 'back' ? 'Back' : 'Front'} ${item.label}: ${item.why} — ceiling reduced`);
+    }
+  }
+  if (!back) {
+    high = Math.min(high, 8);
+    basis.push('Back: unknown (not photographed) — ceiling reduced');
+  }
+  high = Math.min(high, centeringCap(front, 'Front', basis));
+  if (back) high = Math.min(high, centeringCap(back, 'Back', basis));
+  if (hasWarn(front) || (back && hasWarn(back))) {
+    high = Math.min(high, 9);
+    basis.push('A region is only partly assessable — ceiling reduced');
+  }
+  applyNotes(front, frontNotes, 'Front', basis, (cap) => { high = Math.min(high, cap); });
+  if (back) applyNotes(back, backNotes, 'Back', basis, (cap) => { high = Math.min(high, cap); });
+  noteIgnoredClean(front, frontNotes, 'Front', basis);
+  if (back) noteIgnoredClean(back, backNotes, 'Back', basis);
+  high = Math.max(1, Math.min(10, Math.trunc(high)));
+  const low = high === 1 ? 1 : high - 1;
+  return {
+    label: PSA_LABEL,
+    range: { low, high },
+    basis,
+    blocked_reasons: blocked.map((item) => item.line),
+    message: null,
+    disclaimer: PSA_DISCLAIMER,
   };
 }

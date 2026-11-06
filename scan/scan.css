@@ -1,3 +1,4 @@
+#v-scan.view { animation: none; }
 #v-scan.view.on { display: block; }
 html.desktop #v-scan.view.on { display: block; }
 #v-scan { max-width: 980px; }
@@ -51,7 +52,102 @@ html.desktop #v-scan.view.on { display: block; }
 #v-scan .scan-id { display: grid; grid-template-columns: 9.5em 1fr; gap: 2px 8px; font-size: 14px; }
 #v-scan .scan-id b { font-weight: 600; }
 #v-scan .scan-warn { color: #ffd77a; }
-@media (min-width: 800px) {
-  #v-scan .scan-grid { flex-direction: row; align-items: flex-start; }
-  #v-scan .scan-slot { flex: 1; min-width: 0; }
+#v-scan .scan-s22 { margin: 8px 0 12px; padding-left: 18px; color: #c9d1e0; font-size: 13px; }
+#v-scan .scan-s22 li { margin: 4px 0; }
+#v-scan .scan-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #111729; border: 1px solid var(--line); border-radius: 14px; padding: 4px; margin: 0 0 10px; }
+#v-scan .scan-mode button { min-height: 44px; border: 0; background: none; color: var(--mu); font-weight: 700; border-radius: 10px; }
+#v-scan .scan-mode button.on { background: var(--gold); color: #111; }
+#v-scan .scan-finder {
+  position: relative;
+  min-height: 52vh;
+  background: #1a120c;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#v-scan .scan-finder .scan-video { width: 100%; height: 100%; max-height: none; object-fit: cover; position: absolute; inset: 0; border-radius: 0; }
+#v-scan .scan-finder .scan-viewport { position: relative; z-index: 1; width: 100%; max-height: 62vh; background: transparent; }
+#v-scan .scan-outline {
+  width: 76%;
+  max-width: 280px;
+  aspect-ratio: 5 / 7;
+  border: 3px solid #fff;
+  border-radius: 12px;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+#v-scan .scan-id span { overflow-wrap: anywhere; }
+#v-scan .scan-map { position: absolute; pointer-events: none; }
+#v-scan .scan-reg { position: absolute; border-radius: 2px; }
+#v-scan .scan-reg-pass { background: rgba(61, 220, 151, .28); }
+#v-scan .scan-reg-warn { background: rgba(255, 198, 90, .38); }
+#v-scan .scan-reg-fail { background: rgba(255, 107, 107, .42); }
+#v-scan .scan-reg-unknown { background: rgba(139, 149, 176, .42); }
+#v-scan .scan-cam-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 8px calc(12px + env(safe-area-inset-bottom));
+  position: sticky;
+  bottom: 8px;
+  z-index: 4;
+  background: rgba(14, 19, 33, .94);
+  border-radius: 16px;
+}
+@media (max-width: 899px) {
+  #v-scan .scan-finder { min-height: 280px; }
+  #v-scan .scan-cam-bar { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}
+#v-scan .scan-gallery, #v-scan .scan-next, #v-scan .scan-shutter { min-width: 44px; min-height: 44px; }
+#v-scan .scan-shutter {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+#v-scan .scan-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+#v-scan .scan-retake { text-align: left; margin-top: 8px; }
+#v-scan .scan-gauges { display: flex; flex-direction: column; gap: 12px; }
+#v-scan .scan-gauge { background: #0f1424; border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+#v-scan .scan-meter { height: 14px; background: #1a2136; border-radius: 99px; overflow: hidden; margin: 8px 0; }
+#v-scan .scan-meter i { display: block; height: 100%; width: calc(var(--p) * 1%); background: var(--gold); }
+#v-scan .scan-chart { width: 100%; height: 168px; background: #0f1424; border-radius: 12px; }
+#v-scan .scan-block + .scan-block { margin-top: 14px; }
+html.desktop #v-scan .scan-outline { width: 62%; max-width: 340px; }
+html.desktop #v-scan .scan-layout { display: grid; grid-template-columns: minmax(300px, 0.9fr) minmax(320px, 1.1fr); gap: 16px; align-items: start; }
+html.desktop:has(#v-scan.on) main { margin-right: 0; }
+html.desktop:has(#v-scan.on) #panel { display: none; }
+html.phone #v-scan .scan-layout { display: block; }
+html.phone #v-scan .scan-outline { width: 76%; }
+@media (max-width: 899px) {
+  html.desktop #v-scan .scan-layout { display: block; }
+  html.desktop #v-scan .scan-outline { width: 74%; }
+  html.desktop:has(#v-scan.on) body { padding: 0 0 calc(76px + env(safe-area-inset-bottom)); }
+  html.desktop:has(#v-scan.on) main { padding: 0 14px 14px; }
+  html.desktop:has(#v-scan.on) header { position: sticky; width: auto; background: linear-gradient(var(--bg) 70%, transparent); }
+  html.desktop:has(#v-scan.on) nav {
+    top: auto; bottom: 0; left: 0; right: 0; width: auto;
+    flex-direction: row; padding: 0 0 env(safe-area-inset-bottom);
+    border-right: 0; border-top: 1px solid var(--line);
+  }
+  html.desktop:has(#v-scan.on) nav button {
+    flex: 1; flex-direction: column; font-size: 11px; gap: 3px; padding: 10px 0; border-radius: 0;
+  }
+}
+@media (min-width: 900px) {
+  #v-scan { max-width: none; }
 }

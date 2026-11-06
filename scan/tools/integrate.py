@@ -24,6 +24,9 @@ ASSETS = [
     "scan/engine.js",
     "scan/lookup.js",
     "scan/image.js",
+    "scan/prices.js",
+    "scan/charts.js",
+    "scan/gauges.js",
     "scan/scan.css",
     "scan/verified-prices.json",
 ]

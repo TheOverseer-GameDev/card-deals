@@ -9,7 +9,7 @@ This is an on-device helper for photos of Yu-Gi-Oh and Magic cards. It is not a 
 - It does not know the full Yu-Gi-Oh or Magic catalog. It can only point at rows already shipped in `data.js`, plus collection notes in that same file.
 - It does not confirm a print by itself. A set code match is still a suggestion until you press the row.
 - It does not prove a card is genuine.
-- It does not produce a PSA grade, a subgrade, or a grade probability. `grade10_rate` and `psa10_odds` in the deal data are not shown.
+- It does not produce a PSA grade, a subgrade, a certification, or a grade probability. A potential PSA range is a photo-supported estimate only. `grade10_rate` and `psa10_odds` in the deal data are not shown, and no confidence percentage is shown.
 - It does not invent PSA 5, 6, 7, or 8. Those rows stay **Unavailable** unless `scan/verified-prices.json` has a sourced figure for that exact catalog id.
 - It does not turn a PriceCharting volume phrase such as "1 sale per week" into a sales count.
 - It does not convert USD figures to CAD. The rest of the site has a separate fixed display factor. The scan table shows the stored USD numbers.
@@ -37,7 +37,9 @@ A one-character mix-up such as `O`/`0` is labelled as not an exact code match, a
 - Blur uses the variance of a Laplacian on a sample about 400 px wide. Near-zero variance is "likely blurry or lacking detail". Very high variance is not flagged. The band in between is **not assessable**. Mild blur is often not flagged.
 - Glare is the share of pixels at luminance 250 or more. Under 0.5% is no large clipped highlight. 0.5% to 20% is possible glare. Above 20% is **not assessable** because the sample may simply be a white field.
 - Centering is measured only when four borders are stable, high-contrast, and a plausible width. Otherwise it is **not assessable**. A measured split is not a PSA centering subgrade.
-- Corners, edges, and surface are a checklist you fill in. They are not measured.
+- The same blur and glare rules run on regions of the crop: four corners (10% squares), four edge strips, the center 70%, and the title/print block. A region whose original short side is under 32 px fails for low resolution. Blur variance below 30 fails. Variance from 30 through 120 is **unknown**. Clipped pixels (luminance 250 or more) from 0.5% to 20% of a region fail for glare. Above 20% the region is **unknown** because it may simply be a white field. A trace of clipped pixels from 0.2% to 0.5% is a warning. Unknown and failed regions are not clean.
+- You cannot mark a corner, edge, or surface group clean while any region in that group is failed or unknown. The checklist is still your note. It is not a measured subgrade.
+- Retake lines name the side, the region, the reason, and one tip. They are not a grade.
 
 A tighter crop is suggested only when the corners of the photo are a flat background and the subject has a card-shaped outline. Other photos keep the crop you set.
 
@@ -50,6 +52,12 @@ For a confirmed row the table can show:
 - a grade from `scan/verified-prices.json` when the record has price, currency, source, and `observed_at`
 
 An observation older than 45 days on the device clock is labelled **stale** and still shown. A missing series stays **Unavailable**. The current shipped file has no verified grades, so PSA 5–8 are unavailable for every row.
+
+Completed sales and asking prices come only from `scan/market/<game>/<id>.json` after you confirm a row. The two lists are separate. A row is kept only when that file already has a positive price, currency, source, observation time, and the exact print id. A sold row is never shown as an ask. An asking price is never copied into another condition. If the shard is missing, both lists say **Unavailable**. Nothing is converted between USD and CAD.
+
+The bar chart uses those sourced points only. Completed sales are preferred. If the file has asks and no sales, the title is **Asking prices over time**. Empty months are gaps, not zeros and not filled from the months beside them. The window is five years, or the card's shipped release time when that time is present and shorter. Shipped history in `h/` stays in the stored-figures table. It is not redrawn as a completed sale.
+
+The three meters are separate. Buying risk adds listed factors (unconfirmed print, unknown regions, stale prices, no completed sales, a wide sold-to-ask gap, a shipping or stored-CAD flag, a missing back). It is not a probability of loss. Current value describes how much completed-sale evidence is on file. It is not a price target, and it stays **Unavailable** when there are no completed sales. Future potential lists scenario tags from the market shard. With no scenario list it stays **Unavailable**. It is not a promise that a price will rise. No meter is a slice of one pie.
 
 ## Offline and updates
 
@@ -72,6 +80,18 @@ On two sharp synthetic cards drawn in a plain font:
 - Requests stayed on the test origin. The engine files were `tesseract.esm.min.js`, `worker.min.js`, `tesseract-core-simd-lstm.wasm.js`, and `eng.traineddata.gz`.
 
 The first image was read as "Gemini EIf" plus an exact `LON-000`. The name was wrong and the set code was right, so the row was only a suggestion. The second image contained an exact `LC01-EN004` and also a misread `LCO1-ENOO4`. A softened copy of the first image produced no set code and no catalog row. Real foil, glare, and stylized titles are less reliable than these fixtures.
+
+## Potential PSA range
+
+The range is whole numbers. It is labelled as a potential PSA grade estimate, not a PSA certification. Photos cannot prove hidden defects, alterations, or authenticity. PSA may grade higher or lower.
+
+The ceiling uses the live PSA 10 centering line (front about 55/45, reverse about 75/25). Grades 9 through 3 use the secondary table in the research notes, because the live PSA page did not expose that carousel text when it was checked. Recheck the live carousel before treating those cutoffs as current PSA wording. There is no measured accuracy and no confidence percentage. Four or more critical regions that are failed or unknown (corners, edges, and center, front and back) produce **Estimate unavailable — retake required** instead of a number. A missing back photo, unknown centering, glare, blur, and a clean note on a blocked region all keep the ceiling from rising. A clean note on a blocked region is dropped.
+
+## What a phone photo still cannot show
+
+A photo cannot reliably prove micro-surface under foil glare, a pressed crease, cleaning, trimming, true color under a strong cast, factory texture versus an aftermarket surface, or the grade a person will assign under magnification. OCR misreads foil and stylized type. The catalog is not the full Yu-Gi-Oh or Magic universe. Market JSON is only as fresh as the last free-tracker export.
+
+The Galaxy S22 lines on the capture screen are capture advice. They were not checked on a physical Galaxy S22.
 
 ## Not live yet
 
