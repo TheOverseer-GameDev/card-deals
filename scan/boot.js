@@ -3,17 +3,28 @@ import {
   captureSize,
   catalogFromSite,
   clampCrop,
+  COPY,
+  CRITICAL_REGIONS,
   fileMessage,
+  formatMoney,
   formatUsd,
+  groupBlocked,
   identityFields,
   LIMITS,
   matchText,
+  REGION_GEOM,
+  REGION_LABEL,
+  retakePrompts,
+  psaEstimate,
   safeHttpUrl,
   searchCatalog,
   suggestCrop,
 } from './engine.js';
+import { buildSalesSeries, drawSalesChart } from './charts.js';
+import { buildGauges } from './gauges.js';
 import { cropCanvas, fileToCanvas, grayFromCanvas, releaseCanvas } from './image.js';
 import { createLookup } from './lookup.js';
+import { createPriceBook, emptyMarket } from './prices.js';
 
 if (!globalThis.__cardScan) {
   globalThis.__cardScan = true;
@@ -45,16 +56,20 @@ function boot() {
 
   const rows = catalogFromSite(globalThis.D);
   const lookup = createLookup();
+  const book = createPriceBook();
   const slots = {
     front: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0 },
     back: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0 },
   };
+  const reports = { front: null, back: null };
   let readerPromise = null;
   let idleTimer = 0;
   let abort = null;
   let confirmedKey = null;
   let suggestBox = null;
   let drag = null;
+  let mode = 'front-only';
+  let captureSide = 'front';
 
   const ui = build(section, rows.length === 0);
   wire(ui);
@@ -67,30 +82,50 @@ function boot() {
     if (on) window.clearTimeout(idleTimer);
     else idleTimer = window.setTimeout(() => dropReader(), 60000);
   });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && ui.stream) stopCamera();
+  });
 
   function dropReader() {
     readerPromise?.then((reader) => reader.terminate()).catch(() => {});
     readerPromise = null;
   }
 
+  function activeSlot() {
+    return captureSide === 'back' ? 'back' : 'front';
+  }
+
   function wire() {
     ui.frontFile.addEventListener('change', () => {
       const file = ui.frontFile.files && ui.frontFile.files[0];
+      ui.frontFile.value = '';
       if (file) loadFile('front', file);
     });
     ui.backFile.addEventListener('change', () => {
       const file = ui.backFile.files && ui.backFile.files[0];
+      ui.backFile.value = '';
       if (file) loadFile('back', file);
     });
-    ui.frontCam.addEventListener('click', () => openCamera('front'));
-    ui.backCam.addEventListener('click', () => openCamera('back'));
-    ui.camUse.addEventListener('click', () => useFrame());
+    ui.gallery.addEventListener('click', () => {
+      (activeSlot() === 'back' ? ui.backFile : ui.frontFile).click();
+    });
+    ui.frontCam.addEventListener('click', () => {
+      if (ui.stream) useFrame();
+      else openCamera(activeSlot());
+    });
     ui.camStop.addEventListener('click', () => stopCamera());
+    ui.modeFront.addEventListener('click', () => setMode('front-only'));
+    ui.modeBoth.addEventListener('click', () => setMode('front-and-back'));
+    ui.next.addEventListener('click', () => {
+      if (mode === 'front-and-back' && captureSide === 'front') setCapture('back');
+      else ui.psa.scrollIntoView({ block: 'start' });
+    });
     ui.zoom.addEventListener('input', applyView);
     ui.panX.addEventListener('input', applyView);
     ui.panY.addEventListener('input', applyView);
     for (const slider of [ui.cropL, ui.cropT, ui.cropR, ui.cropB]) slider.addEventListener('input', () => {
       applyCropRect();
+      if (slots.front.canvas) runQuality('front');
     });
     ui.qualityBtn.addEventListener('click', () => runQuality('front'));
     ui.backQualityBtn.addEventListener('click', () => runQuality('back'));
@@ -117,7 +152,13 @@ function boot() {
       confirmedKey = null;
       ui.identity.replaceChildren();
       ui.prices.replaceChildren(text('Confirm a catalog row to see stored prices.'));
+      resetMarket();
     });
+    for (const side of ['front', 'back']) {
+      for (const select of Object.values(ui.notes[side])) {
+        select.addEventListener('change', () => renderPsa());
+      }
+    }
     const viewport = ui.viewport;
     viewport.addEventListener('pointerdown', (ev) => {
       drag = { x: ev.clientX, y: ev.clientY, px: Number(ui.panX.value), py: Number(ui.panY.value) };
@@ -133,6 +174,54 @@ function boot() {
     viewport.addEventListener('pointercancel', () => { drag = null; });
     applyCropRect();
     applyView();
+    syncNotes('front', null);
+    syncNotes('back', null);
+    updateStep();
+    renderPsa();
+  }
+
+  function setMode(next) {
+    mode = next === 'front-and-back' ? 'front-and-back' : 'front-only';
+    if (mode === 'front-only' && captureSide === 'back' && !slots.back.canvas) captureSide = 'front';
+    updateStep();
+    showActive();
+    renderPsa();
+  }
+
+  function setCapture(side) {
+    captureSide = side === 'back' ? 'back' : 'front';
+    updateStep();
+    showActive();
+  }
+
+  function updateStep() {
+    const both = mode === 'front-and-back';
+    ui.modeFront.classList.toggle('on', !both);
+    ui.modeBoth.classList.toggle('on', both);
+    ui.modeFront.setAttribute('aria-pressed', both ? 'false' : 'true');
+    ui.modeBoth.setAttribute('aria-pressed', both ? 'true' : 'false');
+    if (!both) {
+      ui.step.textContent = captureSide === 'back'
+        ? 'Optional back photo. Without a usable back, the grade ceiling stays lower.'
+        : 'Front only. A back photo is optional; without it the grade ceiling is lower.';
+    } else if (captureSide === 'back') {
+      ui.step.textContent = 'Step 2 of 2: back of the card.';
+    } else {
+      ui.step.textContent = 'Step 1 of 2: front of the card. The next step does not treat a failed region as clean.';
+    }
+    const showNext = (both && captureSide === 'front' && slots.front.canvas) || (both && captureSide === 'back' && slots.back.canvas);
+    ui.next.hidden = !showNext;
+    ui.next.textContent = captureSide === 'back' ? 'Review' : 'Next';
+  }
+
+  function showActive() {
+    const backOn = activeSlot() === 'back' && !ui.stream;
+    ui.viewport.hidden = backOn || !slots.front.canvas;
+    ui.backView.hidden = !backOn || !slots.back.canvas;
+    const hasPhoto = backOn ? slots.back.canvas : slots.front.canvas;
+    ui.outline.hidden = Boolean(hasPhoto) && ui.video.hidden;
+    renderMap(ui.map, backOn ? null : reports.front);
+    if (backOn) renderMap(ui.backMap, reports.back);
   }
 
   async function loadFile(slot, file) {
@@ -153,17 +242,20 @@ function boot() {
     state.originalWidth = decoded.originalWidth;
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
+    captureSide = slot;
     if (slot === 'front') {
-      ui.stage.replaceChildren();
-      ui.stage.append(decoded.canvas, ui.rect);
+      ui.stage.replaceChildren(decoded.canvas, ui.map, ui.rect);
       ui.readBtn.disabled = false;
-      ui.viewport.hidden = false;
+      ui.video.hidden = true;
       runQuality('front');
       offerCrop();
     } else {
-      ui.backStage.replaceChildren(decoded.canvas);
-      ui.backView.hidden = false;
+      ui.backStage.replaceChildren(decoded.canvas, ui.backMap);
+      ui.video.hidden = true;
+      runQuality('back');
     }
+    updateStep();
+    showActive();
   }
 
   function cropFractions() {
@@ -176,6 +268,10 @@ function boot() {
     ui.rect.style.top = `${crop.top * 100}%`;
     ui.rect.style.width = `${(crop.right - crop.left) * 100}%`;
     ui.rect.style.height = `${(crop.bottom - crop.top) * 100}%`;
+    ui.map.style.left = `${crop.left * 100}%`;
+    ui.map.style.top = `${crop.top * 100}%`;
+    ui.map.style.width = `${(crop.right - crop.left) * 100}%`;
+    ui.map.style.height = `${(crop.bottom - crop.top) * 100}%`;
   }
 
   function applyView() {
@@ -184,11 +280,12 @@ function boot() {
 
   function frontSample() {
     if (!slots.front.canvas) return null;
-    const cropped = cropCanvas(slots.front.canvas, cropFractions());
+    const crop = cropFractions();
+    const cropped = cropCanvas(slots.front.canvas, crop);
     const sample = grayFromCanvas(cropped, 400);
     releaseCanvas(cropped);
-    sample.originalWidth = slots.front.originalWidth;
-    sample.originalHeight = slots.front.originalHeight;
+    sample.originalWidth = Math.max(1, Math.round(slots.front.originalWidth * (crop.right - crop.left)));
+    sample.originalHeight = Math.max(1, Math.round(slots.front.originalHeight * (crop.bottom - crop.top)));
     return sample;
   }
 
@@ -197,6 +294,9 @@ function boot() {
     const host = slot === 'front' ? ui.frontQuality : ui.backQuality;
     if (!state.canvas) {
       host.textContent = 'Add a photo first.';
+      reports[slot] = null;
+      renderRetakes();
+      renderPsa();
       return;
     }
     let sample;
@@ -213,8 +313,14 @@ function boot() {
       originalWidth: sample.originalWidth,
       originalHeight: sample.originalHeight,
     });
+    reports[slot] = report;
     renderQuality(host, report);
     if (slot === 'front') ui.centering.textContent = centeringLine(report.centering);
+    syncNotes(slot, report);
+    renderRetakes();
+    renderPsa();
+    if (slot === 'front') renderMap(ui.map, report);
+    else renderMap(ui.backMap, report);
   }
 
   function offerCrop() {
@@ -234,6 +340,8 @@ function boot() {
   async function openCamera(slot) {
     stopCamera();
     ui.camSlot = slot;
+    captureSide = slot === 'back' ? 'back' : 'front';
+    updateStep();
     ui.camMsg.textContent = '';
     if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
       ui.camMsg.textContent = 'This browser has no camera API. You can still upload a photo.';
@@ -258,8 +366,12 @@ function boot() {
     ui.video.srcObject = ui.stream;
     ui.video.playsInline = true;
     ui.video.muted = true;
-    try { await ui.video.play(); } catch { /* The frame button still works after the video is ready. */ }
-    ui.camBox.hidden = false;
+    ui.video.hidden = false;
+    ui.outline.hidden = false;
+    ui.viewport.hidden = true;
+    ui.backView.hidden = true;
+    ui.camStop.hidden = false;
+    try { await ui.video.play(); } catch { /* The shutter still works after the video is ready. */ }
   }
 
   function stopCamera() {
@@ -268,7 +380,9 @@ function boot() {
       ui.stream = null;
     }
     ui.video.srcObject = null;
-    ui.camBox.hidden = true;
+    ui.video.hidden = true;
+    ui.camStop.hidden = true;
+    showActive();
   }
 
   async function useFrame() {
@@ -281,7 +395,7 @@ function boot() {
     canvas.width = box.width;
     canvas.height = box.height;
     canvas.getContext('2d').drawImage(ui.video, 0, 0, box.width, box.height);
-    const slot = ui.camSlot || 'front';
+    const slot = ui.camSlot || activeSlot();
     stopCamera();
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
     releaseCanvas(canvas);
@@ -359,6 +473,7 @@ function boot() {
     confirmedKey = null;
     ui.identity.replaceChildren();
     ui.prices.replaceChildren(text('Confirm a catalog row to see stored prices.'));
+    resetMarket();
     ui.summary.replaceChildren();
     if (result.empty) {
       ui.summary.textContent = 'No text yet.';
@@ -419,14 +534,23 @@ function boot() {
     return button;
   }
 
+  function readNotes(side) {
+    const group = ui.notes[side];
+    return {
+      corners: group.corners.value,
+      edges: group.edges.value,
+      surface: group.surface.value,
+    };
+  }
+
   async function confirmRow(row) {
     confirmedKey = row.key;
     ui.identity.replaceChildren();
     const banner = document.createElement('p');
     banner.className = 'scan-warn';
     banner.textContent = row.parsed.setCode
-      ? 'You chose this catalog row. That choice is not an authenticity check and it is not a grade.'
-      : 'This row does not name a set code. Prices below belong to the stored catalog row only. The exact print is unknown.';
+      ? COPY.confirm
+      : `${COPY.confirm} This row does not name a set code. Prices below belong to the stored catalog row only. The exact print is unavailable.`;
     ui.identity.append(banner);
     const grid = document.createElement('div');
     grid.className = 'scan-id';
@@ -439,10 +563,17 @@ function boot() {
     }
     ui.identity.append(grid);
     ui.prices.replaceChildren(text('Loading stored prices…'));
+    resetMarket();
     try {
       const report = await lookup.report(row);
       if (confirmedKey !== row.key) return;
       renderPrices(report);
+      let market = emptyMarket();
+      if (row.id) market = await book.load(row.game, row.id);
+      if (confirmedKey !== row.key) return;
+      renderMarket(market);
+      renderChart(market);
+      renderGaugeSet(report, market);
     } catch {
       if (confirmedKey !== row.key) return;
       ui.prices.replaceChildren(text('Stored prices could not be read. Nothing was sent out.'));
@@ -453,8 +584,8 @@ function boot() {
     ui.prices.replaceChildren();
     const intro = document.createElement('p');
     intro.textContent = report.exactSetNamed
-      ? 'Prices for the confirmed catalog row. Grades with no stored figure stay unavailable.'
-      : 'Prices for the confirmed catalog row. The row does not name a set, so these figures are not an exact-print quote.';
+      ? 'Stored catalog figures for the confirmed row. Grades with no stored figure stay unavailable. Amounts are the stored currency, with no conversion.'
+      : 'Stored catalog figures for the confirmed row. The row does not name a set, so these figures are not an exact-print quote. Amounts are the stored currency, with no conversion.';
     ui.prices.append(intro);
     if (report.historyStart) {
       const start = document.createElement('p');
@@ -482,35 +613,268 @@ function boot() {
     ui.prices.append(wrap);
   }
 
-  function priceRow(item) {
-    const tr = document.createElement('tr');
-    tr.append(cell(item.label, 'Grade'));
-    tr.append(cell(item.status === 'value' ? formatUsd(item.price) : 'Unavailable', 'Price'));
-    tr.append(cell(item.currency || 'Unavailable', 'Currency'));
-    const source = document.createElement('td');
-    source.dataset.label = 'Source';
-    if (item.source) source.append(document.createTextNode(item.source));
-    else source.textContent = 'Unavailable';
-    if (item.sourceUrl) {
-      source.append(document.createTextNode(' '));
+  function resetMarket() {
+    ui.sold.replaceChildren(text('Confirm a catalog row to see completed sales and asking prices.'));
+    ui.asks.replaceChildren();
+    ui.chartTitle.textContent = '';
+    ui.chartNote.textContent = '';
+    ui.chart.hidden = true;
+    ui.gauges.replaceChildren();
+  }
+
+  function renderMarket(market) {
+    fillQuotes(ui.sold, COPY.sold, market.sold, 'No sourced completed sales for this catalog row.');
+    fillQuotes(ui.asks, COPY.ask, market.ask, 'No sourced asking prices for this catalog row.');
+  }
+
+  function renderChart(market) {
+    const sold = market.sold.map((row) => ({ price: row.price, observedAt: row.observedAt }));
+    const asks = market.ask.map((row) => ({ price: row.price, observedAt: row.observedAt }));
+    const series = sold.length
+      ? buildSalesSeries(sold, { releasedAt: market.releasedAt, kind: 'sold' })
+      : buildSalesSeries(asks, { releasedAt: market.releasedAt, kind: asks.length ? 'ask' : 'sold' });
+    ui.chartTitle.textContent = series.title;
+    ui.chartNote.textContent = series.gap;
+    const hasBar = series.buckets.some((bucket) => typeof bucket.value === 'number');
+    ui.chart.hidden = !hasBar;
+    if (hasBar) drawSalesChart(ui.chart, series);
+  }
+
+  function renderGaugeSet(report, market) {
+    let photoUnknowns = 0;
+    for (const side of [reports.front, reports.back]) {
+      if (!side || !side.regions) continue;
+      for (const id of CRITICAL_REGIONS) {
+        const status = side.regions[id] && side.regions[id].status;
+        if (status === 'fail' || status === 'unknown') photoUnknowns += 1;
+      }
+    }
+    let pricesStale = false;
+    for (const lines of Object.values(report.grades || {})) {
+      if (lines.some((line) => line.stale)) pricesStale = true;
+    }
+    if (market.sold.some((row) => row.stale) || market.ask.some((row) => row.stale)) pricesStale = true;
+    let newestSoldAt = null;
+    for (const row of market.sold) {
+      if (!newestSoldAt || Date.parse(row.observedAt) > Date.parse(newestSoldAt)) newestSoldAt = row.observedAt;
+    }
+    const gauges = buildGauges({
+      printConfirmed: true,
+      photoUnknowns,
+      pricesStale,
+      soldPrices: market.sold.map((row) => row.price),
+      askPrices: market.ask.map((row) => row.price),
+      newestSoldAt,
+      now: Date.now(),
+      backMissing: !slots.back.canvas,
+      flags: market.flags,
+      scenarios: market.scenarios,
+    });
+    ui.gauges.replaceChildren(gaugeBox('Buying risk', gauges.risk), gaugeBox('Current value', gauges.value), futureBox(gauges.future));
+  }
+
+  function renderPsa() {
+    ui.psa.replaceChildren();
+    const heading = document.createElement('h3');
+    heading.textContent = COPY.psaUi;
+    ui.psa.append(heading);
+    if (!reports.front) {
+      ui.psa.append(text('Add a front photo before a potential grade range. Nothing here is a certification.'));
+    } else {
+      const estimate = psaEstimate({
+        mode,
+        front: reports.front,
+        back: reports.back,
+        notes: { front: readNotes('front'), back: readNotes('back') },
+      });
+      const line = document.createElement('p');
+      line.textContent = estimate.range
+        ? `Photo-supported range: ${estimate.range.low}–${estimate.range.high}. ${estimate.label}.`
+        : estimate.message;
+      ui.psa.append(line);
+      if (estimate.basis.length) {
+        const list = document.createElement('ul');
+        for (const item of estimate.basis) {
+          const li = document.createElement('li');
+          li.textContent = item;
+          list.append(li);
+        }
+        ui.psa.append(list);
+      }
+      const disclaimer = document.createElement('p');
+      disclaimer.className = 'note';
+      disclaimer.textContent = estimate.disclaimer;
+      ui.psa.append(disclaimer);
+    }
+    const auth = document.createElement('p');
+    auth.className = 'note';
+    auth.textContent = COPY.authenticity;
+    ui.psa.append(auth);
+  }
+
+  function renderRetakes() {
+    ui.retakes.replaceChildren();
+    const prompts = [
+      ...(reports.front ? retakePrompts('front', reports.front) : []),
+      ...(reports.back ? retakePrompts('back', reports.back) : []),
+    ];
+    for (const prompt of prompts) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn g scan-retake';
+      button.textContent = prompt.line;
+      button.addEventListener('click', () => {
+        setCapture(prompt.side);
+        openCamera(prompt.side);
+      });
+      ui.retakes.append(button);
+    }
+  }
+
+  function syncNotes(side, report) {
+    for (const group of ['corners', 'edges', 'surface']) {
+      const select = ui.notes[side][group];
+      const blocked = groupBlocked(report, group);
+      const clean = [...select.options].find((option) => option.value === 'clean');
+      if (clean) clean.disabled = blocked;
+      if (blocked && select.value === 'clean') select.value = 'unassessable';
+    }
+  }
+}
+
+function fillQuotes(host, title, rows, emptyNote) {
+  host.replaceChildren();
+  const heading = document.createElement('h3');
+  heading.textContent = title;
+  host.append(heading);
+  if (!rows.length) {
+    host.append(text(`Unavailable. ${emptyNote}`));
+    return;
+  }
+  const list = document.createElement('ul');
+  for (const row of rows) {
+    const li = document.createElement('li');
+    const when = row.observedAt ? (row.stale ? `${row.observedAt} (stale)` : row.observedAt) : 'Unavailable';
+    li.append(document.createTextNode(`${formatMoney(row.price, row.currency)} · ${row.condition || 'Condition unavailable'} · ${row.source} · ${when}`));
+    if (row.sourceUrl) {
+      li.append(document.createTextNode(' '));
       const a = document.createElement('a');
-      a.href = safeHttpUrl(item.sourceUrl);
+      a.href = row.sourceUrl;
       a.target = '_blank';
       a.rel = 'noopener';
-      a.textContent = 'Source page';
-      source.append(a);
+      a.textContent = 'Listing';
+      li.append(a);
     }
-    tr.append(source);
-    const when = document.createElement('td');
-    when.dataset.label = 'Observed';
-    if (item.observedAt) {
-      when.textContent = item.stale ? `${item.observedAt} (stale)` : item.observedAt;
-    } else when.textContent = 'Unavailable';
-    tr.append(when);
-    tr.append(cell(item.salesCount == null ? 'Unavailable' : String(item.salesCount), 'Sales count'));
-    tr.append(cell(item.note || '', 'Notes'));
-    return tr;
+    list.append(li);
   }
+  host.append(list);
+}
+
+function gaugeBox(title, model) {
+  const box = document.createElement('section');
+  box.className = 'scan-gauge';
+  const heading = document.createElement('h3');
+  heading.textContent = title;
+  box.append(heading);
+  const score = document.createElement('p');
+  score.textContent = model.score == null ? 'Unavailable' : String(model.score);
+  box.append(score);
+  if (model.score != null) {
+    const bar = document.createElement('div');
+    bar.className = 'scan-meter';
+    const fill = document.createElement('i');
+    fill.style.setProperty('--p', String(model.score));
+    bar.append(fill);
+    box.append(bar);
+  }
+  const note = document.createElement('p');
+  note.className = 'note';
+  note.textContent = model.disclaimer;
+  box.append(note);
+  const list = document.createElement('ul');
+  for (const factor of model.factors || []) {
+    const li = document.createElement('li');
+    li.textContent = factor;
+    list.append(li);
+  }
+  box.append(list);
+  return box;
+}
+
+function futureBox(model) {
+  const box = gaugeBox('Future potential', {
+    score: model.available ? model.score : null,
+    factors: [],
+    disclaimer: model.disclaimer,
+  });
+  if (!model.available) {
+    box.append(text('Unavailable. No scenario list was shipped for this card.'));
+    return box;
+  }
+  const list = document.createElement('ul');
+  for (const scenario of model.scenarios) {
+    const li = document.createElement('li');
+    const lean = scenario.lean ? ` (${scenario.lean})` : '';
+    li.textContent = `${scenario.tag}${lean}. ${scenario.note}`.trim();
+    list.append(li);
+  }
+  box.append(list);
+  const extra = document.createElement('p');
+  extra.className = 'note';
+  extra.textContent = model.score == null
+    ? 'No numeric score was supplied with these scenarios.'
+    : 'The meter uses the average of tracker-supplied scenario weights.';
+  box.append(extra);
+  return box;
+}
+
+function renderMap(map, report) {
+  if (!map) return;
+  map.replaceChildren();
+  if (!report || !report.regions) return;
+  for (const [id, geom] of Object.entries(REGION_GEOM)) {
+    if (id === 'border_box') continue;
+    const region = report.regions[id];
+    if (!region) continue;
+    const el = document.createElement('div');
+    el.className = `scan-reg scan-reg-${region.status}`;
+    el.style.left = `${geom.x * 100}%`;
+    el.style.top = `${geom.y * 100}%`;
+    el.style.width = `${geom.w * 100}%`;
+    el.style.height = `${geom.h * 100}%`;
+    el.title = `${REGION_LABEL[id]}: ${region.status}`;
+    map.append(el);
+  }
+}
+
+function priceRow(item) {
+  const tr = document.createElement('tr');
+  tr.append(cell(item.label, 'Grade'));
+  tr.append(cell(item.status === 'value' ? formatUsd(item.price) : 'Unavailable', 'Price'));
+  tr.append(cell(item.currency || 'Unavailable', 'Currency'));
+  const source = document.createElement('td');
+  source.dataset.label = 'Source';
+  if (item.source) source.append(document.createTextNode(item.source));
+  else source.textContent = 'Unavailable';
+  if (item.sourceUrl) {
+    source.append(document.createTextNode(' '));
+    const a = document.createElement('a');
+    a.href = safeHttpUrl(item.sourceUrl);
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = 'Source page';
+    source.append(a);
+  }
+  tr.append(source);
+  const when = document.createElement('td');
+  when.dataset.label = 'Observed';
+  if (item.observedAt) {
+    when.textContent = item.stale ? `${item.observedAt} (stale)` : item.observedAt;
+  } else when.textContent = 'Unavailable';
+  tr.append(when);
+  tr.append(cell(item.salesCount == null ? 'Unavailable' : String(item.salesCount), 'Sales count'));
+  tr.append(cell(item.note || '', 'Notes'));
+  return tr;
 }
 
 function renderQuality(host, report) {
@@ -557,8 +921,10 @@ function build(section, missingList) {
   const h = document.createElement('h2');
   h.textContent = 'Scan a card';
   const intro = document.createElement('p');
-  intro.className = 'note';
-  intro.textContent = 'Photos stay in this tab. Reading uses a local English text engine that downloads only from this site, and only after you press Read text. Nothing on this screen uploads a photo or calls a cloud model. The back of a Yu-Gi-Oh or Magic card is usually the same for every card, so the back is kept for your eyes and is not used to name the card.';
+  intro.textContent = `${COPY.privacy} ${COPY.authenticity}`;
+  const introNote = document.createElement('p');
+  introNote.className = 'note';
+  introNote.textContent = 'Reading uses a local English text engine that downloads only from this site, and only after you press Read text. The back of a Yu-Gi-Oh or Magic card is usually the same for every card, so the back is not used to name the card.';
   if (missingList) {
     const warn = document.createElement('p');
     warn.className = 'banner';
@@ -566,29 +932,40 @@ function build(section, missingList) {
     section.append(warn);
   }
 
-  const grid = document.createElement('div');
-  grid.className = 'scan-grid';
-  const front = slotBox('Front');
-  const back = slotBox('Back');
-  grid.append(front.box, back.box);
+  const s22 = document.createElement('ol');
+  s22.className = 'scan-s22';
+  s22.id = 'scan-s22';
+  for (const line of [
+    'Rear camera, 1× (no ultra-wide, no tele, no digital zoom).',
+    'No filters, Beauty, or AI enhance. Prefer the original JPEG.',
+    'Soft diffuse light. Avoid a hard overhead spot on foil.',
+    'Hold the phone parallel to the card. Keep the card flat on a dark, non-reflective background.',
+  ]) {
+    const li = document.createElement('li');
+    li.textContent = line;
+    s22.append(li);
+  }
+  const s22Note = document.createElement('p');
+  s22Note.className = 'note';
+  s22Note.textContent = 'Galaxy S22 capture notes. Pro mode is not listed here, and this screen does not invent ISO or exposure numbers.';
 
-  const camMsg = document.createElement('p');
-  camMsg.id = 'scan-cam-msg';
-  const camBox = document.createElement('div');
-  camBox.id = 'scan-cam';
-  camBox.hidden = true;
+  const modeFront = modeButton('Front Only', 'scan-mode-front', true);
+  const modeBoth = modeButton('Front & Back', 'scan-mode-both', false);
+  const modeBar = document.createElement('div');
+  modeBar.className = 'scan-mode';
+  modeBar.append(modeFront, modeBoth);
+  const step = document.createElement('p');
+  step.id = 'scan-step';
+
+  const finder = document.createElement('div');
+  finder.className = 'scan-finder';
+  finder.id = 'scan-finder';
   const video = document.createElement('video');
   video.id = 'scan-cam-video';
   video.className = 'scan-video';
   video.setAttribute('playsinline', '');
   video.muted = true;
-  const camUse = button('Use this frame', 'scan-cam-use');
-  const camStop = button('Close camera', 'scan-cam-stop', true);
-  const camActions = document.createElement('div');
-  camActions.className = 'scan-actions';
-  camActions.append(camUse, camStop);
-  camBox.append(video, camActions);
-
+  video.hidden = true;
   const viewport = document.createElement('div');
   viewport.className = 'scan-viewport';
   viewport.id = 'scan-viewport';
@@ -596,10 +973,56 @@ function build(section, missingList) {
   const stage = document.createElement('div');
   stage.className = 'scan-stage';
   stage.id = 'scan-stage';
+  const map = document.createElement('div');
+  map.className = 'scan-map';
+  map.id = 'scan-map';
   const rect = document.createElement('div');
   rect.className = 'scan-rect';
-  stage.append(rect);
+  stage.append(map, rect);
   viewport.append(stage);
+  const backView = document.createElement('div');
+  backView.className = 'scan-viewport';
+  backView.id = 'scan-back-view';
+  backView.hidden = true;
+  const backStage = document.createElement('div');
+  backStage.className = 'scan-stage';
+  const backMap = document.createElement('div');
+  backMap.className = 'scan-map';
+  backMap.style.left = '0';
+  backMap.style.top = '0';
+  backMap.style.width = '100%';
+  backMap.style.height = '100%';
+  backStage.append(backMap);
+  backView.append(backStage);
+  const outline = document.createElement('div');
+  outline.className = 'scan-outline';
+  outline.id = 'scan-outline';
+  finder.append(video, viewport, backView, outline);
+
+  const gallery = button('Gallery', 'scan-gallery', true);
+  const frontCam = button('Shutter', 'scan-front-cam', false);
+  frontCam.className = 'scan-shutter';
+  frontCam.setAttribute('aria-label', 'Shutter');
+  const next = button('Next', 'scan-next', true);
+  next.hidden = true;
+  const camStop = button('Close', 'scan-cam-stop', true);
+  camStop.hidden = true;
+  const camBar = document.createElement('div');
+  camBar.className = 'scan-cam-bar';
+  camBar.append(gallery, frontCam, next, camStop);
+  const camMsg = document.createElement('p');
+  camMsg.id = 'scan-cam-msg';
+
+  const frontFile = fileInput('scan-front-file');
+  const backFile = fileInput('scan-back-file');
+  const frontNote = document.createElement('p');
+  frontNote.className = 'note';
+  frontNote.id = 'scan-front-note';
+  const backNote = document.createElement('p');
+  backNote.className = 'note';
+  backNote.id = 'scan-back-note';
+  const retakes = document.createElement('div');
+  retakes.id = 'scan-retakes';
 
   const zoom = slider('scan-zoom', '1', '4', '0.1', '1');
   const panX = slider('scan-pan-x', '-400', '400', '1', '0');
@@ -626,6 +1049,9 @@ function build(section, missingList) {
   const qualityBtn = button('Check this crop', 'scan-quality-btn', true);
   const frontQuality = document.createElement('div');
   frontQuality.id = 'scan-front-quality';
+  const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
+  const backQuality = document.createElement('div');
+  backQuality.id = 'scan-back-quality';
 
   const readBtn = button('Read text on this device', 'scan-read');
   readBtn.disabled = true;
@@ -654,65 +1080,102 @@ function build(section, missingList) {
   const clearBtn = button('Clear chosen row', 'scan-clear', true);
   const identity = document.createElement('div');
   identity.id = 'scan-identity';
+  const psa = document.createElement('div');
+  psa.id = 'scan-psa';
+  psa.className = 'scan-block';
+  const sold = document.createElement('div');
+  sold.id = 'scan-sold';
+  sold.className = 'scan-block';
+  const asks = document.createElement('div');
+  asks.id = 'scan-asks';
+  asks.className = 'scan-block';
   const prices = document.createElement('div');
   prices.id = 'scan-prices';
-  prices.append(text('Confirm a catalog row to see stored prices.'));
+  prices.className = 'scan-block';
+  const storedHeading = document.createElement('h3');
+  storedHeading.textContent = 'Stored catalog figures';
+  prices.append(storedHeading, text('Confirm a catalog row to see stored prices.'));
+  const chartTitle = document.createElement('h3');
+  chartTitle.id = 'scan-chart-title';
+  const chart = document.createElement('canvas');
+  chart.id = 'scan-chart';
+  chart.className = 'scan-chart';
+  chart.hidden = true;
+  const chartNote = document.createElement('p');
+  chartNote.id = 'scan-chart-note';
+  chartNote.className = 'note';
+  const gauges = document.createElement('div');
+  gauges.id = 'scan-gauges';
+  gauges.className = 'scan-gauges';
 
   const condition = document.createElement('fieldset');
   const legend = document.createElement('legend');
   legend.textContent = 'Condition notes';
   const condNote = document.createElement('p');
   condNote.className = 'note';
-  condNote.textContent = 'Corners, edges, and surface are your own notes. This screen does not produce a PSA grade, a subgrade, or an authenticity result. Notes stay in this tab and are dropped when you leave it.';
+  condNote.textContent = 'Corners, edges, and surface are your own notes. This screen does not produce a PSA grade, a subgrade, or an authenticity result. A clean note is refused while the photo check for that area failed or abstained. Notes stay in this tab and are dropped when you leave it.';
   const centering = document.createElement('p');
   centering.id = 'scan-centering';
   centering.textContent = 'Centering: not assessable until a front photo is checked.';
-  condition.append(legend, condNote, centering, choice('corners', 'Corners'), choice('edges', 'Edges'), choice('surface', 'Surface'));
-
-  const backView = document.createElement('div');
-  backView.className = 'scan-viewport';
-  backView.hidden = true;
-  const backStage = document.createElement('div');
-  backStage.className = 'scan-stage';
-  backView.append(backStage);
-  const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
-  const backQuality = document.createElement('div');
-  backQuality.id = 'scan-back-quality';
-  back.box.append(backView, backQualityBtn, backQuality);
+  const frontNotes = {
+    corners: choice('scan-cond-corners', 'Front corners'),
+    edges: choice('scan-cond-edges', 'Front edges'),
+    surface: choice('scan-cond-surface', 'Front surface'),
+  };
+  const backNotes = {
+    corners: choice('scan-cond-back-corners', 'Back corners'),
+    edges: choice('scan-cond-back-edges', 'Back edges'),
+    surface: choice('scan-cond-back-surface', 'Back surface'),
+  };
+  condition.append(
+    legend, condNote, centering,
+    frontNotes.corners, frontNotes.edges, frontNotes.surface,
+    backNotes.corners, backNotes.edges, backNotes.surface,
+  );
 
   const limits = document.createElement('p');
   limits.className = 'note';
-  limits.append(document.createTextNode('English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. PSA 5 through PSA 8 stay unavailable unless scan/verified-prices.json has a sourced figure. '));
+  limits.append(document.createTextNode('English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. PSA 5 through PSA 8 stay unavailable unless scan/verified-prices.json has a sourced figure. Market shards that were not exported stay unavailable. '));
   const more = document.createElement('a');
   more.href = 'scan/LIMITATIONS.md';
   more.textContent = 'Full limitations';
   limits.append(more);
 
+  const capture = document.createElement('div');
+  capture.className = 'scan-capture';
+  capture.append(modeBar, step, finder, camBar, camMsg, frontFile, backFile, frontNote, backNote, retakes, backQualityBtn, backQuality);
   const panel = document.createElement('div');
   panel.className = 'scan-panel';
   panel.append(
     controls, suggestNote, suggestBtn, qualityBtn, frontQuality,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
-    summary, labeled('Or search the loaded list', search), results, clearBtn, identity, prices, condition, limits,
+    summary, labeled('Or search the loaded list', search), results, clearBtn,
+    identity, psa, sold, asks, prices, chartTitle, chart, chartNote, gauges, condition, limits,
   );
-
-  section.append(h, intro, grid, camMsg, camBox, viewport, panel);
+  const layout = document.createElement('div');
+  layout.className = 'scan-layout';
+  layout.append(capture, panel);
+  section.append(h, intro, introNote, s22, s22Note, layout);
   return {
-    frontFile: front.file,
-    backFile: back.file,
-    frontCam: front.cam,
-    backCam: back.cam,
-    frontNote: front.note,
-    backNote: back.note,
+    frontFile,
+    backFile,
+    frontCam,
+    gallery,
+    next,
+    modeFront,
+    modeBoth,
+    step,
+    frontNote,
+    backNote,
     camMsg,
-    camBox,
     video,
-    camUse,
     camStop,
     stream: null,
     camSlot: 'front',
+    outline,
     viewport,
     stage,
+    map,
     rect,
     zoom,
     panX,
@@ -735,31 +1198,51 @@ function build(section, missingList) {
     results,
     clearBtn,
     identity,
+    psa,
+    sold,
+    asks,
     prices,
+    chart,
+    chartTitle,
+    chartNote,
+    gauges,
     centering,
+    retakes,
     backView,
     backStage,
+    backMap,
     backQualityBtn,
     backQuality,
+    notes: { front: unwrap(frontNotes), back: unwrap(backNotes) },
   };
 }
 
-function slotBox(name) {
-  const box = document.createElement('div');
-  box.className = 'scan-slot';
-  const title = document.createElement('h3');
-  title.textContent = name;
+function unwrap(groups) {
+  return {
+    corners: groups.corners.querySelector('select'),
+    edges: groups.edges.querySelector('select'),
+    surface: groups.surface.querySelector('select'),
+  };
+}
+
+function fileInput(id) {
   const file = document.createElement('input');
   file.type = 'file';
   file.accept = 'image/jpeg,image/png,image/webp,image/gif';
-  file.id = name === 'Front' ? 'scan-front-file' : 'scan-back-file';
-  const cam = button(name === 'Front' ? 'Use camera' : 'Use camera for back', name === 'Front' ? 'scan-front-cam' : 'scan-back-cam', true);
-  const note = document.createElement('p');
-  note.className = 'note';
-  note.id = name === 'Front' ? 'scan-front-note' : 'scan-back-note';
-  const fileLabel = labeled('Upload a photo', file);
-  box.append(title, fileLabel, cam, note);
-  return { box, file, cam, note };
+  file.id = id;
+  file.className = 'scan-file';
+  file.setAttribute('aria-label', id.includes('back') ? 'Upload a back photo' : 'Upload a front photo');
+  return file;
+}
+
+function modeButton(label, id, on) {
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.id = id;
+  el.className = on ? 'on' : '';
+  el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  el.textContent = label;
+  return el;
 }
 
 function button(label, id, quiet) {
@@ -788,9 +1271,9 @@ function labeled(label, control) {
   return el;
 }
 
-function choice(name, label) {
+function choice(id, label) {
   const select = document.createElement('select');
-  select.id = `scan-cond-${name}`;
+  select.id = id;
   for (const [value, caption] of [
     ['unset', 'Not reviewed'],
     ['clean', 'Looks clean in this photo'],

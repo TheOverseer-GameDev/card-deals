@@ -3,8 +3,8 @@ scan/tmp/
 **/__pycache__/
 *.pyc
 *.log
-# not needed on the public site
-scan/test/
+# Bench output and npm metadata are not part of the public site.
+# Tests stay in git so the scanner gates can run. They are not precached.
 scan/bench/
 package.json
 package-lock.json
