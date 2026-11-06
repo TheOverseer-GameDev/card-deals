@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "generated_at": null,
+  "note": "Optional sourced grades only. Omit a grade when there is no real price. The app does not invent or interpolate the rest. Snapshot raw / PSA 9 / PSA 10 figures stay in data.js and are labelled separately.",
+  "prints": {}
+}

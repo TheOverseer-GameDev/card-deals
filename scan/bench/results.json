@@ -1,0 +1,168 @@
+{
+  "measuredAt": "2026-11-05T18:26:25.311Z",
+  "environment": "Headless Chrome on this Linux VM. Desktop browser engine. Not a phone.",
+  "emulation": "No phone CPU was used. A mobile-viewport test elsewhere checks layout only. These times are not phone times.",
+  "hardware": {
+    "platform": "linux",
+    "release": "6.12.94+",
+    "arch": "x64",
+    "cpuCount": 4,
+    "cpuModel": "Intel(R) Xeon(R) Processor",
+    "memoryBytes": 16780574720,
+    "node": "v22.23.4",
+    "chrome": "Google Chrome 156.0.8078.47"
+  },
+  "requests": {
+    "total": 7,
+    "foreign": [],
+    "sample": [
+      "/scan/bench/bench.html",
+      "/scan/ocr.js",
+      "/scan/engine.js",
+      "/scan/vendor/tesseract.esm.min.js",
+      "/scan/vendor/worker.min.js",
+      "/scan/vendor/core/tesseract-core-simd-lstm.wasm.js",
+      "/scan/vendor/lang/eng.traineddata.gz"
+    ]
+  },
+  "timings": {
+    "coldMs": 484,
+    "initMs": 397,
+    "recognizeColdMs": 87,
+    "warmSameMs": 130,
+    "warmOtherMs": 126,
+    "warmIdentifyMs": 122,
+    "softMs": 122,
+    "cold": {
+      "text": "Gemini EIf\n1st Edition\nLON-000\nLON-000\n",
+      "codes": [
+        "LON-000"
+      ],
+      "keys": [
+        "ygo:g"
+      ],
+      "exact": [
+        "ygo:g"
+      ],
+      "confirmation": "required"
+    },
+    "warmSame": {
+      "text": "Gemini EIf\n1st Edition\nLON-000\nLON-000\n",
+      "codes": [
+        "LON-000"
+      ],
+      "keys": [
+        "ygo:g"
+      ],
+      "exact": [
+        "ygo:g"
+      ],
+      "confirmation": "required"
+    },
+    "other": {
+      "text": "Blue-Eyes White Dragon\nLC01-EN004\nLCO1-ENOO4\n",
+      "codes": [
+        "LC01-EN004"
+      ],
+      "keys": [
+        "ygo:b"
+      ],
+      "exact": [
+        "ygo:b"
+      ],
+      "confirmation": "required"
+    },
+    "full": {
+      "text": "Gemini EIf\n1st Edition\nLON-000\nLON-000\n",
+      "codes": [
+        "LON-000"
+      ],
+      "keys": [
+        "ygo:g"
+      ],
+      "exact": [
+        "ygo:g"
+      ],
+      "confirmation": "required"
+    },
+    "soft": {
+      "text": "Gemini EX\nLac Edbon\nLOr-00D\nLON. 32€\n",
+      "codes": [],
+      "keys": [],
+      "exact": [],
+      "confirmation": "required"
+    },
+    "marks": [
+      {
+        "ms": 35,
+        "status": "loading tesseract core",
+        "progress": 0
+      },
+      {
+        "ms": 62,
+        "status": "loading tesseract core",
+        "progress": 1
+      },
+      {
+        "ms": 62,
+        "status": "initializing tesseract",
+        "progress": 0
+      },
+      {
+        "ms": 128,
+        "status": "initializing tesseract",
+        "progress": 1
+      },
+      {
+        "ms": 128,
+        "status": "loading language traineddata",
+        "progress": 0
+      },
+      {
+        "ms": 148,
+        "status": "loading language traineddata",
+        "progress": 0.5
+      },
+      {
+        "ms": 246,
+        "status": "loading language traineddata",
+        "progress": 1
+      },
+      {
+        "ms": 246,
+        "status": "initializing api",
+        "progress": 0
+      },
+      {
+        "ms": 276,
+        "status": "initializing api",
+        "progress": 1
+      },
+      {
+        "ms": 397,
+        "status": "recognizing text",
+        "progress": 0
+      },
+      {
+        "ms": 430,
+        "status": "recognizing text",
+        "progress": 0.17142857142857143
+      },
+      {
+        "ms": 454,
+        "status": "recognizing text",
+        "progress": 0.35714285714285715
+      },
+      {
+        "ms": 467,
+        "status": "recognizing text",
+        "progress": 0.5285714285714286
+      },
+      {
+        "ms": 479,
+        "status": "recognizing text",
+        "progress": 1
+      }
+    ]
+  }
+}
