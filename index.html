@@ -57,7 +57,7 @@ html.desktop #lists .view{display:none}html.desktop #lists .view.on{display:grid
 <section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
 <aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside>
 <nav><button data-v="lists" class="on"><span>🏆</span>Lists</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="chart.min.js?1793979015" defer></script><script src="data.js?1793979015"></script>
+<script src="chart.min.js?1793985785" defer></script><script src="data.js?1793985785"></script>
 <script>
 const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';'),
 m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
@@ -124,7 +124,7 @@ async function send(t){try{if(navigator.share){await navigator.share({title:'Car
 function req(c,k){const l=c.lr||c.lg,p=l?`Live ${l.cad_total!=null?'C$'+(+l.cad_total).toFixed(2):m(l.price)+' USD'}`:`Raw sold ${m(c.raw)} USD`,t=`Purchase request (${k=='ygo'?'Yu-Gi-Oh':'Magic'}): ${c.name}\nPrint/details: ${l?l.title||'':''}\nPrice: ${p} (raw ${m(c.raw)} / PSA 9 ${m(c.p9)} / PSA 10 ${m(c.p10)})\nBuy zone: ≤ ${m(c.buy)}\nLink: ${l?l.url:c.url||''}\nPlease verify print, condition and total cost in CAD before buying.`;
  W.unshift({n:c.name,p:p,t:t,d:new Date().toLocaleDateString('en-CA')});sv();toast('Added to Wishlist');send(t)}
 sv();
-const VER='1793979015';
+const VER='1793985785';
 (async()=>{try{const r=await fetch('version.json?'+Date.now(),{cache:'no-store'}),j=await r.json();if(j.v!==VER&&!sessionStorage.getItem('rl'+j.v)){sessionStorage.setItem('rl'+j.v,1);if(window.caches)for(const k of await caches.keys())await caches.delete(k);const g=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();g&&await g.update();location.reload()}}catch(_){}})();
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update()})});
  let rl;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rl&&!sessionStorage.getItem('cc'+VER)){rl=1;sessionStorage.setItem('cc'+VER,1);location.reload()}})}
