@@ -54,9 +54,16 @@ html.desktop #v-scan.view.on { display: block; }
 #v-scan .scan-warn { color: #ffd77a; }
 #v-scan .scan-s22 { margin: 8px 0 12px; padding-left: 18px; color: #c9d1e0; font-size: 13px; }
 #v-scan .scan-s22 li { margin: 4px 0; }
-#v-scan .scan-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #111729; border: 1px solid var(--line); border-radius: 14px; padding: 4px; margin: 0 0 10px; }
-#v-scan .scan-mode button { min-height: 44px; border: 0; background: none; color: var(--mu); font-weight: 700; border-radius: 10px; }
-#v-scan .scan-mode button.on { background: var(--gold); color: #111; }
+#v-scan .scan-top { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 8px; flex: 0 0 auto; min-width: 0; }
+#v-scan .scan-top button { min-height: 44px; min-width: 44px; background: transparent; border: 0; color: #fff; font-size: 22px; flex: 0 0 auto; }
+#v-scan #scan-info-btn { margin-left: auto; border: 1px solid #5c5346; border-radius: 50%; width: 36px; min-width: 36px; height: 36px; min-height: 36px; font-size: 15px; font-weight: 700; }
+#v-scan #scan-game, #v-scan #scan-camera { width: auto; max-width: 30%; min-width: 0; flex: 1 1 auto; height: 32px; min-height: 32px; border: 0; border-radius: 16px; background: #2a241c; color: #fff; padding: 0 8px; font-size: 13px; }
+#v-scan .scan-mode { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 3; display: flex; width: max-content; gap: 2px; background: rgba(28, 22, 16, .72); border: 0; border-radius: 22px; padding: 3px; margin: 0; }
+#v-scan .scan-mode button { min-height: 32px; border: 0; background: transparent; color: #f3efe6; font-weight: 700; border-radius: 18px; padding: 6px 14px; font-size: 13px; }
+#v-scan .scan-mode button.on { background: #3a3128; color: #fff; }
+#v-scan #scan-step, #v-scan #scan-cam-msg { margin: 0; padding: 4px 12px 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: #f3efe6; }
+#v-scan #scan-info-sheet { position: fixed; inset: 0; z-index: 60; overflow: auto; background: #0b0f1a; padding: 16px 16px 32px; }
+#v-scan .scan-card > summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
 #v-scan .scan-finder {
   position: relative;
   min-height: 52vh;
@@ -66,6 +73,7 @@ html.desktop #v-scan.view.on { display: block; }
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 8px 0 52px;
 }
 #v-scan .scan-finder .scan-video { width: 100%; height: 100%; max-height: none; object-fit: cover; position: absolute; inset: 0; border-radius: 0; }
 #v-scan .scan-finder .scan-viewport { position: relative; z-index: 1; width: 100%; max-height: 62vh; background: transparent; }
@@ -91,17 +99,11 @@ html.desktop #v-scan.view.on { display: block; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 8px calc(12px + env(safe-area-inset-bottom));
-  position: sticky;
-  bottom: 8px;
-  z-index: 4;
-  background: rgba(14, 19, 33, .94);
-  border-radius: 16px;
+  padding: 8px 18px 10px;
+  flex: 0 0 auto;
+  background: #120e0c;
 }
-@media (max-width: 899px) {
-  #v-scan .scan-finder { min-height: 280px; }
-  #v-scan .scan-cam-bar { bottom: calc(76px + env(safe-area-inset-bottom)); }
-}
+#v-scan .scan-shutter { font-size: 0; }
 #v-scan .scan-gallery, #v-scan .scan-next, #v-scan .scan-shutter { min-width: 44px; min-height: 44px; }
 #v-scan .scan-shutter {
   width: 72px;
@@ -133,20 +135,32 @@ html.desktop:has(#v-scan.on) main { margin-right: 0; }
 html.desktop:has(#v-scan.on) #panel { display: none; }
 html.phone #v-scan .scan-layout { display: block; }
 html.phone #v-scan .scan-outline { width: 76%; }
-@media (max-width: 899px) {
-  html.desktop #v-scan .scan-layout { display: block; }
-  html.desktop #v-scan .scan-outline { width: 74%; }
-  html.desktop:has(#v-scan.on) body { padding: 0 0 calc(76px + env(safe-area-inset-bottom)); }
-  html.desktop:has(#v-scan.on) main { padding: 0 14px 14px; }
-  html.desktop:has(#v-scan.on) header { position: sticky; width: auto; background: linear-gradient(var(--bg) 70%, transparent); }
-  html.desktop:has(#v-scan.on) nav {
-    top: auto; bottom: 0; left: 0; right: 0; width: auto;
-    flex-direction: row; padding: 0 0 env(safe-area-inset-bottom);
-    border-right: 0; border-top: 1px solid var(--line);
+@media (max-width: 840px) {
+  html.desktop nav {
+    top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
+    width: auto !important; height: auto !important; flex-direction: row !important;
+    padding: 0 0 env(safe-area-inset-bottom) !important; border-right: 0 !important;
   }
-  html.desktop:has(#v-scan.on) nav button {
-    flex: 1; flex-direction: column; font-size: 11px; gap: 3px; padding: 10px 0; border-radius: 0;
+  html.desktop nav button { flex: 1 !important; flex-direction: column !important; font-size: 11px !important; padding: 8px 0 !important; }
+  html.desktop body { padding-left: 0 !important; }
+  html:has(#v-scan.on), html:has(#v-scan.on) body { height: 100dvh; overflow: hidden; }
+  html:has(#v-scan.on) body { padding: 0; }
+  html:has(#v-scan.on) header { display: none !important; }
+  #v-scan.on {
+    position: fixed; z-index: 8; top: 0; left: 0; right: 0;
+    bottom: calc(56px + env(safe-area-inset-bottom));
+    max-width: none; margin: 0; overflow: hidden;
+    display: flex !important; flex-direction: column; background: #120e0c; padding: 0;
   }
+  #v-scan.on > h2, #v-scan.on .scan-panel { display: none; }
+  #v-scan.scan-review.on .scan-capture { display: none; }
+  #v-scan.scan-review.on .scan-panel { display: block; overflow: auto; flex: 1; min-height: 0; background: var(--bg); }
+  html.desktop #v-scan.on .scan-layout,
+  #v-scan.on .scan-layout { display: flex !important; flex-direction: column; flex: 1; min-height: 0; height: 100%; overflow: hidden; grid-template-columns: none; }
+  html.desktop #v-scan.on .scan-capture,
+  #v-scan.on .scan-capture { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+  #v-scan.on .scan-finder { flex: 1; min-height: 0; height: auto; border-radius: 0; }
+  #v-scan.on .scan-outline { width: 70%; max-width: none; }
 }
 @media (min-width: 900px) {
   #v-scan { max-width: none; }

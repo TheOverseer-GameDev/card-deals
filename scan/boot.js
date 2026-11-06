@@ -26,9 +26,36 @@ import { cropCanvas, fileToCanvas, grayFromCanvas, releaseCanvas } from './image
 import { createLookup } from './lookup.js';
 import { createPriceBook, emptyMarket } from './prices.js';
 
+/** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
+const CAMERA_KEY = 'card-scan-camera';
+
 if (!globalThis.__cardScan) {
   globalThis.__cardScan = true;
   boot();
+}
+
+function loadCameraChoice() {
+  try {
+    const value = localStorage.getItem(CAMERA_KEY);
+    if (value === 'facing:environment' || value === 'facing:user' || (typeof value === 'string' && value.startsWith('device:'))) return value;
+  } catch { /* Private mode keeps the rear camera for this tab. */ }
+  return 'facing:environment';
+}
+
+function saveCameraChoice(value) {
+  if (value !== 'facing:environment' && value !== 'facing:user' && !(typeof value === 'string' && value.startsWith('device:') && value.length > 'device:'.length)) return;
+  try { localStorage.setItem(CAMERA_KEY, value); } catch { /* Private mode keeps the choice for this tab. */ }
+}
+
+function wideResults() {
+  return typeof window.matchMedia !== 'function' || !window.matchMedia('(max-width: 840px)').matches;
+}
+
+function cameraOption(value, label) {
+  const option = document.createElement('option');
+  option.value = value;
+  option.textContent = label;
+  return option;
 }
 
 function boot() {
@@ -70,6 +97,7 @@ function boot() {
   let drag = null;
   let mode = 'front-only';
   let captureSide = 'front';
+  let camToken = 0;
 
   const ui = build(section, rows.length === 0);
   wire(ui);
@@ -79,8 +107,16 @@ function boot() {
     if (!button) return;
     const on = button.dataset.v === 'scan';
     section.classList.toggle('on', on);
-    if (on) window.clearTimeout(idleTimer);
-    else idleTimer = window.setTimeout(() => dropReader(), 60000);
+    if (on) {
+      window.clearTimeout(idleTimer);
+      window.scrollTo(0, 0);
+      section.classList.remove('scan-review');
+      openCamera(activeSlot());
+    } else {
+      section.classList.remove('scan-review');
+      stopCamera();
+      idleTimer = window.setTimeout(() => dropReader(), 60000);
+    }
   });
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape' && ui.stream) stopCamera();
@@ -114,11 +150,30 @@ function boot() {
       else openCamera(activeSlot());
     });
     ui.camStop.addEventListener('click', () => stopCamera());
+    ui.close.addEventListener('click', () => {
+      const lists = document.querySelector('nav button[data-v="lists"]');
+      if (lists) lists.click();
+    });
+    ui.infoBtn.addEventListener('click', () => {
+      ui.infoSheet.hidden = !ui.infoSheet.hidden;
+    });
+    ui.infoClose.addEventListener('click', () => {
+      ui.infoSheet.hidden = true;
+    });
+    ui.camera.addEventListener('change', () => {
+      saveCameraChoice(ui.camera.value);
+      openCamera(activeSlot());
+    });
     ui.modeFront.addEventListener('click', () => setMode('front-only'));
     ui.modeBoth.addEventListener('click', () => setMode('front-and-back'));
     ui.next.addEventListener('click', () => {
-      if (mode === 'front-and-back' && captureSide === 'front') setCapture('back');
-      else ui.psa.scrollIntoView({ block: 'start' });
+      if (mode === 'front-and-back' && captureSide === 'front') {
+        setCapture('back');
+        openCamera('back');
+        return;
+      }
+      section.classList.add('scan-review');
+      ui.psa.scrollIntoView({ block: 'nearest' });
     });
     ui.zoom.addEventListener('input', applyView);
     ui.panX.addEventListener('input', applyView);
@@ -200,21 +255,21 @@ function boot() {
     ui.modeBoth.classList.toggle('on', both);
     ui.modeFront.setAttribute('aria-pressed', both ? 'false' : 'true');
     ui.modeBoth.setAttribute('aria-pressed', both ? 'true' : 'false');
-    if (!both) {
-      ui.step.textContent = captureSide === 'back'
-        ? 'Optional back photo. Without a usable back, the grade ceiling stays lower.'
-        : 'Front only. A back photo is optional; without it the grade ceiling is lower.';
-    } else if (captureSide === 'back') {
-      ui.step.textContent = 'Step 2 of 2: back of the card.';
-    } else {
-      ui.step.textContent = 'Step 1 of 2: front of the card. The next step does not treat a failed region as clean.';
-    }
-    const showNext = (both && captureSide === 'front' && slots.front.canvas) || (both && captureSide === 'back' && slots.back.canvas);
-    ui.next.hidden = !showNext;
-    ui.next.textContent = captureSide === 'back' ? 'Review' : 'Next';
+    if (!both) ui.step.textContent = 'Front only. Scan or upload the front of your card.';
+    else if (captureSide === 'back') ui.step.textContent = 'Step 2 of 2. Scan or upload the back of your card.';
+    else ui.step.textContent = 'Step 1 of 2. Scan or upload the front of your card.';
+    ui.next.hidden = false;
+    ui.next.textContent = 'Next';
   }
 
   function showActive() {
+    if (ui.stream) {
+      ui.video.hidden = false;
+      ui.outline.hidden = false;
+      ui.viewport.hidden = true;
+      ui.backView.hidden = true;
+      return;
+    }
     const backOn = activeSlot() === 'back' && !ui.stream;
     ui.viewport.hidden = backOn || !slots.front.canvas;
     ui.backView.hidden = !backOn || !slots.back.canvas;
@@ -242,6 +297,9 @@ function boot() {
     state.originalWidth = decoded.originalWidth;
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
+    camToken += 1;
+    releaseStream();
+    ui.video.hidden = true;
     captureSide = slot;
     if (slot === 'front') {
       ui.stage.replaceChildren(decoded.canvas, ui.map, ui.rect);
@@ -337,49 +395,128 @@ function boot() {
     }
   }
 
+  function cameraChoice() {
+    const value = (ui.camera && ui.camera.value) || loadCameraChoice();
+    if (value === 'facing:user') return { facingMode: 'user' };
+    if (typeof value === 'string' && value.startsWith('device:')) return { deviceId: value.slice('device:'.length) };
+    return { facingMode: 'environment' };
+  }
+
+  function cameraConstraints(choice) {
+    const video = {};
+    if (choice.deviceId) video.deviceId = { exact: choice.deviceId };
+    else video.facingMode = { ideal: choice.facingMode || 'environment' };
+    return { audio: false, video };
+  }
+
+  function showCamError(err) {
+    ui.step.hidden = true;
+    const name = err && err.name;
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+      ui.camMsg.textContent = 'Camera permission was denied. You can still upload a photo.';
+    } else if (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'NotReadableError' || name === 'AbortError') {
+      ui.camMsg.textContent = 'No usable camera was found. You can still upload a photo.';
+    } else {
+      ui.camMsg.textContent = 'The camera could not be opened. You can still upload a photo.';
+    }
+  }
+
+  async function lockRearZoom(stream) {
+    const track = stream.getVideoTracks()[0];
+    if (!track || typeof track.getCapabilities !== 'function' || typeof track.applyConstraints !== 'function') return;
+    let caps = null;
+    try { caps = track.getCapabilities(); } catch { caps = null; }
+    const zoom = caps && caps.zoom;
+    if (!zoom || typeof zoom.min !== 'number' || typeof zoom.max !== 'number') return;
+    const target = zoom.min <= 1 && zoom.max >= 1 ? 1 : zoom.min;
+    try { await track.applyConstraints({ advanced: [{ zoom: target }] }); } catch { /* The camera stays at its own 1×. */ }
+  }
+
+  async function fillCameraList() {
+    const select = ui.camera;
+    if (!select) return;
+    let devices = [];
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.enumerateDevices === 'function') {
+      try {
+        const listed = await navigator.mediaDevices.enumerateDevices();
+        devices = listed.filter((device) => device.kind === 'videoinput');
+      } catch { devices = []; }
+    }
+    const current = select.value || loadCameraChoice();
+    select.replaceChildren();
+    select.append(cameraOption('facing:environment', 'Rear 1×'), cameraOption('facing:user', 'Front'));
+    devices.forEach((device, index) => {
+      const label = device.label && device.label.trim() ? device.label.trim() : `Camera ${index + 1}`;
+      select.append(cameraOption(`device:${device.deviceId}`, label));
+    });
+    const values = [...select.options].map((option) => option.value);
+    select.value = values.includes(current) ? current : 'facing:environment';
+  }
+
   async function openCamera(slot) {
-    stopCamera();
-    ui.camSlot = slot;
-    captureSide = slot === 'back' ? 'back' : 'front';
+    const my = ++camToken;
+    releaseStream();
+    ui.camSlot = slot === 'back' ? 'back' : 'front';
+    captureSide = ui.camSlot;
     updateStep();
     ui.camMsg.textContent = '';
-    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
-      ui.camMsg.textContent = 'This browser has no camera API. You can still upload a photo.';
-      return;
-    }
-    try {
-      ui.stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: { facingMode: { ideal: 'environment' } },
-      });
-    } catch (err) {
-      const name = err && err.name;
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-        ui.camMsg.textContent = 'Camera permission was denied. You can still upload a photo.';
-      } else if (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'NotReadableError' || name === 'AbortError') {
-        ui.camMsg.textContent = 'No usable camera was found. You can still upload a photo.';
-      } else {
-        ui.camMsg.textContent = 'The camera could not be opened. You can still upload a photo.';
-      }
-      return;
-    }
-    ui.video.srcObject = ui.stream;
-    ui.video.playsInline = true;
-    ui.video.muted = true;
+    ui.step.hidden = false;
     ui.video.hidden = false;
     ui.outline.hidden = false;
     ui.viewport.hidden = true;
     ui.backView.hidden = true;
-    ui.camStop.hidden = false;
+    const listed = fillCameraList();
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+      await listed;
+      ui.camMsg.textContent = 'This browser has no camera API. You can still upload a photo.';
+      return;
+    }
+    let stream = null;
+    let failure = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(cameraConstraints(cameraChoice()));
+    } catch (err) {
+      failure = err;
+      if (cameraChoice().deviceId) {
+        try { stream = await navigator.mediaDevices.getUserMedia(cameraConstraints({ facingMode: 'environment' })); }
+        catch (err2) { failure = err2; }
+      }
+    }
+    if (my !== camToken) {
+      if (stream) stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    if (!stream) {
+      showCamError(failure);
+      await fillCameraList();
+      return;
+    }
+    ui.stream = stream;
+    await lockRearZoom(stream);
+    if (my !== camToken) {
+      releaseStream();
+      return;
+    }
+    ui.video.playsInline = true;
+    ui.video.muted = true;
+    ui.video.hidden = false;
+    ui.outline.hidden = false;
+    try { ui.video.srcObject = stream; } catch { /* A test double is not a real stream. The preview element is already on screen. */ }
     try { await ui.video.play(); } catch { /* The shutter still works after the video is ready. */ }
+    await fillCameraList();
   }
 
-  function stopCamera() {
+  function releaseStream() {
     if (ui.stream) {
       for (const track of ui.stream.getTracks()) track.stop();
       ui.stream = null;
     }
-    ui.video.srcObject = null;
+    if (ui.video) ui.video.srcObject = null;
+  }
+
+  function stopCamera() {
+    camToken += 1;
+    releaseStream();
     ui.video.hidden = true;
     ui.camStop.hidden = true;
     showActive();
@@ -638,6 +775,7 @@ function boot() {
     const hasBar = series.buckets.some((bucket) => typeof bucket.value === 'number');
     ui.chart.hidden = !hasBar;
     if (hasBar) drawSalesChart(ui.chart, series);
+    if (ui.chartCard) ui.chartCard.open = wideResults();
   }
 
   function renderGaugeSet(report, market) {
@@ -670,12 +808,15 @@ function boot() {
       flags: market.flags,
       scenarios: market.scenarios,
     });
-    ui.gauges.replaceChildren(gaugeBox('Buying risk', gauges.risk), gaugeBox('Current value', gauges.value), futureBox(gauges.future));
+    const gaugeSummary = document.createElement('summary');
+    gaugeSummary.textContent = 'Risk, value, and future potential';
+    ui.gauges.replaceChildren(gaugeSummary, gaugeBox('Buying risk', gauges.risk), gaugeBox('Current value', gauges.value), futureBox(gauges.future));
+    ui.gauges.open = wideResults();
   }
 
   function renderPsa() {
     ui.psa.replaceChildren();
-    const heading = document.createElement('h3');
+    const heading = document.createElement('summary');
     heading.textContent = COPY.psaUi;
     ui.psa.append(heading);
     if (!reports.front) {
@@ -710,6 +851,7 @@ function boot() {
     auth.className = 'note';
     auth.textContent = COPY.authenticity;
     ui.psa.append(auth);
+    ui.psa.open = wideResults();
   }
 
   function renderRetakes() {
@@ -744,9 +886,10 @@ function boot() {
 
 function fillQuotes(host, title, rows, emptyNote) {
   host.replaceChildren();
-  const heading = document.createElement('h3');
-  heading.textContent = title;
+  const heading = document.createElement('summary');
+  heading.textContent = rows.length ? `${title} · ${rows.length}` : `${title} · Unavailable`;
   host.append(heading);
+  host.open = wideResults();
   if (!rows.length) {
     host.append(text(`Unavailable. ${emptyNote}`));
     return;
@@ -997,10 +1140,10 @@ function build(section, missingList) {
   const outline = document.createElement('div');
   outline.className = 'scan-outline';
   outline.id = 'scan-outline';
-  finder.append(video, viewport, backView, outline);
+  finder.append(video, viewport, backView, outline, modeBar);
 
   const gallery = button('Gallery', 'scan-gallery', true);
-  const frontCam = button('Shutter', 'scan-front-cam', false);
+  const frontCam = button('', 'scan-front-cam', false);
   frontCam.className = 'scan-shutter';
   frontCam.setAttribute('aria-label', 'Shutter');
   const next = button('Next', 'scan-next', true);
@@ -1009,9 +1152,27 @@ function build(section, missingList) {
   camStop.hidden = true;
   const camBar = document.createElement('div');
   camBar.className = 'scan-cam-bar';
-  camBar.append(gallery, frontCam, next, camStop);
+  camBar.append(gallery, frontCam, next);
   const camMsg = document.createElement('p');
   camMsg.id = 'scan-cam-msg';
+  const close = button('×', 'scan-close', true);
+  close.setAttribute('aria-label', 'Close scan');
+  const game = document.createElement('select');
+  game.id = 'scan-game';
+  game.setAttribute('aria-label', 'Game');
+  for (const [value, label] of [['all', 'Both'], ['ygo', 'Yu-Gi-Oh'], ['mtg', 'Magic']]) {
+    game.append(cameraOption(value, label));
+  }
+  const camera = document.createElement('select');
+  camera.id = 'scan-camera';
+  camera.setAttribute('aria-label', 'Camera');
+  camera.append(cameraOption('facing:environment', 'Rear 1×'), cameraOption('facing:user', 'Front'));
+  camera.value = loadCameraChoice();
+  const infoBtn = button('i', 'scan-info-btn', true);
+  infoBtn.setAttribute('aria-label', 'Scan info');
+  const top = document.createElement('div');
+  top.className = 'scan-top';
+  top.append(close, game, camera, infoBtn);
 
   const frontFile = fileInput('scan-front-file');
   const backFile = fileInput('scan-back-file');
@@ -1080,23 +1241,27 @@ function build(section, missingList) {
   const clearBtn = button('Clear chosen row', 'scan-clear', true);
   const identity = document.createElement('div');
   identity.id = 'scan-identity';
-  const psa = document.createElement('div');
+  const psa = document.createElement('details');
   psa.id = 'scan-psa';
-  psa.className = 'scan-block';
-  const sold = document.createElement('div');
+  psa.className = 'scan-block scan-card';
+  const sold = document.createElement('details');
   sold.id = 'scan-sold';
-  sold.className = 'scan-block';
-  const asks = document.createElement('div');
+  sold.className = 'scan-block scan-card';
+  const asks = document.createElement('details');
   asks.id = 'scan-asks';
-  asks.className = 'scan-block';
+  asks.className = 'scan-block scan-card';
   const prices = document.createElement('div');
   prices.id = 'scan-prices';
   prices.className = 'scan-block';
   const storedHeading = document.createElement('h3');
   storedHeading.textContent = 'Stored catalog figures';
   prices.append(storedHeading, text('Confirm a catalog row to see stored prices.'));
-  const chartTitle = document.createElement('h3');
+  const chartCard = document.createElement('details');
+  chartCard.id = 'scan-chart-card';
+  chartCard.className = 'scan-card';
+  const chartTitle = document.createElement('summary');
   chartTitle.id = 'scan-chart-title';
+  chartTitle.textContent = 'Sales history';
   const chart = document.createElement('canvas');
   chart.id = 'scan-chart';
   chart.className = 'scan-chart';
@@ -1104,9 +1269,10 @@ function build(section, missingList) {
   const chartNote = document.createElement('p');
   chartNote.id = 'scan-chart-note';
   chartNote.className = 'note';
-  const gauges = document.createElement('div');
+  chartCard.append(chartTitle, chart, chartNote);
+  const gauges = document.createElement('details');
   gauges.id = 'scan-gauges';
-  gauges.className = 'scan-gauges';
+  gauges.className = 'scan-gauges scan-card';
 
   const condition = document.createElement('fieldset');
   const legend = document.createElement('legend');
@@ -1141,27 +1307,40 @@ function build(section, missingList) {
   more.textContent = 'Full limitations';
   limits.append(more);
 
+  const infoSheet = document.createElement('div');
+  infoSheet.id = 'scan-info-sheet';
+  infoSheet.hidden = true;
+  const infoClose = button('Close', 'scan-info-close', true);
+  infoSheet.append(infoClose, intro, introNote, s22, s22Note, limits);
   const capture = document.createElement('div');
   capture.className = 'scan-capture';
-  capture.append(modeBar, step, finder, camBar, camMsg, frontFile, backFile, frontNote, backNote, retakes, backQualityBtn, backQuality);
+  capture.append(top, finder, step, camMsg, camBar, infoSheet, frontFile, backFile);
   const panel = document.createElement('div');
   panel.className = 'scan-panel';
   panel.append(
+    frontNote, backNote, retakes, backQualityBtn, backQuality,
     controls, suggestNote, suggestBtn, qualityBtn, frontQuality,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
-    identity, psa, sold, asks, prices, chartTitle, chart, chartNote, gauges, condition, limits,
+    identity, psa, sold, asks, prices, chartCard, gauges, condition,
   );
   const layout = document.createElement('div');
   layout.className = 'scan-layout';
   layout.append(capture, panel);
-  section.append(h, intro, introNote, s22, s22Note, layout);
+  section.append(h, layout);
   return {
     frontFile,
     backFile,
     frontCam,
     gallery,
     next,
+    close,
+    infoBtn,
+    infoClose,
+    infoSheet,
+    game,
+    camera,
+    chartCard,
     modeFront,
     modeBoth,
     step,
