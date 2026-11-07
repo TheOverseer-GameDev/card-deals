@@ -692,4 +692,85 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     state.sw = 'real';
     await context.close();
   });
+
+  await t.test('landscape and a short PC window keep shutter and gallery inside', async () => {
+    const inside = () => {
+      const v = visualViewport;
+      const ids = ['scan-front-cam', 'scan-gallery', 'scan-camera'];
+      const controls = {};
+      for (const id of ids) {
+        const r = document.getElementById(id).getBoundingClientRect();
+        controls[id] = { ok: r.width >= 44 && r.height >= 32 && r.top >= v.offsetTop - 1 && r.bottom <= v.offsetTop + v.height + 1 && r.left >= v.offsetLeft - 1 && r.right <= v.offsetLeft + v.width + 1, t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height) };
+      }
+      return { controls, tight: document.documentElement.classList.contains('scan-tight'), h: v.height, w: v.width, z: getComputedStyle(document.documentElement).zoom, shell: document.getElementById('v-scan').getBoundingClientRect().height };
+    };
+    const land = await browser.newContext({ viewport: { width: 800, height: 360 }, hasTouch: true, isMobile: true, serviceWorkers: 'block' });
+    const landPage = await land.newPage();
+    await landPage.addInitScript(() => {
+      const track = { stop() {}, getCapabilities: () => ({}), applyConstraints: async () => {} };
+      const stream = { getTracks: () => [track], getVideoTracks: () => [track] };
+      try { Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => stream, enumerateDevices: async () => [] } }); } catch { /* native */ }
+    });
+    await landPage.goto(base + '/');
+    await landPage.locator('nav button[data-v="scan"]').click();
+    const landFit = await landPage.evaluate(inside);
+    assert.equal(landFit.controls['scan-front-cam'].ok, true, JSON.stringify(landFit));
+    assert.equal(landFit.controls['scan-gallery'].ok, true, JSON.stringify(landFit));
+    await land.close();
+
+    const pc = await browser.newContext({ viewport: { width: 1440, height: 900 }, screen: { width: 1440, height: 900 }, hasTouch: true, isMobile: true, serviceWorkers: 'block' });
+    const pcPage = await pc.newPage();
+    await pcPage.addInitScript(() => {
+      const track = { stop() {}, getCapabilities: () => ({}), applyConstraints: async () => {} };
+      const stream = { getTracks: () => [track], getVideoTracks: () => [track] };
+      try { Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => stream, enumerateDevices: async () => [] } }); } catch { /* native */ }
+    });
+    await pcPage.goto(base + '/');
+    await pcPage.locator('nav button[data-v="scan"]').click();
+    await pcPage.setViewportSize({ width: 1440, height: 765 });
+    await pcPage.evaluate(() => window.dispatchEvent(new Event('resize')));
+    const pcFit = await pcPage.evaluate(inside);
+    assert.equal(pcFit.controls['scan-camera'].ok, true, JSON.stringify(pcFit));
+    assert.equal(pcFit.controls['scan-front-cam'].ok, true, JSON.stringify(pcFit));
+    assert.equal(pcFit.controls['scan-gallery'].ok, true, JSON.stringify(pcFit));
+    await pc.close();
+
+    const extreme = await browser.newContext({
+      viewport: { width: 980, height: 2178 },
+      screen: { width: 360, height: 800 },
+      hasTouch: true,
+      isMobile: true,
+      deviceScaleFactor: 3,
+      serviceWorkers: 'block',
+    });
+    const ex = await extreme.newPage();
+    await ex.addInitScript(() => {
+      const track = { stop() {}, getCapabilities: () => ({}), applyConstraints: async () => {} };
+      const stream = { getTracks: () => [track], getVideoTracks: () => [track] };
+      try { Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => stream, enumerateDevices: async () => [] } }); } catch { /* native */ }
+    });
+    await ex.goto(base + '/');
+    const cdp = await extreme.newCDPSession(ex);
+    await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: 980 / 360 });
+    await ex.locator('nav button[data-v="scan"]').click();
+    await ex.setViewportSize({ width: 800, height: 360 });
+    await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: 980 / 360 });
+    await ex.evaluate(() => window.dispatchEvent(new Event('resize')));
+    const exFit = await ex.evaluate(inside);
+    assert.ok(exFit.h < 220, JSON.stringify(exFit));
+    assert.equal(exFit.tight, true, JSON.stringify(exFit));
+    assert.equal(exFit.controls['scan-front-cam'].ok, true, JSON.stringify(exFit));
+    assert.equal(exFit.controls['scan-gallery'].ok, true, JSON.stringify(exFit));
+    assert.equal(await ex.locator('#scan-tight-note').isVisible(), true);
+    const shot = await cdp.send('Page.captureScreenshot', { format: 'png' });
+    await ex.locator('#scan-front-cam').click();
+    const msgIn = await ex.evaluate(() => {
+      const r = document.getElementById('scan-cam-msg').getBoundingClientRect();
+      const v = visualViewport;
+      return r.height > 0 && r.top >= v.offsetTop - 1 && r.bottom <= v.offsetTop + v.height + 1;
+    });
+    assert.equal(msgIn, true);
+    fs.writeFileSync(path.join(shots, 'extreme-landscape.png'), Buffer.from(shot.data, 'base64'));
+    await extreme.close();
+  });
 });
