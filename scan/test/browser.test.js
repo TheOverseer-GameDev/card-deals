@@ -625,4 +625,71 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await page.screenshot({ path: path.join(shots, 's22-desktop-site-980.png') });
     await context.close();
   });
+
+  await t.test('page scale 2.72 keeps a real Scan click inside the visual viewport', async () => {
+    const measure = () => {
+      const v = visualViewport;
+      const ids = ['scan-front-cam', 'scan-gallery', 'scan-camera', 'scan-next'];
+      const controls = {};
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        const r = el.getBoundingClientRect();
+        controls[id] = {
+          top: r.top, bottom: r.bottom, left: r.left, right: r.right,
+          inside: r.width > 0 && r.top >= v.offsetTop - 1 && r.bottom <= v.offsetTop + v.height + 1 && r.left >= v.offsetLeft - 1 && r.right <= v.offsetLeft + v.width + 1,
+        };
+      }
+      return { innerWidth, vv: { width: v.width, height: v.height, scale: v.scale, offsetTop: v.offsetTop, offsetLeft: v.offsetLeft }, media840: matchMedia('(max-width: 840px)').matches, controls };
+    };
+    state.sw = 'old';
+    const context = await browser.newContext({
+      viewport: { width: 980, height: 2178 },
+      screen: { width: 360, height: 800 },
+      hasTouch: true,
+      isMobile: true,
+      deviceScaleFactor: 3,
+    });
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      const track = { getCapabilities: () => ({}), applyConstraints: async () => {}, stop() {} };
+      const stream = { getVideoTracks: () => [track], getTracks: () => [track] };
+      const devices = { getUserMedia: async () => stream, enumerateDevices: async () => [] };
+      try { Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: devices }); }
+      catch { navigator.mediaDevices.getUserMedia = devices.getUserMedia; }
+    });
+    await page.goto(base + '/');
+    await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller);
+    state.sw = 'real';
+    const cacheName = fs.readFileSync(path.join(root, 'sw.js'), 'utf8').match(/const C='([^']+)'/)[1];
+    await page.evaluate(async () => { const reg = await navigator.serviceWorker.getRegistration(); await reg.update(); });
+    await page.waitForFunction(async (name) => (await caches.keys()).includes(name), cacheName);
+    await page.reload();
+    await page.waitForSelector('nav button[data-v="scan"]');
+    const client = await context.newCDPSession(page);
+    await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 980 / 360 });
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await page.locator('nav button[data-v="scan"]').click();
+    await page.waitForSelector('#v-scan.on');
+    const fit = await page.evaluate(measure);
+    assert.equal(fit.media840, false);
+    assert.ok(fit.vv.scale > 2, JSON.stringify(fit.vv));
+    assert.ok(fit.vv.width < 420, JSON.stringify(fit.vv));
+    for (const id of Object.keys(fit.controls)) assert.equal(fit.controls[id].inside, true, `${id} ${JSON.stringify(fit.controls[id])}`);
+    const shot = await client.send('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(path.join(shots, 'visual-viewport-scale.png'), Buffer.from(shot.data, 'base64'));
+    await page.mouse.wheel(0, 400);
+    const wheeled = await page.evaluate(measure);
+    for (const id of Object.keys(wheeled.controls)) assert.equal(wheeled.controls[id].inside, true, `wheel ${id}`);
+    await page.setViewportSize({ width: 980, height: Math.round(2178 * 0.85) });
+    await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+    const bars = await page.evaluate(measure);
+    for (const id of Object.keys(bars.controls)) assert.equal(bars.controls[id].inside, true, `bars ${id} ${JSON.stringify(bars)}`);
+    await page.setViewportSize({ width: 2178, height: 980 });
+    await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 2178 / 800 });
+    await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+    const turned = await page.evaluate(measure);
+    for (const id of Object.keys(turned.controls)) assert.equal(turned.controls[id].inside, true, `rotate ${id} ${JSON.stringify(turned)}`);
+    state.sw = 'real';
+    await context.close();
+  });
 });

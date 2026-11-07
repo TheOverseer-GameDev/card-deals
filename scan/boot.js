@@ -101,6 +101,18 @@ function boot() {
 
   const ui = build(section, rows.length === 0);
   wire(ui);
+  clearHarmfulZoom();
+  pinNav();
+  const followViewport = () => {
+    clearHarmfulZoom();
+    pinNav();
+    if (document.documentElement.classList.contains('scan-cam')) placeCapture();
+  };
+  window.addEventListener('resize', followViewport);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', followViewport);
+    window.visualViewport.addEventListener('scroll', followViewport);
+  }
 
   document.addEventListener('click', (ev) => {
     const button = ev.target.closest && ev.target.closest('nav button');
@@ -428,6 +440,42 @@ function boot() {
     return window.matchMedia('(pointer: coarse)').matches && visual < 1100;
   }
 
+  function cssZoom() {
+    const z = parseFloat(getComputedStyle(document.documentElement).zoom);
+    return z > 0 && Number.isFinite(z) ? z : 1;
+  }
+
+  function clearHarmfulZoom() {
+    // index.html zooms the page when the layout is wider than the screen.
+    // That zoom and Chrome's desktop-site page scale disagree, so fixed
+    // controls and hit testing land outside the visible viewport.
+    if (cssZoom() > 1.05 && window.visualViewport && window.visualViewport.scale > 1.05) {
+      document.documentElement.style.zoom = '1';
+    }
+  }
+
+  function needsPin() {
+    const vv = window.visualViewport;
+    if (!vv) return false;
+    if (cssZoom() > 1.05 || vv.scale > 1.05) return true;
+    return window.innerWidth - vv.width > 80;
+  }
+
+  function pinNav() {
+    const nav = document.querySelector('nav');
+    const vv = window.visualViewport;
+    if (!nav || !vv || !needsPin()) return;
+    const z = cssZoom();
+    const h = nav.offsetHeight || 56;
+    nav.style.position = 'fixed';
+    nav.style.top = `${(vv.offsetTop + vv.height) / z - h}px`;
+    nav.style.bottom = 'auto';
+    nav.style.left = `${vv.offsetLeft / z}px`;
+    nav.style.width = `${vv.width / z}px`;
+    nav.style.right = 'auto';
+    nav.style.zIndex = '90';
+  }
+
   function placeCapture() {
     if (!phoneShell()) {
       section.style.position = '';
@@ -439,16 +487,17 @@ function boot() {
       return;
     }
     const vv = window.visualViewport;
+    const z = cssZoom();
     section.style.position = 'fixed';
-    section.style.zIndex = '80';
+    section.style.zIndex = '100';
     section.style.margin = '0';
     section.style.maxWidth = 'none';
     section.style.right = 'auto';
     section.style.bottom = 'auto';
-    section.style.top = `${vv ? vv.offsetTop : 0}px`;
-    section.style.left = `${vv ? vv.offsetLeft : 0}px`;
-    section.style.width = `${vv ? vv.width : window.innerWidth}px`;
-    section.style.height = `${vv ? vv.height : window.innerHeight}px`;
+    section.style.top = `${((vv ? vv.offsetTop : 0) / z)}px`;
+    section.style.left = `${((vv ? vv.offsetLeft : 0) / z)}px`;
+    section.style.width = `${((vv ? vv.width : window.innerWidth) / z)}px`;
+    section.style.height = `${((vv ? vv.height : window.innerHeight) / z)}px`;
   }
 
   function enterCapture() {
@@ -463,10 +512,6 @@ function boot() {
         if (!document.documentElement.classList.contains('scan-cam')) return;
         if (Math.abs(window.scrollY - savedScroll) > 1) window.scrollTo(0, savedScroll);
       });
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', placeCapture);
-        window.visualViewport.addEventListener('scroll', placeCapture);
-      }
     }
   }
 
