@@ -9,7 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 picks = json.load(open(ROOT / 'latest.json'))
-env = [str(ROOT / '.ebay_env'), '/workspace/pokebot/.ebay_env', '/workspace/ygo_cards/.ebay_env']
+_base = Path(os.environ.get('CARD_ROOT', '/workspace'))
+env = [str(ROOT / '.ebay_env'), str(_base / 'pokebot' / '.ebay_env'), str(_base / 'ygo_cards' / '.ebay_env')]
 tok = M.ebay_token(env)
 fails = []
 checked = 0

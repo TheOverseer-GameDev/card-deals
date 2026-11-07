@@ -10,10 +10,9 @@ import hashlib, json, os, sqlite3, time
 from datetime import datetime, timezone
 from pathlib import Path
 
-GAMES = (
-    ("ygo", Path("/workspace/ygo_cards")),
-    ("mtg", Path("/workspace/mtg_cards")),
-)
+def game_roots():
+    root = Path(os.environ.get("CARD_ROOT", "/workspace"))
+    return (("ygo", root / "ygo_cards"), ("mtg", root / "mtg_cards"))
 
 def card_id(url: str, name: str) -> str:
     return hashlib.md5(((url or "") + "|" + (name or "")).encode()).hexdigest()[:12]
@@ -189,7 +188,7 @@ def build_game(game: str, root: Path) -> dict:
     }
 
 def main():
-    for game, root in GAMES:
+    for game, root in game_roots():
         doc = build_game(game, root)
         out = root / "market.json"
         out.write_text(json.dumps(doc, indent=1) + "\n")

@@ -76,6 +76,7 @@ def check_item(game,pick,o,graded,item):
     if pr and not (abs(pr-d)<=0.01 or abs(pr+ship-d)<=0.01): return False,f'price changed: shown {d}, now {pr} + ship {ship}',pr
     return True,'ok',pr
 def fetch_item(tok,i):
+    if OPS not in sys.path: sys.path.insert(0,OPS)
     from quota import Guard
     guard=Guard(os.path.join(OPS,'source_guard.json'))
     def call():

@@ -32,8 +32,9 @@ def urlopen(req,timeout=30):
     raise urllib.error.URLError('fixture exhausted '+url)
 def fetch_status(u,h=None,data=None,t=30,run_id=None):
     """Production HTTP path. 401 refreshes once. 429 sets the shared cooldown and stops."""
+    ops=_ops_path()
     from quota import Guard
-    guard=Guard(os.path.join(_ops_path(),'source_guard.json'))
+    guard=Guard(os.path.join(ops,'source_guard.json'))
     run_id=run_id or os.environ.get('CARD_RUN_ID','ygo')
     def call():
         req=urllib.request.Request(u,data=data,headers={**UA,**(h or {})})
@@ -66,6 +67,7 @@ def get(u,h=None,data=None,t=30):
         code=429 if reason in ('429','cooldown') else 401 if '401' in reason else int(result.get('status') or 503)
         raise urllib.error.HTTPError(u,code,reason,{},None)
     return u,result['body']
+_ops_path()
 def fx():
     try: return json.loads(get('https://api.frankfurter.app/latest?from=USD&to=CAD')[1])['rates']['CAD']
     except Exception: return 1.40
@@ -178,7 +180,8 @@ _tok=None
 def ebay_token():
     global _tok
     if _tok is not None: return _tok
-    for c in [P('.ebay_env'),'/workspace/pokebot/.ebay_env']:
+    root=os.environ.get('CARD_ROOT','/workspace')
+    for c in [P('.ebay_env'),os.path.join(root,'pokebot','.ebay_env'),os.path.join(root,'ygo_cards','.ebay_env')]:
         if os.path.exists(c):
             e=dict(l.strip().split('=',1) for l in open(c) if '=' in l)
             b=base64.b64encode(f"{e['EBAY_CLIENT_ID']}:{e['EBAY_CLIENT_SECRET']}".encode()).decode()

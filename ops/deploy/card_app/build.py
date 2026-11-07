@@ -14,8 +14,10 @@ def charts(db):
             except Exception: pass
     except Exception: pass
     return out
+def _root():
+    return os.environ.get('CARD_ROOT','/workspace')
 def load(dirn):
-    d=os.path.join('/workspace',dirn);cards=[];sample=False
+    d=os.path.join(_root(),dirn);cards=[];sample=False
     for f in ('latest.json','latest_picks.json','picks.json'):
         p=os.path.join(d,f)
         if os.path.exists(p):
@@ -63,7 +65,7 @@ def mt(d):
     ts=[os.path.getmtime(os.path.join(d,f)) for f in os.listdir(d)] if os.path.isdir(d) else []
     return datetime.datetime.fromtimestamp(max(ts)).strftime('%b %d %Y %H:%M ET') if ts else 'not yet run'
 def coll():
-    p='/workspace/ygo_cards/my_collection.csv'
+    p=os.path.join(_root(),'ygo_cards','my_collection.csv')
     try: return [{k:v for k,v in r.items() if k in ('name','set_code','rarity','edition','condition','graded')} for r in csv.DictReader(open(p))]
     except Exception: return []
 SAMPLE={'ygo_cards':[],'mtg_cards':[

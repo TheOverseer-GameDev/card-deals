@@ -22,7 +22,7 @@ if [ "$prc" -eq 3 ]; then echo "$(ts) phone journey deferred - not a pass" >> $G
 if [ "$prc" -ne 0 ]; then echo "$(ts) prepublish failed rc=$prc" >> $GL; exit 1; fi
 nice -n 19 python3 $OPS/status.py >/dev/null 2>&1
 [ -n "$CARD_E2E_STOP" ] && { echo "$(ts) gates finished (e2e stop)" >> $GL; exit 0; }
-rm -rf /workspace/card_app/site_prev && mkdir -p /workspace/card_app/site_prev && (cd site && tar --exclude=.git -cf - .) | (cd /workspace/card_app/site_prev && tar -xf -)
+rm -rf $ROOT/card_app/site_prev && mkdir -p $ROOT/card_app/site_prev && (cd site && tar --exclude=.git -cf - .) | (cd $ROOT/card_app/site_prev && tar -xf -)
 python3 build.py || exit 1
 [ -n "$CARD_TEST_BREAK" ] && echo 'garbage(' >> site/data.js  # test hook: proves gate+rollback
 if ! nice -n 19 python3 $OPS/doctor.py --gate > $OPS/gate_last.txt 2>&1; then

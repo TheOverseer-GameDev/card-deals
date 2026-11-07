@@ -384,7 +384,8 @@ def ebay_token():
     global _tok
     if _tok is not None:
         return _tok
-    for c in [P('.ebay_env'), '/workspace/pokebot/.ebay_env', '/workspace/ygo_cards/.ebay_env']:
+    root = os.environ.get('CARD_ROOT', '/workspace')
+    for c in [P('.ebay_env'), os.path.join(root, 'pokebot', '.ebay_env'), os.path.join(root, 'ygo_cards', '.ebay_env')]:
         if os.path.exists(c):
             e = dict(l.strip().split('=', 1) for l in open(c) if '=' in l and not l.strip().startswith('#'))
             if 'EBAY_CLIENT_ID' not in e:
@@ -1134,7 +1135,8 @@ def main():
             continue
         seen.add(r['key'])
         market = r['a'].get('raw_robust') or r['a'].get('raw') or r['card'].get('usd') or 0
-        env_paths = [P('.ebay_env'), '/workspace/pokebot/.ebay_env', '/workspace/ygo_cards/.ebay_env']
+        root = os.environ.get('CARD_ROOT', '/workspace')
+        env_paths = [P('.ebay_env'), os.path.join(root, 'pokebot', '.ebay_env'), os.path.join(root, 'ygo_cards', '.ebay_env')]
         raw_offers = M.live_offers(
             r['card'], False, market, fx_, cad_landed, vet_listing, env_paths, set_hint, max_offers=3)
         # graded offers (eBay only in practice)
