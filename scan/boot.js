@@ -106,7 +106,14 @@ function boot() {
   const followViewport = () => {
     clearHarmfulZoom();
     pinNav();
-    if (document.documentElement.classList.contains('scan-cam')) placeCapture();
+    const live = section.classList.contains('on') && !section.classList.contains('scan-review');
+    if (live && phoneShell()) {
+      if (!document.documentElement.classList.contains('scan-cam')) enterCapture();
+      else placeCapture();
+    } else if (document.documentElement.classList.contains('scan-cam') && !phoneShell()) {
+      leaveCapture();
+    }
+    markTight();
   };
   window.addEventListener('resize', followViewport);
   if (window.visualViewport) {
@@ -193,6 +200,7 @@ function boot() {
         return;
       }
       section.classList.add('scan-review');
+      markTight();
       ui.psa.scrollIntoView({ block: 'nearest' });
     });
     ui.zoom.addEventListener('input', applyView);
@@ -434,7 +442,9 @@ function boot() {
   function phoneShell() {
     const vv = window.visualViewport;
     const visual = vv ? vv.width : window.innerWidth;
+    const tall = vv ? vv.height : window.innerHeight;
     const layout = window.innerWidth;
+    if (tall < 780) return true;
     if (visual <= 900) return true;
     if (layout - visual > 80) return true;
     return window.matchMedia('(pointer: coarse)').matches && visual < 1100;
@@ -500,11 +510,19 @@ function boot() {
     section.style.height = `${((vv ? vv.height : window.innerHeight) / z)}px`;
   }
 
+  function markTight() {
+    const vv = window.visualViewport;
+    const live = section.classList.contains('on') && !section.classList.contains('scan-review');
+    const tight = Boolean(vv && live && (vv.height < 220 || vv.width < 340));
+    document.documentElement.classList.toggle('scan-tight', tight);
+  }
+
   function enterCapture() {
     if (!phoneShell()) return;
     savedScroll = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
     document.documentElement.classList.add('scan-cam');
     placeCapture();
+    markTight();
     if (document.scrollingElement) document.scrollingElement.scrollTop = savedScroll;
     if (!enterCapture.bound) {
       enterCapture.bound = true;
@@ -516,7 +534,7 @@ function boot() {
   }
 
   function leaveCapture() {
-    document.documentElement.classList.remove('scan-cam');
+    document.documentElement.classList.remove('scan-cam', 'scan-tight');
     section.style.position = '';
     section.style.top = '';
     section.style.left = '';
@@ -1439,7 +1457,10 @@ function build(section, missingList) {
   infoSheet.append(infoClose, intro, introNote, s22, s22Note, limits);
   const capture = document.createElement('div');
   capture.className = 'scan-capture';
-  capture.append(top, finder, step, camMsg, camRetry, camBar, infoSheet, frontFile, backFile);
+  const tightNote = document.createElement('p');
+  tightNote.id = 'scan-tight-note';
+  tightNote.textContent = 'Zoom out or turn upright to frame the card. Shutter and gallery still work.';
+  capture.append(top, finder, step, tightNote, camMsg, camRetry, camBar, infoSheet, frontFile, backFile);
   const panel = document.createElement('div');
   panel.className = 'scan-panel';
   panel.append(
