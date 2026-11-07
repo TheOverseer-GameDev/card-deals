@@ -58,6 +58,8 @@ node --test --test-timeout 180000 scan/test/browser.test.js
 python3 ops/prepublish.py --journey
 ```
 
+`ops/test_fresh.py` reruns the installed entrypoints with `python3 -I` and an empty `PYTHONPATH`. `fetch_status` adds `card_ops` to `sys.path` before importing `quota`. `build.py` and `build_market_input.py` read `CARD_ROOT`. A fixture titled `STAGING-ONLY-7f3c9a` shows up in the staged `data.js`, and that process does not open `/workspace` or the network.
+
 `scan/test/journey.test.js` is headless Chrome with a fake camera and a local server. It is not a phone and it does not open eBay.
 
 ## Limits
