@@ -9,7 +9,7 @@ TRANSPORT = {'401', '429', '503', 'timeout', 'transport', 'no_token'}
 
 def classify(status=None, why=''):
     text = (why or '').lower()
-    if status in (401, 429, 503) or text in TRANSPORT or 'getitem failed' in text or 'rate limit' in text:
+    if status in (401, 429, 503) or text in TRANSPORT or text.startswith('transport') or 'getitem failed' in text or 'rate limit' in text or 'no token' in text:
         return 'transport'
     if status in (404, 410) or 'ended' in text or 'not available' in text:
         return 'ended'

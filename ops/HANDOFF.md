@@ -12,31 +12,33 @@ The 26 YGO offers already removed by the old verifier (24 HTTP 401, 2 rate limit
 - The queue stamp was written at the start of a run, discovery and refresh shared one daily slot, and publish never advanced the queue. A transport error must stay `pending`, not completed.
 - Keepalive runs trackers daily and publish hourly. This does not add a second loop.
 
-## Copy back
+## Deployable tree
 
-| In this repo | Copy to |
-| --- | --- |
-| `ops/quota.py` | `/workspace/card_ops/quota.py` |
-| `ops/verify_outcome.py` | `/workspace/card_ops/verify_outcome.py` |
-| `ops/metrics.py` | `/workspace/card_ops/metrics.py` |
-| `ops/discovery.py` | `/workspace/card_ops/discovery.py` |
-| `ops/print_key.py` | `/workspace/card_ops/print_key.py` |
-| `ops/freshness.py` | `/workspace/card_ops/freshness.py` |
-| `ops/supervisor.py` | `/workspace/card_ops/supervisor.py` |
-| `ops/prepublish.py` | `/workspace/card_ops/prepublish.py` |
-| `ops/backup_check.py` | `/workspace/card_ops/backup_check.py` |
+`ops/deploy/` is the patched production source. `python3 ops/deploy/install.py` only prints the mapping. `python3 ops/deploy/install.py --apply <staging-dir>` copies it. The script refuses `--apply /workspace`. Nothing in this PR has been copied onto the live machine.
 
-Call sites, still on the machine:
+| Staged file | Production path | What the file itself calls |
+| --- | --- | --- |
+| `ops/quota.py` and the other helpers | `/workspace/card_ops/` | library used by the scripts below |
+| `ops/supervisor_periodic.py` | `/workspace/card_ops/supervisor_periodic.py` | one keepalive tick, 120s gap, no extra loop |
+| `ops/deploy/ygo_cards/tracker.py` | `/workspace/ygo_cards/tracker.py` | `fetch_status` → `Guard.handle`; `normalize_set_code`; `next_work` / `mark_queue`; `public_metrics`; `commit_stamp` only after a run that was not stopped for transport |
+| `ops/deploy/ygo_cards/verify.py` | `/workspace/ygo_cards/verify.py` | `fetch_status`, `apply_result`, `finish_run`; exit 2 after transport; `--test` reads `verify_run.json` and does not pass on an empty list |
+| `ops/deploy/mtg_cards/tracker.py` | `/workspace/mtg_cards/tracker.py` | `ygo_tracker.get` and `ygo_tracker.next_work`; stamp written at the end, not the start; transport 401/429/503 stops the batch |
+| `ops/deploy/card_ops/doctor.py` | `/workspace/card_ops/doctor.py` | `fetch_item` → `Guard.handle`; transport result calls `apply_result` and keeps `retained_offers` |
+| `ops/deploy/card_app/publish.sh` | `/workspace/card_app/publish.sh` | verify exit non-zero stops publish; then `prepublish.py --journey`; exit 3 is deferred |
+| `ops/deploy/card_app/build.py` | `/workspace/card_app/build.py` | `freshness.health_fields`; still calls `scan/tools/integrate.py` |
+| `ops/deploy/card_common/categories.py` | `/workspace/card_common/categories.py` | hidden `listing_state` is not rankable |
+| `ops/deploy/yugioh/keepalive.sh` | `/workspace/yugioh/keepalive.sh` | the existing loop calls `supervisor_periodic.py` once per pass |
+| `ops/deploy/card_ops/capok.sh`, `doctor_cycle.sh`, `status.py` | same names under `/workspace/card_ops/` | `CARD_ROOT` / `card_STOP`; RAM floor unchanged |
 
-- `ygo_cards/tracker.py` `get()` and `mtg_cards/tracker.py` `get()`: on 401/429 call `Guard.handle` instead of sleeping and raising. Do not mark the queue row completed on transport.
-- Delete the `O` to `0` substitution. Call `print_key.resolve(code, password=card_id)`.
-- Persist metrics with `metrics.emit_metrics`. Do not fill cost from `raw * fx`.
-- `ygo_cards/verify.py`: `apply_result` for transport, `finish_run` for the exit code. Exit 2 means do not publish. `--test` must read that record and must not pass just because no links remain.
-- Split discovery (`discovery.plan`, untouched `pending` first) from listing refresh. Publish does not discover. A successful run is the only thing that should refresh a daily stamp.
-- `doctor.py` `fetch_item`: 401 and 429 hide the offer and keep `retained_offers`. 404/410 still count as ended. Do not treat an empty recheck as success.
-- `publish.sh`: after verify, exit 1 on code 2. Then `python3 /workspace/card_ops/prepublish.py --journey`. Exit 3 is deferred, not a pass. Honor `/workspace/card_STOP` and `/workspace/card_PUBLISH_PAUSE`. RAM under 2 GB skips the phone journey with status `deferred`.
-- `keepalive.sh`: keep the existing loop. About every 2 minutes, if RAM is at least 2 GB and stop is absent, run `python3 /workspace/card_ops/supervisor.py` only if you add a one-shot `--periodic` wrapper later. Do not start a second `while true`. Phone journey cadence is 6 hours (`consider_journey`), also from prepublish.
-- `index.tpl.html`: same `liveBuy` / freshness strings as `index.html`. `scan/tools/integrate.py` puts them back when the generator still emits the old lines. The freshness line is hidden while `html.scan-cam` is on, so capture stays camera-only. Results use `#scan-freshness` inside the panel.
+`CARD_ROOT` defaults to `/workspace`. Do not overwrite an existing `config.json` on the machine; the staged configs are the allowlisted keys from the audit package. The 26 already-deleted offers are still not recovered.
+
+Staging check, from a clean temp directory (this is what `ops/test_e2e.py` runs):
+
+```sh
+python3 -m unittest ops.test_e2e ops.test_repair ops.test_supervisor ops.test_backup
+```
+
+Observed on this run: installed `verify.py` hid the offer after HTTP 401 (`transport 401`), kept `cad_total` 19.5, did not mark it ended, and `--test` exited 2. `publish.sh` then exited 1 and did not print `gate PASS`. `doctor.fix` retained the offer. A transport queue row stayed `last_checked=0` and no success stamp was written. `LAVD-EN034` with Konami id 15032 became `LAVD-ENO34`. `supervisor_periodic.py` printed `DEGRADED pending` with no backup manifest, and `DEFERRED` at 500 MB.
 
 ## Supervisor
 
