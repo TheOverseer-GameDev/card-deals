@@ -15,7 +15,8 @@ class IntegrateTests(unittest.TestCase):
         sw = (
             "const C='cd3-1',F=['./','index.html'];\n"
             "self.addEventListener('fetch',e=>{const r=e.request;if(r.method!='GET')return;"
-            "const u=new URL(r.url);if(u.origin!=location.origin)return;});"
+            "const u=new URL(r.url);if(u.origin!=location.origin)return;"
+            "const fresh=/\\.(html|json|js)$/.test(u.pathname);});"
         )
         once = patch_index(index)
         self.assertEqual(once, patch_index(once))
@@ -31,6 +32,8 @@ class IntegrateTests(unittest.TestCase):
         self.assertIn("r.method!='GET'", patched)
         self.assertIn("u.origin!=location.origin", patched)
         self.assertNotIn("tesseract", patched)
+        self.assertIn("\\.(html|json|js|css)$", patched)
+        self.assertEqual(patched.count("\\.(html|json|js|css)$"), 1)
 
     def test_apply_puts_the_hook_back_after_a_generator_rewrite(self):
         with tempfile.TemporaryDirectory() as tmp:

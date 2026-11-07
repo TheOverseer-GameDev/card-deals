@@ -51,11 +51,18 @@ def patch_sw(text: str) -> str:
         if asset not in have:
             items.append("'" + asset + "'")
     rebuilt = "F=[" + ",".join(items) + "]"
-    return text[: match.start()] + rebuilt + text[match.end() :]
+    text = text[: match.start()] + rebuilt + text[match.end() :]
+    # .css was left on the HTTP cache. A scan.css change then survived a reload
+    # because sw.js itself did not change, so the service worker never updated.
+    return text.replace("\\.(html|json|js)$", "\\.(html|json|js|css)$")
 
 
 def integrated(index: str, sw: str) -> bool:
-    return "scan/boot.js" in index and all(asset in sw for asset in ASSETS)
+    return (
+        "scan/boot.js" in index
+        and all(asset in sw for asset in ASSETS)
+        and "\\.(html|json|js)$" not in sw
+    )
 
 
 def apply(root: Path = ROOT) -> None:

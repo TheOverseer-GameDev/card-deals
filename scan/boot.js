@@ -104,17 +104,24 @@ function boot() {
 
   document.addEventListener('click', (ev) => {
     const button = ev.target.closest && ev.target.closest('nav button');
+    if (button && button.dataset.v === 'scan') {
+      savedScroll = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
+    }
+  }, true);
+  document.addEventListener('click', (ev) => {
+    const button = ev.target.closest && ev.target.closest('nav button');
     if (!button) return;
     const on = button.dataset.v === 'scan';
     section.classList.toggle('on', on);
     if (on) {
       window.clearTimeout(idleTimer);
-      window.scrollTo(0, 0);
       section.classList.remove('scan-review');
+      enterCapture();
       openCamera(activeSlot());
     } else {
       section.classList.remove('scan-review');
       stopCamera();
+      leaveCapture();
       idleTimer = window.setTimeout(() => dropReader(), 60000);
     }
   });
@@ -150,6 +157,7 @@ function boot() {
       else openCamera(activeSlot());
     });
     ui.camStop.addEventListener('click', () => stopCamera());
+    ui.camRetry.addEventListener('click', () => openCamera(activeSlot()));
     ui.close.addEventListener('click', () => {
       const lists = document.querySelector('nav button[data-v="lists"]');
       if (lists) lists.click();
@@ -409,8 +417,77 @@ function boot() {
     return { audio: false, video };
   }
 
+  let savedScroll = 0;
+
+  function phoneShell() {
+    const vv = window.visualViewport;
+    const visual = vv ? vv.width : window.innerWidth;
+    const layout = window.innerWidth;
+    if (visual <= 900) return true;
+    if (layout - visual > 80) return true;
+    return window.matchMedia('(pointer: coarse)').matches && visual < 1100;
+  }
+
+  function placeCapture() {
+    if (!phoneShell()) {
+      section.style.position = '';
+      section.style.top = '';
+      section.style.left = '';
+      section.style.width = '';
+      section.style.height = '';
+      section.style.zIndex = '';
+      return;
+    }
+    const vv = window.visualViewport;
+    section.style.position = 'fixed';
+    section.style.zIndex = '80';
+    section.style.margin = '0';
+    section.style.maxWidth = 'none';
+    section.style.right = 'auto';
+    section.style.bottom = 'auto';
+    section.style.top = `${vv ? vv.offsetTop : 0}px`;
+    section.style.left = `${vv ? vv.offsetLeft : 0}px`;
+    section.style.width = `${vv ? vv.width : window.innerWidth}px`;
+    section.style.height = `${vv ? vv.height : window.innerHeight}px`;
+  }
+
+  function enterCapture() {
+    if (!phoneShell()) return;
+    savedScroll = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
+    document.documentElement.classList.add('scan-cam');
+    placeCapture();
+    if (document.scrollingElement) document.scrollingElement.scrollTop = savedScroll;
+    if (!enterCapture.bound) {
+      enterCapture.bound = true;
+      window.addEventListener('scroll', () => {
+        if (!document.documentElement.classList.contains('scan-cam')) return;
+        if (Math.abs(window.scrollY - savedScroll) > 1) window.scrollTo(0, savedScroll);
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', placeCapture);
+        window.visualViewport.addEventListener('scroll', placeCapture);
+      }
+    }
+  }
+
+  function leaveCapture() {
+    document.documentElement.classList.remove('scan-cam');
+    section.style.position = '';
+    section.style.top = '';
+    section.style.left = '';
+    section.style.width = '';
+    section.style.height = '';
+    section.style.zIndex = '';
+    section.style.margin = '';
+    section.style.right = '';
+    section.style.bottom = '';
+    section.style.maxWidth = '';
+    if (document.scrollingElement) document.scrollingElement.scrollTop = savedScroll;
+  }
+
   function showCamError(err) {
     ui.step.hidden = true;
+    ui.camRetry.hidden = false;
     const name = err && err.name;
     if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
       ui.camMsg.textContent = 'Camera permission was denied. You can still upload a photo.';
@@ -460,6 +537,7 @@ function boot() {
     captureSide = ui.camSlot;
     updateStep();
     ui.camMsg.textContent = '';
+    ui.camRetry.hidden = true;
     ui.step.hidden = false;
     ui.video.hidden = false;
     ui.outline.hidden = false;
@@ -1155,6 +1233,8 @@ function build(section, missingList) {
   camBar.append(gallery, frontCam, next);
   const camMsg = document.createElement('p');
   camMsg.id = 'scan-cam-msg';
+  const camRetry = button('Try the camera again', 'scan-cam-retry', false);
+  camRetry.hidden = true;
   const close = button('×', 'scan-close', true);
   close.setAttribute('aria-label', 'Close scan');
   const game = document.createElement('select');
@@ -1314,7 +1394,7 @@ function build(section, missingList) {
   infoSheet.append(infoClose, intro, introNote, s22, s22Note, limits);
   const capture = document.createElement('div');
   capture.className = 'scan-capture';
-  capture.append(top, finder, step, camMsg, camBar, infoSheet, frontFile, backFile);
+  capture.append(top, finder, step, camMsg, camRetry, camBar, infoSheet, frontFile, backFile);
   const panel = document.createElement('div');
   panel.className = 'scan-panel';
   panel.append(
@@ -1347,6 +1427,7 @@ function build(section, missingList) {
     frontNote,
     backNote,
     camMsg,
+    camRetry,
     video,
     camStop,
     stream: null,
