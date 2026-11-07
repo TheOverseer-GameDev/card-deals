@@ -64,6 +64,7 @@ html.desktop #v-scan.view.on { display: block; }
 #v-scan #scan-step { margin: 0; padding: 4px 12px 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: #f3efe6; }
 #v-scan #scan-cam-msg { margin: 0; padding: 8px 16px; text-align: center; white-space: normal; color: #fff; font-size: 15px; }
 #v-scan #scan-cam-retry { margin: 0 16px 8px; }
+html.scan-cam #freshness-note { display: none !important; }
 html.scan-cam, html.scan-cam body { overflow: hidden !important; }
 html.scan-cam #v-scan.on { background: #000; display: flex !important; flex-direction: column; overflow: hidden; }
 html.scan-cam #v-scan.on > h2, html.scan-cam #v-scan.on .scan-panel { display: none !important; }

@@ -903,6 +903,11 @@ function boot() {
   function renderMarket(market) {
     fillQuotes(ui.sold, COPY.sold, market.sold, 'No sourced completed sales for this catalog row.');
     fillQuotes(ui.asks, COPY.ask, market.ask, 'No sourced asking prices for this catalog row.');
+    const stale = market.sold.some((row) => row.stale) || market.ask.some((row) => row.stale);
+    if (stale && ui.fresh && ui.fresh.hidden) {
+      ui.fresh.hidden = false;
+      ui.fresh.textContent = 'Some stored prices are past their verification window and are not buys.';
+    }
   }
 
   function renderChart(market) {
@@ -1461,9 +1466,19 @@ function build(section, missingList) {
   tightNote.id = 'scan-tight-note';
   tightNote.textContent = 'Zoom out or turn upright to frame the card. Shutter and gallery still work.';
   capture.append(top, finder, step, tightNote, camMsg, camRetry, camBar, infoSheet, frontFile, backFile);
+  const fresh = document.createElement('p');
+  fresh.id = 'scan-freshness';
+  fresh.className = 'note';
+  fresh.hidden = true;
+  const health = (typeof window !== 'undefined' && window.D && window.D.health) || {};
+  if (health.freshness && health.freshness !== 'current') {
+    fresh.hidden = false;
+    fresh.textContent = health.freshness_note || 'Prices are not current. Stale and failed checks are not buys.';
+  }
   const panel = document.createElement('div');
   panel.className = 'scan-panel';
   panel.append(
+    fresh,
     frontNote, backNote, retakes, backQualityBtn, backQuality,
     controls, suggestNote, suggestBtn, qualityBtn, frontQuality,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
@@ -1527,6 +1542,7 @@ function build(section, missingList) {
     psa,
     sold,
     asks,
+    fresh,
     prices,
     chart,
     chartTitle,
