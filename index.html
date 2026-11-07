@@ -69,13 +69,13 @@ const LN={top:'Top buys',risky:'Risky buys',safe:'Safe buys'};let G='ygo',LS='to
 const BUD=D.budget_tiers||[100,500,2000];
 function sub(){$('#sub').textContent=`Ranked ${ago(D.ranked_at)} · prices in CAD · advice only, never auto-buys`}sub();setInterval(sub,60000);
 (function(){const H=D.health||{},el=$('#health'),lv=H.level||'warn',lc=H.links_checked_oldest_top20,ag=lc?Math.round((Date.now()-Date.parse(lc))/36e5):null;
-el.className='hb '+lv;el.innerHTML=(lv=='ok'?'● Healthy':lv=='stop'?'■ Paused':'▲ Check')+(ag!=null?` · links checked ${ag<1?'<1':ag}h ago`:'')+((H.problems||[]).length?`<div class="hp">${H.problems.map(e).join('<br>')}</div>`:'');el.onclick=()=>el.classList.toggle('open')})();
-const offer=c=>[c.lr,c.lg].find(l=>l&&l.url&&l.verified===true&&l.vetted!==false);
+el.className='hb '+lv;el.innerHTML=(lv=='ok'?'● Healthy':lv=='stop'?'■ Paused':'▲ Check')+(ag!=null?` · links checked ${ag<1?'<1':ag}h ago`:'')+((H.problems||[]).length?`<div class="hp">${H.problems.map(e).join('<br>')}</div>`:'');el.onclick=()=>el.classList.toggle('open');if(H.freshness&&H.freshness!=='current'&&!document.getElementById('freshness-note')){const b=document.createElement('div');b.className='banner';b.id='freshness-note';b.textContent=H.freshness_note||'Prices are not current. Stale and failed checks are not buys.';const m=document.querySelector('main');if(m)m.prepend(b)}})();
+function liveBuy(l){if(!l||!l.url||l.verified!==true||l.vetted===false||l.buyable===false)return false;if(l.listing_state&&l.listing_state!=='current')return false;if(!l.verified_at)return false;const h=(Date.now()-Date.parse(l.verified_at))/36e5;return h>=0&&h<=36}const offer=c=>[c.lr,c.lg].find(liveBuy);
 const cost=c=>{const o=offer(c);return o&&o.cad_total!=null?+o.cad_total:(c.entry_cad??c.cad_total??null)};
 const ret=c=>c.exp_return_pct??c.ret_pct;
 function spark(a){if(!a||a.length<2)return'';const mn=Math.min(...a),mx=Math.max(...a),w=300,h=34,d=a.map((v,i)=>`${(i/(a.length-1)*w).toFixed(1)},${(h-2-(mx>mn?(v-mn)/(mx-mn):.5)*(h-4)).toFixed(1)}`).join(' ');
  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="${a[a.length-1]>=a[0]?'#3ddc97':'#ff6b6b'}" stroke-width="2" points="${d}"/></svg>`}
-function btn(l,lab,cls){if(!l)return`<a class="btn g">No live ${lab}</a>`;if(l.verified!==true||l.vetted===false)return`<a class="btn g mut" href="${e(l.url)}" target=_blank rel=noopener style="font-size:12px;font-weight:400">${lab} (unverified)</a>`;
+function btn(l,lab,cls){if(!liveBuy(l))return`<a class="btn g">No live ${lab}</a>`;
  return `<a class="btn ${cls}" style="flex-direction:column;gap:0" href="${e(l.url)}" target=_blank rel=noopener>${lab}${l.site?' · '+e(l.site):''} ${l.cad_total!=null?C(l.cad_total):m(l.price)} ↗<span class="vt2">verified ${ago(l.verified_at)||'–'}</span></a>`}
 function card(k,x){const c=D[k].cards[x.i],r=ret(c),pr=c.exp_profit_cad??c.ev_net,mv=x.mv==='new'?'<span class="mv" style="color:var(--gold)">new</span>':x.mv>0?`<span class="mv up">▲${x.mv}</span>`:x.mv<0?`<span class="mv dn">▼${-x.mv}</span>`:'<span class="mv" style="color:var(--mu)">–</span>';
  return `<div class="c" data-k="${k}" data-i="${x.i}"><div class="top"><div><div class="rk">${x.rank}</div>${mv}</div><div style="flex:1;min-width:0"><div class="nm">${e(c.name)}<span class="rl ${x.risk_level}">${x.risk_level} risk</span>${c.rl?'<span class="tag">Reserved List</span>':''}</div>
@@ -132,4 +132,5 @@ render();
 </script><!-- card-scan:start -->
 <script type="module" src="scan/boot.js"></script>
 <!-- card-scan:end -->
+<script id="card-freshness">(function(){var D=window.D;if(!D)return;var H=D.health||{};if(!H.freshness||H.freshness==='current')return;if(document.getElementById('freshness-note'))return;var b=document.createElement('div');b.className='banner';b.id='freshness-note';b.textContent=H.freshness_note||'Prices are not current. Stale and failed checks are not buys.';var m=document.querySelector('main');if(m)m.insertBefore(b,m.firstChild);})();</script>
 </body></html>
