@@ -71,7 +71,7 @@ html.scan-cam #v-scan.scan-review.on .scan-capture { display: none !important; }
 html.scan-cam #v-scan.scan-review.on .scan-panel { display: block !important; overflow: auto; flex: 1; min-height: 0; background: var(--bg); }
 html.scan-cam #v-scan .scan-layout, html.desktop.scan-cam #v-scan .scan-layout { display: flex !important; flex-direction: column; align-items: stretch !important; width: 100%; flex: 1; min-height: 0; height: 100%; grid-template-columns: none; }
 html.scan-cam #v-scan .scan-capture { display: flex; flex-direction: column; width: 100%; flex: 1; min-height: 0; overflow: hidden; }
-html.scan-cam #v-scan .scan-finder { flex: 1; min-height: 0; border-radius: 0; }
+html.scan-cam #v-scan .scan-finder { flex: 1 1 auto; min-height: 0 !important; height: auto; border-radius: 0; }
 #v-scan #scan-info-sheet { position: fixed; inset: 0; z-index: 60; overflow: auto; background: #0b0f1a; padding: 16px 16px 32px; }
 #v-scan .scan-card > summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
 #v-scan .scan-finder {
