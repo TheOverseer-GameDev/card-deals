@@ -91,7 +91,7 @@ The ceiling uses the live PSA 10 centering line (front about 55/45, reverse abou
 
 A photo cannot reliably prove micro-surface under foil glare, a pressed crease, cleaning, trimming, true color under a strong cast, factory texture versus an aftermarket surface, or the grade a person will assign under magnification. OCR misreads foil and stylized type. The catalog is not the full Yu-Gi-Oh or Magic universe. Market JSON is only as fresh as the last free-tracker export.
 
-The Galaxy S22 lines sit behind the info button on the capture screen. They are capture advice. They were not checked on a physical Galaxy S22. The camera control remembers only the chosen device id in local storage. It does not store the photo.
+The Galaxy S22 lines sit behind the info button. They were not checked on a physical Galaxy S22, and these screenshots are not a hardware camera test. Chrome Desktop site keeps a layout width near 980px, so a narrow-screen rule never applied; the capture layer now follows the visible viewport instead. The camera control remembers only the chosen device id. It does not store the photo.
 
 ## Not live yet
 

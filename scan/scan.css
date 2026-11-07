@@ -61,7 +61,17 @@ html.desktop #v-scan.view.on { display: block; }
 #v-scan .scan-mode { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 3; display: flex; width: max-content; gap: 2px; background: rgba(28, 22, 16, .72); border: 0; border-radius: 22px; padding: 3px; margin: 0; }
 #v-scan .scan-mode button { min-height: 32px; border: 0; background: transparent; color: #f3efe6; font-weight: 700; border-radius: 18px; padding: 6px 14px; font-size: 13px; }
 #v-scan .scan-mode button.on { background: #3a3128; color: #fff; }
-#v-scan #scan-step, #v-scan #scan-cam-msg { margin: 0; padding: 4px 12px 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: #f3efe6; }
+#v-scan #scan-step { margin: 0; padding: 4px 12px 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: #f3efe6; }
+#v-scan #scan-cam-msg { margin: 0; padding: 8px 16px; text-align: center; white-space: normal; color: #fff; font-size: 15px; }
+#v-scan #scan-cam-retry { margin: 0 16px 8px; }
+html.scan-cam, html.scan-cam body { overflow: hidden !important; }
+html.scan-cam #v-scan.on { background: #000; display: flex !important; flex-direction: column; overflow: hidden; }
+html.scan-cam #v-scan.on > h2, html.scan-cam #v-scan.on .scan-panel { display: none !important; }
+html.scan-cam #v-scan.scan-review.on .scan-capture { display: none !important; }
+html.scan-cam #v-scan.scan-review.on .scan-panel { display: block !important; overflow: auto; flex: 1; min-height: 0; background: var(--bg); }
+html.scan-cam #v-scan .scan-layout, html.desktop.scan-cam #v-scan .scan-layout { display: flex !important; flex-direction: column; align-items: stretch !important; width: 100%; flex: 1; min-height: 0; height: 100%; grid-template-columns: none; }
+html.scan-cam #v-scan .scan-capture { display: flex; flex-direction: column; width: 100%; flex: 1; min-height: 0; overflow: hidden; }
+html.scan-cam #v-scan .scan-finder { flex: 1; min-height: 0; border-radius: 0; }
 #v-scan #scan-info-sheet { position: fixed; inset: 0; z-index: 60; overflow: auto; background: #0b0f1a; padding: 16px 16px 32px; }
 #v-scan .scan-card > summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
 #v-scan .scan-finder {

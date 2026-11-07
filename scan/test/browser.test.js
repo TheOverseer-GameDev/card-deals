@@ -259,7 +259,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       return urls;
     });
     assert.ok(cached.every((url) => !url.startsWith('blob:')));
-    await page.locator('nav button[data-v="lists"]').click();
+    await page.locator('#scan-close').click();
     assert.equal(await page.locator('#v-ygo .c').count(), listCount);
     assert.equal(await page.locator('#scan-cond-corners').inputValue(), 'unset');
     assert.equal(await page.locator('#scan-cond-edges').inputValue(), 'unset');
@@ -290,7 +290,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await page.locator('nav button[data-v="scan"]').click();
     await page.waitForSelector('#v-scan.on');
     await page.screenshot({ path: path.join(shots, 'phone-scan.png') });
-    await page.locator('nav button[data-v="lists"]').click();
+    await page.locator('#scan-close').click();
     assert.equal(await page.locator('#v-ygo .c').count(), before);
     await context.close();
   });
@@ -326,6 +326,8 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await page.locator('nav button[data-v="scan"]').click();
     await page.locator('#scan-front-cam').click();
     await page.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('Camera permission was denied'));
+    assert.equal(await page.locator('#scan-cam-retry').isVisible(), true);
+    assert.equal(await page.locator('#scan-gallery').isVisible(), true);
     assert.equal(await page.locator('#scan-front-file').isEnabled(), true);
     await page.screenshot({ path: path.join(shots, 'camera-denied.png') });
     await context.close();
@@ -521,29 +523,26 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
         const video = document.querySelector('#scan-cam-video');
         const shutter = document.querySelector('#scan-front-cam');
         const picker = document.querySelector('#scan-camera');
-        if (!video || video.hidden || !shutter || !picker) return false;
-        const nav = document.querySelector('nav').getBoundingClientRect();
+        const shell = document.querySelector('#v-scan');
+        if (!video || video.hidden || !shutter || !picker || !shell) return false;
+        const vv = window.visualViewport;
+        const top = vv.offsetTop;
+        const bottom = vv.offsetTop + vv.height;
         const v = video.getBoundingClientRect();
         const s = shutter.getBoundingClientRect();
         const p = picker.getBoundingClientRect();
-        return v.height > 120 && v.top >= -1 && v.bottom <= nav.top + 1
-          && s.top >= 0 && s.bottom <= nav.top + 1 && s.width >= 44
-          && p.width > 20 && p.top >= 0 && p.bottom <= nav.top + 1
-          && window.scrollY === 0;
+        const box = shell.getBoundingClientRect();
+        const y = window.scrollY;
+        window.scrollTo(0, 99999);
+        const stuck = Math.abs(window.scrollY - y) < 2;
+        window.scrollTo(0, y);
+        return document.documentElement.classList.contains('scan-cam')
+          && box.top <= top + 2 && box.bottom >= bottom - 2
+          && v.height > 120 && s.width >= 44
+          && s.top >= top - 1 && s.bottom <= bottom + 1
+          && p.top >= top - 1 && p.bottom <= bottom + 1
+          && stuck;
       });
-      const fit = await page.evaluate(() => {
-        const nav = document.querySelector('nav').getBoundingClientRect();
-        const shell = document.querySelector('#v-scan');
-        return {
-          scrollY: window.scrollY,
-          scrollGap: document.documentElement.scrollHeight - document.documentElement.clientHeight,
-          shellGap: shell.scrollHeight - shell.clientHeight,
-          navTop: nav.top,
-        };
-      });
-      assert.equal(fit.scrollY, 0);
-      assert.ok(fit.scrollGap <= 1, `document scrolls by ${fit.scrollGap}`);
-      assert.ok(fit.shellGap <= 1, `scan shell scrolls by ${fit.shellGap}`);
       await page.waitForFunction(() => [...document.querySelector('#scan-camera').options].some((option) => option.value === 'device:rear-main'));
       const saved = await page.evaluate(() => {
         const picker = document.querySelector('#scan-camera');
@@ -559,5 +558,71 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await check(360, 800, false);
     await check(360, 780, true);
     await check(360, 800, true);
+  });
+
+  await t.test('S22 desktop-site layout viewport still opens a camera shell', async () => {
+    const context = await browser.newContext({
+      viewport: { width: 980, height: 700 },
+      userAgent: 'Mozilla/5.0 (Linux; Android 13; SM-S901E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 2.625,
+      serviceWorkers: 'block',
+    });
+    const page = await context.newPage();
+    await page.route(/\/sw\.js$/, (route) => route.fulfill({
+      status: 200,
+      contentType: 'text/javascript',
+      body: 'self.addEventListener("install", () => self.skipWaiting());',
+    }));
+    await page.addInitScript(() => {
+      localStorage.setItem('view', 'desktop');
+      const track = { getCapabilities: () => ({}), applyConstraints: async () => {}, stop() {} };
+      const stream = { getVideoTracks: () => [track], getTracks: () => [track] };
+      const devices = { getUserMedia: async () => stream, enumerateDevices: async () => [{ kind: 'videoinput', deviceId: 'rear', label: 'Rear' }] };
+      try { Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: devices }); }
+      catch { navigator.mediaDevices.getUserMedia = devices.getUserMedia; navigator.mediaDevices.enumerateDevices = devices.enumerateDevices; }
+    });
+    await page.goto(base + '/');
+    await page.waitForSelector('#v-ygo .c');
+    const before = await page.evaluate(() => {
+      const scroller = document.scrollingElement;
+      scroller.scrollTop = scroller.scrollHeight;
+      return {
+        scrolled: scroller.scrollTop,
+        scrollHeight: scroller.scrollHeight,
+        narrowCss: matchMedia('(max-width: 840px)').matches,
+        coarse: matchMedia('(pointer: coarse)').matches,
+        layout: window.innerWidth,
+      };
+    });
+    assert.equal(before.narrowCss, false, `layout ${before.layout} still matches the old 840px camera rule`);
+    assert.equal(before.coarse, true);
+    assert.ok(before.scrolled > 40, `list did not scroll: ${JSON.stringify(before)}`);
+    await page.locator('nav button[data-v="scan"]').click();
+    await page.waitForFunction(() => {
+      const shell = document.querySelector('#v-scan');
+      const shutter = document.querySelector('#scan-front-cam');
+      const gallery = document.querySelector('#scan-gallery');
+      const picker = document.querySelector('#scan-camera');
+      const vv = window.visualViewport;
+      if (!shell || !shutter || !gallery || !picker) return false;
+      if (!document.documentElement.classList.contains('scan-cam')) return false;
+      const box = shell.getBoundingClientRect();
+      const s = shutter.getBoundingClientRect();
+      const hit = document.elementFromPoint(vv.width / 2, 40);
+      return box.top <= vv.offsetTop + 2 && box.height >= vv.height - 2 && box.width >= vv.width - 2
+        && s.bottom <= vv.offsetTop + vv.height + 1 && s.width >= 44
+        && gallery.getBoundingClientRect().bottom <= vv.offsetTop + vv.height + 1
+        && picker.getBoundingClientRect().top >= vv.offsetTop - 1
+        && hit && hit.closest('#v-scan');
+    });
+    await page.setViewportSize({ width: 980, height: 520 });
+    await page.waitForFunction(() => {
+      const box = document.querySelector('#v-scan').getBoundingClientRect();
+      return Math.abs(box.height - window.visualViewport.height) < 3;
+    });
+    await page.screenshot({ path: path.join(shots, 's22-desktop-site-980.png') });
+    await context.close();
   });
 });
