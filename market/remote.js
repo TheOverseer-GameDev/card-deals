@@ -103,6 +103,9 @@ async function run(supabase, action) {
       condition_notes: empty(action.conditionNotes),
       centering: empty(action.centering),
       estimate_note: empty(action.estimateNote),
+      vaulted: action.vaulted === true,
+      psa_cert: action.vaulted === true ? empty(action.psaCert) : null,
+      vault_url: action.vaulted === true ? empty(action.vaultUrl) : null,
       ask_cad: action.askCad,
       photo_path: photo,
       status: 'active',
@@ -111,8 +114,9 @@ async function run(supabase, action) {
     return {};
   }
   if (action.type === 'offer' || action.type === 'buy') {
-    const { data: listing, error: read } = await supabase.from('listings').select('seller_id, ask_cad, status').eq('id', action.listingId).single();
+    const { data: listing, error: read } = await supabase.from('listings').select('seller_id, ask_cad, status, vaulted').eq('id', action.listingId).single();
     if (read) throw new Error(read.message);
+    if (listing.vaulted) throw new Error('A vaulted card is bought through the PSA or eBay listing, not an offer here.');
     const buy = action.type === 'buy';
     const { error } = await supabase.from('offers').insert({
       listing_id: action.listingId,
@@ -179,6 +183,9 @@ function fromListing(row) {
     conditionNotes: row.condition_notes,
     centering: row.centering,
     estimateNote: row.estimate_note,
+    vaulted: row.vaulted === true,
+    psaCert: row.psa_cert,
+    vaultUrl: row.vault_url,
     askCad: Number(row.ask_cad),
     photoPath: row.photo_path,
     status: row.status,

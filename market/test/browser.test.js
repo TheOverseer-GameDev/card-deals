@@ -117,6 +117,7 @@ test('market tab, mock trades, and unchanged list pixels', async () => {
       memory.dispatch({ type: 'sign', user: { id: 's', name: 'Test Seller' } });
       memory.dispatch({ type: 'handles', interac: 'seller@example.com', paypal: 'testseller' });
       memory.dispatch({ type: 'list', name: '<img src=x onerror=alert(1)>', game: 'ygo', setCode: 'LOB-005', askCad: 12, estimateNote: 'Saved guide: USD 5.00. CAD estimate unavailable.' });
+      memory.dispatch({ type: 'list', name: 'Vaulted Magician', game: 'ygo', askCad: 40, vaulted: true, psaCert: '12345678', vaultUrl: 'https://www.ebay.com/itm/123' });
       memory.dispatch({ type: 'sign', user: { id: 'b', name: 'Test Buyer' } });
       await window.__mount([
         { id: 's', name: 'Test Seller' },
@@ -126,7 +127,22 @@ test('market tab, mock trades, and unchanged list pixels', async () => {
     });
     await trade.waitForSelector('.m-card');
     assert.equal(await trade.locator('.m-card img').count(), 0);
-    assert.match(await trade.locator('.m-card h3').innerText(), /<img src=x onerror=alert\(1\)>/);
+    assert.match(await trade.locator('.m-card h3').first().innerText(), /<img src=x onerror=alert\(1\)>/);
+    const vault = trade.locator('.m-card.vaulted');
+    assert.equal(await vault.locator('.vault-badge').innerText(), 'Vaulted');
+    assert.equal(await vault.getByRole('button', { name: 'Make Offer' }).count(), 0);
+    assert.equal(await vault.locator('a.vault-link').getAttribute('rel'), 'noopener noreferrer');
+    assert.equal(await vault.locator('a.vault-link').getAttribute('target'), '_blank');
+    assert.equal(await vault.locator('a.vault-link').getAttribute('href'), 'https://www.ebay.com/itm/123');
+    assert.equal(await vault.locator('a.psa-cert').getAttribute('href'), 'https://www.psacard.com/cert/12345678');
+    assert.match(await vault.innerText(), /Seller-provided/);
+    assert.doesNotMatch(await vault.innerText(), /verified by Card Deals/i);
+    await vault.evaluate((node) => {
+      const note = document.createElement('p');
+      note.textContent = 'Test data';
+      node.prepend(note);
+    });
+    await vault.screenshot({ path: '/tmp/market-shots/phone-market-vaulted.png' });
     assert.equal(await trade.locator('#market-handles').count(), 0);
     await shot(trade, 'phone-market-feed.png');
     await trade.getByRole('button', { name: 'Make Offer', exact: true }).click();
@@ -176,10 +192,19 @@ test('market tab, mock trades, and unchanged list pixels', async () => {
       const memory = window.__memory;
       memory.dispatch({ type: 'sign', user: { id: 's', name: 'Test Seller' } });
       memory.dispatch({ type: 'list', name: 'Test Magician', game: 'ygo', askCad: 12 });
+      memory.dispatch({ type: 'list', name: 'Vaulted Magician', game: 'ygo', askCad: 40, vaulted: true, psaCert: '12345678', vaultUrl: 'https://www.psacard.com/listing/9' });
       memory.dispatch({ type: 'sign', user: { id: 'b', name: 'Test Buyer' } });
       await window.__mount([{ id: 's', name: 'Test Seller' }, { id: 'b', name: 'Test Buyer' }]);
     });
-    await wideTrade.waitForSelector('.m-card');
+    await wideTrade.waitForSelector('.m-card.vaulted');
+    await wideTrade.locator('.m-card.vaulted').evaluate((node) => {
+      const note = document.createElement('p');
+      note.textContent = 'Test data';
+      node.prepend(note);
+      node.scrollIntoView({ block: 'center' });
+    });
+    const vaultShot = await wideClient.send('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(path.join(out, 's22-market-vaulted.png'), Buffer.from(vaultShot.data, 'base64'));
     for (const [name, selector] of [['s22-market-feed.png', '.m-card'], ['s22-market-offer.png', 'offer']]) {
       if (selector === 'offer') await wideTrade.getByRole('button', { name: 'Make Offer', exact: true }).evaluate((node) => node.click());
       const png = await wideClient.send('Page.captureScreenshot', { format: 'png' });

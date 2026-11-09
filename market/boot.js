@@ -1,4 +1,5 @@
 import { prefillFromSaved } from './prefill.js';
+import { psaCertUrl } from './vault.js';
 import { isConfigured, openRemote } from './remote.js';
 
 const GAMES = { ygo: 'Yu-Gi-Oh', mtg: 'Magic' };
@@ -202,7 +203,16 @@ function card(row, view, client, paint, doc) {
   node.append(el('p', `Asking ${cad(row.askCad)}`, 'market-price'));
   node.append(el('p', `Seller: ${row.sellerName || 'Unnamed'}`, 'market-muted'));
   if (row.estimateNote) node.append(el('p', row.estimateNote, 'market-muted'));
-  if (view.me && view.me.id !== row.sellerId && row.status === 'active') {
+  if (row.vaulted) {
+    node.classList.add('vaulted');
+    node.append(el('p', 'Vaulted', 'vault-badge'));
+    node.append(el('p', 'A vaulted card is stored at PSA in Delaware and is bought and transferred through PSA or eBay. Card Deals does not transfer the card or ship it.', 'market-muted'));
+    node.append(safeLink('View vault listing', row.vaultUrl, 'vault-link'));
+    const cert = safeLink('PSA cert', psaCertUrl(row.psaCert), 'psa-cert');
+    const label = el('p', null, 'market-muted');
+    label.append(cert, document.createTextNode(' · Seller-provided. Not checked by Card Deals.'));
+    node.append(label);
+  } else if (view.me && view.me.id !== row.sellerId && row.status === 'active') {
     const offer = el('button', 'Make Offer');
     offer.type = 'button';
     offer.addEventListener('click', () => openOffer(doc, client, paint, row));
@@ -221,7 +231,14 @@ function trades(view, client, paint) {
     if (trade.offer.paymentDue && (trade.offer.status === 'accepted' || trade.offer.status === 'paid')) {
       block.append(el('p', `Payment window ends ${new Date(trade.offer.paymentDue).toLocaleString()}`));
     }
-    if (trade.handles) {
+    if (trade.listing?.vaulted) {
+      block.append(el('p', 'A vaulted card is stored at PSA in Delaware and is bought and transferred through PSA or eBay. Card Deals does not transfer the card or ship it.', 'market-muted'));
+      block.append(safeLink('View vault listing', trade.listing.vaultUrl, 'vault-link'));
+      const cert = safeLink('PSA cert', psaCertUrl(trade.listing.psaCert), 'psa-cert');
+      const label = el('p', null, 'market-muted');
+      label.append(cert, document.createTextNode(' · Seller-provided. Not checked by Card Deals.'));
+      block.append(label);
+    } else if (trade.handles) {
       const handles = el('div');
       handles.id = 'market-handles';
       handles.append(el('p', trade.handles.interac ? `Interac: ${trade.handles.interac}` : 'Interac: not provided'));
@@ -242,6 +259,9 @@ function actionsFor(trade, view, client, paint) {
   const mine = view.me.id;
   const offer = trade.offer;
   const waiting = offer.lastActor !== mine;
+  if (trade.listing?.vaulted) {
+    return row.childNodes.length ? row : null;
+  }
   if ((offer.status === 'pending' || offer.status === 'countered') && waiting) {
     row.append(actionButton('Accept', () => send(client, paint, { type: 'accept', offerId: offer.id })));
     row.append(actionButton('Decline', () => send(client, paint, { type: 'decline', offerId: offer.id })));
@@ -332,6 +352,15 @@ function openSell(doc, client, paint, saved) {
   centering.value = pre?.centering || '';
   const ask = input('number', 'Asking price in CAD');
   ask.id = 'market-ask';
+  const vaultLabel = document.createElement('label');
+  const vaulted = document.createElement('input');
+  vaulted.type = 'checkbox';
+  vaulted.id = 'market-vaulted';
+  vaultLabel.append(vaulted, doc.createTextNode(' This card is in the PSA Vault'));
+  const cert = input('text', 'PSA cert number');
+  cert.id = 'market-psa-cert';
+  const vaultUrl = input('url', 'Vault listing URL');
+  vaultUrl.id = 'market-vault-url';
   const file = document.createElement('input');
   file.type = 'file';
   file.accept = 'image/*';
@@ -346,7 +375,7 @@ function openSell(doc, client, paint, saved) {
   const cancel = el('button', 'Close');
   cancel.type = 'button';
   cancel.addEventListener('click', () => closeModal(doc));
-  card.append(name, game, setCode, edition, rarity, notes, centering, ask, file, consent);
+  card.append(name, game, setCode, edition, rarity, notes, centering, ask, vaultLabel, cert, vaultUrl, el('p', 'A vaulted card is stored at PSA in Delaware and is bought and transferred through PSA or eBay. Card Deals does not transfer the card or ship it.', 'market-muted'), file, consent);
   if (pre) {
     const note = el('div', null, 'market-muted');
     note.id = 'market-estimates';
@@ -367,6 +396,9 @@ function openSell(doc, client, paint, saved) {
       centering: centering.value,
       estimateNote: pre ? pre.notes.join(' ') : '',
       askCad: ask.value,
+      vaulted: vaulted.checked,
+      psaCert: cert.value,
+      vaultUrl: vaultUrl.value,
       photoConsent: box.checked,
       photoFile: box.checked ? file.files?.[0] : null,
     });
@@ -379,6 +411,14 @@ function openSell(doc, client, paint, saved) {
   });
   modal.append(card);
   (doc.getElementById('v-market') || doc.body).append(modal);
+}
+
+function safeLink(label, href, className) {
+  const link = el('a', label, className);
+  if (href) link.href = href;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  return link;
 }
 
 function actionButton(label, onClick) {

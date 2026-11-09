@@ -26,6 +26,8 @@
 #v-market label { display: block; }
 #v-market .market-feed-grid { display: grid; gap: 10px; }
 #v-market .market-price { color: var(--gold); font-weight: 700; }
+#v-market .vault-badge { display: inline-block; margin: 0; padding: 4px 8px; border-radius: 999px; background: #163a2b; color: var(--up); font-weight: 700; }
+#v-market a.vault-link, #v-market a.psa-cert { color: var(--gold); }
 #v-market button, #v-market input, #v-market select {
   font: inherit;
   color: var(--tx);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'fs';
 import test from 'node:test';
 import { escapeText } from '../escape.js';
+import { psaCertNumber, psaCertUrl, vaultListingUrl } from '../vault.js';
 import { prefillFromSaved } from '../prefill.js';
 import { createMemory } from '../memory.js';
 import { PAY_WINDOW_MS, canReadHandles, emptyMarket } from '../state.js';
@@ -93,6 +94,34 @@ test('payment handles hide when the two-hour window ends', () => {
   assert.equal(client.view().trades[0].handles, null);
   assert.equal(client.view().trades[0].offer.status, 'expired');
   assert.equal(PAY_WINDOW_MS, 7_200_000);
+});
+
+test('vault certs and listing links stay on the allowlist', () => {
+  assert.equal(psaCertNumber('12345678'), '12345678');
+  assert.equal(psaCertNumber('123456'), null);
+  assert.equal(psaCertNumber('12<script>'), null);
+  assert.equal(psaCertUrl('12345678'), 'https://www.psacard.com/cert/12345678');
+  assert.equal(psaCertUrl('nope'), null);
+  assert.equal(vaultListingUrl('https://www.ebay.com/itm/123'), 'https://www.ebay.com/itm/123');
+  assert.equal(vaultListingUrl('https://www.ebay.ca/itm/123'), 'https://www.ebay.ca/itm/123');
+  assert.equal(vaultListingUrl('https://www.psacard.com/listing/1'), 'https://www.psacard.com/listing/1');
+  assert.equal(vaultListingUrl('http://www.ebay.com/itm/123'), null);
+  assert.equal(vaultListingUrl('https://evil.com/ebay.com'), null);
+  assert.equal(vaultListingUrl('https://ebay.com.evil.com/itm/1'), null);
+  assert.equal(vaultListingUrl('https://user:pass@www.ebay.com/itm/1'), null);
+  assert.equal(vaultListingUrl('javascript:alert(1)'), null);
+  const client = market();
+  client.sign(seller);
+  assert.equal(client.dispatch({
+    type: 'list', name: 'Vault card', game: 'ygo', askCad: 40, vaulted: true, psaCert: '1234567', vaultUrl: 'https://www.ebay.ca/itm/9',
+  }).ok, true);
+  assert.equal(client.dispatch({
+    type: 'list', name: 'Bad vault', game: 'ygo', askCad: 40, vaulted: true, psaCert: '123', vaultUrl: 'https://www.ebay.com/itm/1',
+  }).ok, false);
+  const listing = client.view().mine.find((row) => row.vaulted);
+  client.sign(buyer);
+  assert.equal(client.dispatch({ type: 'offer', listingId: listing.id, amount: 10 }).ok, false);
+  assert.equal(client.dispatch({ type: 'buy', listingId: listing.id }).ok, false);
 });
 
 test('a photo is dropped without consent and a stranger cannot read handles', () => {

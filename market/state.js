@@ -1,3 +1,5 @@
+import { vaultFields } from './vault.js';
+
 export const PAY_WINDOW_MS = 2 * 60 * 60 * 1000;
 export const MAX_OPEN_LISTINGS = 20;
 export const MAX_OPEN_OFFERS = 10;
@@ -123,6 +125,8 @@ function list(state, action) {
   const rarity = optional(action.rarity, 40);
   if ([notes, centering, estimate, setCode, edition, rarity].some((row) => row.error)) return 'One of the text fields is too long.';
   if (action.photoPath && action.photoConsent !== true) return 'Photo was not stored because upload was not agreed to.';
+  const vault = vaultFields(action);
+  if (vault.error) return vault.error;
   state.listings.push({
     id: nid(state),
     sellerId: state.me.id,
@@ -137,6 +141,9 @@ function list(state, action) {
     estimateNote: estimate.value,
     askCad: ask,
     photoPath: action.photoConsent === true ? (action.photoPath || null) : null,
+    vaulted: vault.vaulted,
+    psaCert: vault.psaCert,
+    vaultUrl: vault.vaultUrl,
     status: 'active',
   });
   return null;
@@ -154,6 +161,7 @@ function offer(state, action, now) {
   const listing = activeListing(state, action.listingId);
   if (!listing) return 'That listing is not available.';
   if (listing.sellerId === state.me.id) return 'You cannot offer on your own listing.';
+  if (listing.vaulted) return 'A vaulted card is bought through the PSA or eBay listing, not an offer here.';
   const amount = money(action.amount);
   if (amount == null) return 'Offer must be a CAD amount above 0.';
   if (openOffers(state, state.me.id).length >= MAX_OPEN_OFFERS) return 'You already have 10 open offers.';
@@ -166,6 +174,7 @@ function buy(state, action, now) {
   const listing = activeListing(state, action.listingId);
   if (!listing) return 'That listing is not available.';
   if (listing.sellerId === state.me.id) return 'You cannot buy your own listing.';
+  if (listing.vaulted) return 'A vaulted card is bought through the PSA or eBay listing, not an offer here.';
   if (liveOffer(state, listing.id, state.me.id)) return 'You already have an open offer on this listing.';
   const row = baseOffer(state, listing, listing.askCad, 'accepted', now);
   row.paymentDue = now + PAY_WINDOW_MS;

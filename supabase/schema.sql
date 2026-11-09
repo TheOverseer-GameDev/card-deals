@@ -1,6 +1,19 @@
 -- Card Deals market. Run this once in the Supabase SQL editor.
 -- The anon key can read only what these policies allow.
 
+create or replace function public.market_vault_url(url text)
+returns boolean language plpgsql immutable as $$
+declare host text;
+begin
+  if url is null or url !~ '^https://' then return false; end if;
+  if position('@' in split_part(url, '://', 2)) > 0 then return false; end if;
+  host := lower(split_part(split_part(split_part(url, '://', 2), '/', 1), ':', 1));
+  host := rtrim(host, '.');
+  return host = 'psacard.com' or host like '%.psacard.com'
+    or host = 'ebay.com' or host like '%.ebay.com'
+    or host = 'ebay.ca' or host like '%.ebay.ca';
+end $$;
+
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   display_name text not null check (char_length(display_name) between 1 and 40),
@@ -26,7 +39,14 @@ create table public.listings (
   estimate_note text check (estimate_note is null or char_length(estimate_note) <= 500),
   ask_cad numeric(12,2) not null check (ask_cad > 0 and ask_cad < 1000000),
   photo_path text check (photo_path is null or char_length(photo_path) <= 200),
+  vaulted boolean not null default false,
+  psa_cert text,
+  vault_url text,
   status text not null default 'active' check (status in ('active', 'reserved', 'completed', 'withdrawn')),
+  check (
+    (vaulted = false and psa_cert is null and vault_url is null)
+    or (vaulted = true and psa_cert ~ '^[0-9]{7,10}$' and public.market_vault_url(vault_url))
+  ),
   reserved_offer_id uuid,
   created_at timestamptz not null default now()
 );
