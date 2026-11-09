@@ -32,13 +32,71 @@ ASSETS = [
 ]
 
 
-def patch_index(text: str) -> str:
+FRESHNESS = (
+    '<script id="card-freshness">'
+    "(function(){var D=window.D;if(!D)return;var H=D.health||{};if(!H.freshness||H.freshness==='current')return;"
+    "if(document.getElementById('freshness-note'))return;var b=document.createElement('div');b.className='banner';"
+    "b.id='freshness-note';b.textContent=H.freshness_note||'Prices are not current. Stale and failed checks are not buys.';"
+    "var m=document.querySelector('main');if(m)m.insertBefore(b,m.firstChild);})();"
+    "</script>\n"
+)
+OLD_OFFER = "const offer=c=>[c.lr,c.lg].find(l=>l&&l.url&&l.verified===true&&l.vetted!==false);"
+NEW_OFFER = (
+    "function liveBuy(l){if(!l||!l.url||l.verified!==true||l.vetted===false||l.buyable===false)return false;"
+    "if(l.listing_state&&l.listing_state!=='current')return false;if(!l.verified_at)return false;"
+    "const h=(Date.now()-Date.parse(l.verified_at))/36e5;return h>=0&&h<=36}"
+    "const offer=c=>[c.lr,c.lg].find(liveBuy);"
+)
+OLD_BTN = (
+    "function btn(l,lab,cls){if(!l)return`<a class=\"btn g\">No live ${lab}</a>`;"
+    "if(l.verified!==true||l.vetted===false)return`<a class=\"btn g mut\" href=\"${e(l.url)}\" target=_blank rel=noopener "
+    "style=\"font-size:12px;font-weight:400\">${lab} (unverified)</a>`;"
+)
+NEW_BTN = (
+    "function itemUrl(l){return !!(l&&l.url&&/\\/itm\\/(?:[^/]+\\/)?\\d{9,15}(?:\\?|$)/.test(l.url)&&!/\\/sch\\/|_nkw=/.test(l.url))}"
+    "function btn(l,lab,cls){const stamp=l&&l.verified_at?`<span class=\"vt2\">last checked ${ago(l.verified_at)||'–'}</span>`:'';"
+    "if(!itemUrl(l)||!liveBuy(l))return`<a class=\"btn g\">no verified listing${stamp}</a>`;"
+)
+OLD_HEALTH_END = "el.onclick=()=>el.classList.toggle('open')})();"
+NEW_HEALTH_END = (
+    "el.onclick=()=>el.classList.toggle('open');"
+    "if(H.freshness&&H.freshness!=='current'&&!document.getElementById('freshness-note')){"
+    "const b=document.createElement('div');b.className='banner';b.id='freshness-note';"
+    "b.textContent=H.freshness_note||'Prices are not current. Stale and failed checks are not buys.';"
+    "const m=document.querySelector('main');if(m)m.prepend(b)}})();"
+)
+
+
+def _ensure_scan(text: str) -> str:
     if "scan/boot.js" in text:
         return text
     needle = "</body>"
     if needle in text:
         return text.replace(needle, HOOK + needle, 1)
     return text + "\n" + HOOK
+
+
+def _ensure_buy_gate(text: str) -> str:
+    if OLD_OFFER in text and "function liveBuy" not in text:
+        text = text.replace(OLD_OFFER, NEW_OFFER, 1)
+    if OLD_BTN in text:
+        text = text.replace(OLD_BTN, NEW_BTN, 1)
+    if OLD_HEALTH_END in text and "H.freshness&&H.freshness!=='current'" not in text:
+        text = text.replace(OLD_HEALTH_END, NEW_HEALTH_END, 1)
+    return text
+
+
+def _ensure_freshness_script(text: str) -> str:
+    if 'id="card-freshness"' in text:
+        return text
+    needle = "</body>"
+    if needle in text:
+        return text.replace(needle, FRESHNESS + needle, 1)
+    return text + "\n" + FRESHNESS
+
+
+def patch_index(text: str) -> str:
+    return _ensure_freshness_script(_ensure_buy_gate(_ensure_scan(text)))
 
 
 def patch_sw(text: str) -> str:

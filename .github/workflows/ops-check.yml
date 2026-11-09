@@ -1,0 +1,16 @@
+name: ops checks
+on:
+  pull_request:
+  push:
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: helper and production call-site tests
+        run: |
+          python3 -m unittest discover -s ops -p 'test_*.py'
+          python3 -m py_compile ops/deploy/ygo_cards/tracker.py ops/deploy/ygo_cards/verify.py ops/deploy/card_ops/doctor.py ops/deploy/mtg_cards/tracker.py

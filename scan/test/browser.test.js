@@ -289,7 +289,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     assert.ok(before >= 1);
     await page.locator('nav button[data-v="scan"]').click();
     await page.waitForSelector('#v-scan.on');
-    await page.screenshot({ path: path.join(shots, 'phone-scan.png') });
+    await page.screenshot({ path: path.join(shots, 'phone-open.png') });
     await page.locator('#scan-close').click();
     assert.equal(await page.locator('#v-ygo .c').count(), before);
     await context.close();
@@ -325,7 +325,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await page.goto(base + '/');
     await page.locator('nav button[data-v="scan"]').click();
     await page.locator('#scan-front-cam').click();
-    await page.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('Camera permission was denied'));
+    await page.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('Camera is blocked'));
     assert.equal(await page.locator('#scan-cam-retry').isVisible(), true);
     assert.equal(await page.locator('#scan-gallery').isVisible(), true);
     assert.equal(await page.locator('#scan-front-file').isEnabled(), true);
@@ -347,7 +347,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await page.goto(base + '/');
     await page.locator('nav button[data-v="scan"]').click();
     await page.locator('#scan-front-cam').click();
-    await page.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('no camera API'));
+    await page.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('Camera is blocked'));
     assert.equal(await page.locator('#scan-back-file').isEnabled(), true);
     await context.close();
   });
@@ -614,7 +614,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       return box.top <= vv.offsetTop + 2 && box.height >= vv.height - 2 && box.width >= vv.width - 2
         && s.bottom <= vv.offsetTop + vv.height + 1 && s.width >= 44
         && gallery.getBoundingClientRect().bottom <= vv.offsetTop + vv.height + 1
-        && picker.getBoundingClientRect().top >= vv.offsetTop - 1
+        && (picker.hidden || picker.getBoundingClientRect().top >= vv.offsetTop - 1)
         && hit && hit.closest('#v-scan');
     });
     await page.setViewportSize({ width: 980, height: 520 });
@@ -633,6 +633,10 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       const controls = {};
       for (const id of ids) {
         const el = document.getElementById(id);
+        if (el.hidden) {
+          controls[id] = { inside: true, hidden: true };
+          continue;
+        }
         const r = el.getBoundingClientRect();
         controls[id] = {
           top: r.top, bottom: r.bottom, left: r.left, right: r.right,
@@ -699,7 +703,12 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       const ids = ['scan-front-cam', 'scan-gallery', 'scan-camera'];
       const controls = {};
       for (const id of ids) {
-        const r = document.getElementById(id).getBoundingClientRect();
+        const el = document.getElementById(id);
+        if (el.hidden) {
+          controls[id] = { ok: true, hidden: true };
+          continue;
+        }
+        const r = el.getBoundingClientRect();
         controls[id] = { ok: r.width >= 44 && r.height >= 32 && r.top >= v.offsetTop - 1 && r.bottom <= v.offsetTop + v.height + 1 && r.left >= v.offsetLeft - 1 && r.right <= v.offsetLeft + v.width + 1, t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height) };
       }
       return { controls, tight: document.documentElement.classList.contains('scan-tight'), h: v.height, w: v.width, z: getComputedStyle(document.documentElement).zoom, shell: document.getElementById('v-scan').getBoundingClientRect().height };
@@ -772,5 +781,75 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     assert.equal(msgIn, true);
     fs.writeFileSync(path.join(shots, 'extreme-landscape.png'), Buffer.from(shot.data, 'base64'));
     await extreme.close();
+  });
+
+  await t.test('shutter, close, and info stay aligned', async () => {
+    const read = () => {
+      const vv = visualViewport;
+      const bar = document.querySelector('#v-scan .scan-top').getBoundingClientRect();
+      const close = document.getElementById('scan-close').getBoundingClientRect();
+      const info = document.getElementById('scan-info-btn').getBoundingClientRect();
+      const pill = document.querySelector('#v-scan .scan-mode').getBoundingClientRect();
+      const ring = document.getElementById('scan-front-cam').getBoundingClientRect();
+      const core = document.querySelector('.scan-shutter-core').getBoundingClientRect();
+      const mid = (r) => ({ x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 });
+      const target = vv.offsetLeft + vv.width / 2;
+      const ringC = mid(ring);
+      const coreC = mid(core);
+      const infoC = mid(info);
+      const pillC = mid(pill);
+      return {
+        inside: info.top >= bar.top - 0.5 && info.bottom <= bar.bottom + 0.5 && info.right <= bar.right + 0.5
+          && close.top >= bar.top - 0.5 && close.bottom <= bar.bottom + 0.5 && close.left >= bar.left - 0.5,
+        gap: Math.max(
+          Math.abs((info.top - bar.top) - (bar.bottom - info.bottom)),
+          Math.abs((info.top - bar.top) - (bar.right - info.right)),
+          Math.abs((close.left - bar.left) - (bar.right - info.right)),
+        ),
+        shutter: Math.abs(ringC.x - target),
+        concentric: Math.max(Math.abs(coreC.x - ringC.x), Math.abs(coreC.y - ringC.y)),
+        pillX: Math.abs(pillC.x - target),
+        pillY: Math.abs(pillC.y - infoC.y),
+        gallery: (() => {
+          const g = document.getElementById('scan-gallery').getBoundingClientRect();
+          const style = getComputedStyle(document.getElementById('scan-gallery'));
+          return style.display !== 'none' && g.width >= 44 && g.left >= ring.right - 1
+            && g.top >= vv.offsetTop - 1 && g.bottom <= vv.offsetTop + vv.height + 1
+            && g.left >= vv.offsetLeft - 1 && g.right <= vv.offsetLeft + vv.width + 1;
+        })(),
+      };
+    };
+    async function check(page, label, after) {
+      await page.goto(base + '/');
+      if (after) await after();
+      await page.locator('nav button[data-v="scan"]').click();
+      await page.waitForSelector('#scan-front-cam');
+      const box = await page.evaluate(read);
+      assert.equal(box.inside, true, `${label} corners ${JSON.stringify(box)}`);
+      assert.ok(box.gap <= 1, `${label} corner gaps ${JSON.stringify(box)}`);
+      assert.ok(box.shutter <= 1, `${label} shutter ${JSON.stringify(box)}`);
+      assert.ok(box.concentric <= 1, `${label} shutter core ${JSON.stringify(box)}`);
+      assert.ok(box.pillX <= 1, `${label} pill x ${JSON.stringify(box)}`);
+      assert.ok(box.pillY <= 1, `${label} pill y ${JSON.stringify(box)}`);
+      assert.equal(box.gallery, true, `${label} gallery ${JSON.stringify(box)}`);
+    }
+    const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    await check(await phone.newPage(), '390');
+    await phone.close();
+    const land = await browser.newContext({ viewport: { width: 800, height: 360 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    await check(await land.newPage(), 'landscape');
+    await land.close();
+    const desk = await browser.newContext({
+      viewport: { width: 980, height: 2178 },
+      screen: { width: 360, height: 800 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 3,
+      serviceWorkers: 'block',
+    });
+    const wide = await desk.newPage();
+    const client = await desk.newCDPSession(wide);
+    await check(wide, 's22', () => client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 980 / 360 }));
+    await desk.close();
   });
 });

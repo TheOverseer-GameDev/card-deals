@@ -1,0 +1,9 @@
+{
+  "batch_per_run": 80,
+  "pc_delay_s": 2.5,
+  "ebay_live_top_n": 100,
+  "discover_usd_floor": 14,
+  "ebay_fee_pct": 13.25,
+  "ebay_fixed_usd": 0.4,
+  "ship_to_buyer_cad": 8.0
+}

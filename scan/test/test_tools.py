@@ -34,6 +34,15 @@ class IntegrateTests(unittest.TestCase):
         self.assertNotIn("tesseract", patched)
         self.assertIn("\\.(html|json|js|css)$", patched)
         self.assertEqual(patched.count("\\.(html|json|js|css)$"), 1)
+        gated = patch_index(
+            "const offer=c=>[c.lr,c.lg].find(l=>l&&l.url&&l.verified===true&&l.vetted!==false);\n"
+            "function btn(l,lab,cls){if(!l)return`<a class=\"btn g\">No live ${lab}</a>`;"
+            "if(l.verified!==true||l.vetted===false)return`<a class=\"btn g mut\" href=\"${e(l.url)}\" target=_blank rel=noopener "
+            "style=\"font-size:12px;font-weight:400\">${lab} (unverified)</a>`;"
+        )
+        self.assertIn("function liveBuy", gated)
+        self.assertNotIn("(unverified)", gated)
+        self.assertEqual(gated, patch_index(gated))
 
     def test_apply_puts_the_hook_back_after_a_generator_rewrite(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -47,6 +56,9 @@ class IntegrateTests(unittest.TestCase):
             self.assertEqual(index.count("scan/boot.js"), 1)
             apply(root)
             self.assertEqual((root / "index.html").read_text().count("scan/boot.js"), 1)
+            self.assertIn('id="card-freshness"', (root / "index.html").read_text())
+            apply(root)
+            self.assertEqual((root / "index.html").read_text().count('id="card-freshness"'), 1)
 
 
 class ExportTests(unittest.TestCase):
