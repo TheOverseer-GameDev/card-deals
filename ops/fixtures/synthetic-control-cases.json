@@ -1,0 +1,24 @@
+{
+  "notice": "SYNTHETIC EXAMPLE CONTROL FLOW ONLY. No cards, prices, listings or market observations.",
+  "cases": [
+    {
+      "http_status": 401,
+      "expected": "Refresh authentication once; if unsuccessful stop and mark verification unavailable; do not destroy prior observations or make them buyable."
+    },
+    {
+      "http_status": 429,
+      "retry_after_seconds": 120,
+      "expected": "Honor cooldown across all consumers, stop batch, preserve checkpoint. No endpoint/account bypass."
+    },
+    {
+      "verified_buyable_count": 0,
+      "transport_failures": 1,
+      "expected": "Must not report successful market verification or publish newly buyable offers."
+    },
+    {
+      "verified_buyable_count": 0,
+      "transport_failures": 0,
+      "expected": "Honest empty list allowed only as explicit successful empty outcome; never pad or reuse stale buy buttons."
+    }
+  ]
+}
