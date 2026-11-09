@@ -144,7 +144,7 @@ def main():
             raise SystemExit('scan integrate --check failed')
         # Keep published site slim (Pages deploy was timing out with test/bench trees)
         import shutil as _sh
-        for _rel in ('scan/test','scan/bench','package.json','package-lock.json','node_modules','.pages-rebuild'):
+        for _rel in ('scan/bench','package.json','package-lock.json','node_modules','.pages-rebuild'):
             _p=os.path.join(S,_rel)
             if os.path.isdir(_p): _sh.rmtree(_p,True)
             elif os.path.isfile(_p):

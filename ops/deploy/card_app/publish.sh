@@ -16,10 +16,6 @@ trc=$?
 if [ "$trc" -ne 0 ]; then echo "YGO verify --test failed ($trc) - not publishing"; echo "$(ts) FAIL ygo verify --test rc=$trc" >> $GL; exit 1; fi
 nice -n 19 python3 $OPS/doctor.py --fix || true
 nice -n 19 python3 $ROOT/mtg_cards/test_verified_links.py > $OPS/mtg_linktest.log 2>&1 || { echo "MTG link test failed - not publishing"; echo "$(ts) FAIL mtg test_verified_links (see mtg_linktest.log)" >> $GL; exit 1; }
-nice -n 19 python3 $OPS/prepublish.py --journey
-prc=$?
-if [ "$prc" -eq 3 ]; then echo "$(ts) phone journey deferred - not a pass" >> $GL; exit 3; fi
-if [ "$prc" -ne 0 ]; then echo "$(ts) prepublish failed rc=$prc" >> $GL; exit 1; fi
 nice -n 19 python3 $OPS/status.py >/dev/null 2>&1
 [ -n "$CARD_E2E_STOP" ] && { echo "$(ts) gates finished (e2e stop)" >> $GL; exit 0; }
 rm -rf $ROOT/card_app/site_prev && mkdir -p $ROOT/card_app/site_prev && (cd site && tar --exclude=.git -cf - .) | (cd $ROOT/card_app/site_prev && tar -xf -)
@@ -29,9 +25,17 @@ if ! nice -n 19 python3 $OPS/doctor.py --gate > $OPS/gate_last.txt 2>&1; then
   (cd site_prev && tar -cf - .) | (cd site && tar -xf -)
   echo "$(ts) GATE FAIL - rolled back to previous site/: $(grep 'GATE FAIL' $OPS/gate_last.txt | head -5 | tr '\n' ';')" >> $GL; cat $OPS/gate_last.txt; exit 1
 fi
+# box install 2026-11-09: prepublish runs on the NEW build (it used to check the previous site/ before build.py). Fail or defer rolls back like the doctor gate.
+CARD_SITE=$ROOT/card_app/site CARD_PREPUBLISH_STATE=$OPS/prepublish_state.json nice -n 19 python3 $OPS/prepublish.py --journey > $OPS/prepublish_last.txt 2>&1
+prc=$?
+if [ "$prc" -ne 0 ]; then
+  (cd site_prev && tar -cf - .) | (cd site && tar -xf -)
+  if [ "$prc" -eq 3 ]; then echo "$(ts) phone journey deferred - not a pass (rolled back site/)" >> $GL; exit 3; fi
+  echo "$(ts) prepublish failed rc=$prc - rolled back site/: $(tail -1 $OPS/prepublish_last.txt)" >> $GL; cat $OPS/prepublish_last.txt; exit 1
+fi
 echo "$(ts) gate PASS - publishing" >> $GL
 [ -n "$CARD_DRYRUN" ] && { echo "dry run: not pushing"; exit 0; }
 cd site && [ -d .git ] || { git init -q -b main && git remote add origin https://github.com/TheOverseer-GameDev/card-deals.git; }
-git -c user.name="Card Deals Bot" -c user.email="redacted@example.invalid" add -A
-git -c user.name="Card Deals Bot" -c user.email="redacted@example.invalid" commit -qm "daily update $(date +%F)" || true
+git -c user.name="Card Deals Bot" -c user.email="bot@users.noreply.github.com" add -A
+git -c user.name="Card Deals Bot" -c user.email="bot@users.noreply.github.com" commit -qm "daily update $(date +%F)" || true
 git -c credential.helper= -c credential.helper='!/usr/local/bin/gh auth git-credential' push -q -u origin main
