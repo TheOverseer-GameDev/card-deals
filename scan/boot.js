@@ -25,12 +25,26 @@ import { buildGauges } from './gauges.js';
 import { cropCanvas, fileToCanvas, grayFromCanvas, releaseCanvas } from './image.js';
 import { createLookup } from './lookup.js';
 import { createPriceBook, emptyMarket } from './prices.js';
+import { gradePhoto, gradeSide } from './pipeline.js';
+import { collectionList, gradeBlock, matchCard, priceRows } from './screens.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
 
+function migrateSaved() {
+  try {
+    if (!localStorage.getItem('carddeals-coll-v1') && localStorage.getItem('cutline-coll-v1')) {
+      localStorage.setItem('carddeals-coll-v1', localStorage.getItem('cutline-coll-v1'));
+    }
+    if (!localStorage.getItem('carddeals-obs-v1') && localStorage.getItem('cutline-obs-v1')) {
+      localStorage.setItem('carddeals-obs-v1', localStorage.getItem('cutline-obs-v1'));
+    }
+  } catch { /* Private mode keeps nothing. */ }
+}
+
 if (!globalThis.__cardScan) {
   globalThis.__cardScan = true;
+  migrateSaved();
   boot();
 }
 
@@ -1473,7 +1487,51 @@ function build(section, missingList) {
   const layout = document.createElement('div');
   layout.className = 'scan-layout';
   layout.append(capture, panel);
-  section.append(h, layout);
+  const align = document.createElement('p');
+  align.id = 'scan-align';
+  align.textContent = 'Align the card in the frame.';
+  finder.append(align);
+  const deck = document.createElement('div');
+  deck.id = 'scan-deck';
+  deck.hidden = true;
+  const sheets = {};
+  for (const id of ['scan-search-sheet', 'scan-match', 'scan-card', 'scan-collection', 'scan-guide']) {
+    const node = document.createElement('div');
+    node.id = id;
+    node.hidden = true;
+    sheets[id] = node;
+    deck.append(node);
+  }
+  const code = document.createElement('input');
+  code.id = 'scan-code';
+  code.placeholder = 'Name or set code';
+  sheets['scan-search-sheet'].append(code);
+  matchCard(sheets['scan-match'], null, null);
+  const gray = new Float32Array(500 * 700);
+  gray.fill(140);
+  const marks = gradeSide(gray, 500, 700, 'Centering: 55.0/45.0 left/right. 50.0/50.0 top/bottom.', true);
+  gradeBlock(sheets['scan-card'], gradePhoto({ front: { flattened: true, marks }, back: null, frontBack: false }));
+  collectionList(sheets['scan-collection'], []);
+  priceRows(sheets['scan-guide'], {});
+  const tabs = document.createElement('div');
+  tabs.id = 'scan-tabs';
+  tabs.setAttribute('role', 'tablist');
+  const tabFor = { search: 'scan-search-sheet', match: 'scan-match', collection: 'scan-collection', prices: 'scan-guide', card: 'scan-card' };
+  function showDeck(id) {
+    const sheet = id !== 'scan';
+    deck.hidden = !sheet;
+    section.classList.toggle('scan-sheet', sheet);
+    for (const node of deck.children) node.hidden = node.id !== tabFor[id];
+  }
+  for (const [id, label] of [['search', 'Search'], ['scan', 'Scan'], ['collection', 'Collection'], ['prices', 'Prices'], ['card', 'Card']]) {
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.id = `scan-tab-${id}`;
+    tab.textContent = label;
+    tab.addEventListener('click', () => showDeck(id));
+    tabs.append(tab);
+  }
+  section.append(h, layout, deck, tabs);
   return {
     frontFile,
     backFile,
