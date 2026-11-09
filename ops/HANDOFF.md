@@ -26,6 +26,7 @@ The 26 YGO offers already removed by the old verifier (24 HTTP 401, 2 rate limit
 | `ops/deploy/card_ops/doctor.py` | `/workspace/card_ops/doctor.py` | `fetch_item` → `Guard.handle`; transport result calls `apply_result` and keeps `retained_offers` |
 | `ops/deploy/card_app/publish.sh` | `/workspace/card_app/publish.sh` | verify exit non-zero stops publish; then `prepublish.py --journey`; exit 3 is deferred |
 | `ops/deploy/card_app/build.py` | `/workspace/card_app/build.py` | `freshness.health_fields`; still calls `scan/tools/integrate.py` |
+| `ops/deploy/card_app/index.tpl.html` | `/workspace/card_app/index.tpl.html` | `build.py` renders `index.html` from it; must equal the repo `index.html` apart from the version (`ops/test_publish_fixes.py`) |
 | `ops/deploy/card_common/categories.py` | `/workspace/card_common/categories.py` | hidden `listing_state` is not rankable |
 | `ops/deploy/yugioh/keepalive.sh` | `/workspace/yugioh/keepalive.sh` | the existing loop calls `supervisor_periodic.py` once per pass |
 | `ops/deploy/card_ops/capok.sh`, `doctor_cycle.sh`, `status.py` | same names under `/workspace/card_ops/` | `CARD_ROOT` / `card_STOP`; RAM floor unchanged |
@@ -65,3 +66,14 @@ python3 ops/prepublish.py --journey
 ## Limits
 
 Headless only. The erased 26 offers are not recovered. Installed PWA on hardware was not opened. No live eBay call was made. The supervisor does not catch every fault. A passed isolated backup check is not a production restore.
+
+## Box publish fixes (2026-11-09)
+
+These match what is installed on the box byte for byte.
+
+- `index.tpl.html` is rebuilt from the merged `index.html` with the three `__V__` placeholders. Before this, a rebuild undid the stale-buy and CAD changes.
+- `prepublish.py` reads `CARD_SITE` (the site checkout) and writes state to `CARD_PREPUBLISH_STATE`. Without them it looked at `/workspace` itself.
+- `supervisor_periodic.py` reads `CARD_SITE`, defaulting to `$CARD_ROOT/card_app/site`.
+- `publish.sh` runs `prepublish.py --journey` on the new build, after `doctor.py --gate` and before `gate PASS`. A fail (1) or a deferred journey (3) restores `site_prev` like the doctor gate does. Before this, it checked the previous site, so old data blocked every publish.
+- `build.py` keeps `scan/test`, which is tracked in git and needed by the journey. It still drops `scan/bench` and npm files.
+- The bot commit email is `bot@users.noreply.github.com` again.

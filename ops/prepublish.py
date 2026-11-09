@@ -113,7 +113,8 @@ def load_site(root, mem_mb):
 
 
 def main(argv, runner=None, root=None):
-    root = root or os.path.join(os.path.dirname(__file__), '..')
+    # box install (2026-11-09): CARD_SITE points at the site checkout; default unchanged.
+    root = os.environ.get('CARD_SITE') or root or os.path.join(os.path.dirname(__file__), '..')
     mem = mem_available_mb()
     manifest = os.environ.get('CARD_BACKUP_MANIFEST') or ''
     backup = check_backup(manifest or None)
@@ -123,7 +124,7 @@ def main(argv, runner=None, root=None):
     snapshot = load_site(root, mem)
     snapshot['backup'] = backup
     snapshot['journey'] = journey
-    state = os.path.join(root, 'ops', 'supervisor_state.json')
+    state = os.environ.get('CARD_PREPUBLISH_STATE') or os.path.join(root, 'ops', 'supervisor_state.json')
     report = supervise(snapshot, state, now=time.time(), run_id='prepublish', mode='prepublish')
     code = decide(report.get('level'), journey['status'], backup.get('status'))
     print(report.get('level'), journey['status'], backup.get('status'), 'exit', code)

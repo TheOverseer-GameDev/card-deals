@@ -49,7 +49,8 @@ def main():
         print('DEFERRED', state['level'])
         return 0
     open(stamp, 'w').write(str(time.time()))
-    snap = load_site(root, mem)
+    # box install 2026-11-09: read the built site checkout, not /workspace itself.
+    snap = load_site(os.environ.get('CARD_SITE') or os.path.join(root, 'card_app', 'site'), mem)
     snap['backup'] = check_backup(os.environ.get('CARD_BACKUP_MANIFEST') or None)
     report = supervise(snap, state_path, now=time.time(), run_id='periodic', mode='periodic')
     print(report.get('level'), snap['backup'].get('status'))

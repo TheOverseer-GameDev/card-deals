@@ -145,7 +145,9 @@ class ProductionCallSiteTests(unittest.TestCase):
     def test_periodic_supervisor_reports_backup_pending_and_low_ram_deferred(self):
         # The published catalog's verified_at ages out of the 36h window. This
         # check is about backup and memory, so it uses a fixture site with no offers.
-        site = self.dest
+        # The periodic supervisor reads the built site checkout under CARD_ROOT/card_app/site.
+        site = self.dest / 'card_app' / 'site'
+        site.mkdir(parents=True, exist_ok=True)
         (site / 'index.html').write_text('<script src="scan/boot.js"></script>')
         (site / 'version.json').write_text('{"v":"1"}')
         (site / 'sw.js').write_text(
@@ -160,7 +162,7 @@ class ProductionCallSiteTests(unittest.TestCase):
             path = site / rel
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text('// fixture\n')
-        env = {**os.environ, 'CARD_ROOT': str(site), 'CARD_SUPERVISOR_FORCE': '1', 'CARD_BACKUP_MANIFEST': ''}
+        env = {**os.environ, 'CARD_ROOT': str(self.dest), 'CARD_SUPERVISOR_FORCE': '1', 'CARD_BACKUP_MANIFEST': ''}
         proc = subprocess.run([sys.executable, str(self.dest / 'card_ops' / 'supervisor_periodic.py')], env=env, text=True, capture_output=True)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn('DEGRADED', proc.stdout)
