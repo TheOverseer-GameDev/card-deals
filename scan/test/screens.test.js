@@ -44,6 +44,25 @@ async function saveCdp(client, name) {
   fs.writeFileSync(path.join(out, name), Buffer.from(frame.data, 'base64'));
 }
 
+function writeNearBlackFeed(file) {
+  const width = 640;
+  const height = 480;
+  const ySize = width * height;
+  const cSize = (width / 2) * (height / 2);
+  const frames = 8;
+  const parts = [Buffer.from(`YUV4MPEG2 W${width} H${height} F30:1 Ip A1:1 C420jpeg\n`)];
+  for (let frame = 0; frame < frames; frame++) {
+    const y = Buffer.alloc(ySize);
+    const u = Buffer.alloc(cSize, 128);
+    const v = Buffer.alloc(cSize, 128);
+    // Chrome maps luma 16 to pure black. 26–27 displays as about #0C0C0C, inside #000–#111, and still clears the drawing check.
+    for (let i = 0; i < ySize; i++) y[i] = 26 + ((i + frame) % 2);
+    parts.push(Buffer.from('FRAME\n'), y, u, v);
+  }
+  fs.writeFileSync(file, Buffer.concat(parts));
+  return file;
+}
+
 async function waitLive(page) {
   await page.waitForFunction(() => {
     const video = document.getElementById('scan-cam-video');
@@ -161,10 +180,17 @@ async function mockLookup(page, base) {
 }
 
 test('scanner screens at phone and desktop-site sizes', async () => {
+  const feed = writeNearBlackFeed(path.join(out, 'near-black.y4m'));
   const browser = await chromium.launch({
     executablePath: chrome,
     headless: true,
-    args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+    args: [
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      '--use-fake-device-for-media-stream',
+      '--use-fake-ui-for-media-stream',
+      `--use-file-for-fake-video-capture=${feed}`,
+    ],
   });
   const server = await startServer();
   const base = `http://127.0.0.1:${server.address().port}`;
