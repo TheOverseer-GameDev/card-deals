@@ -1,0 +1,69 @@
+#v-market {
+  font: 16px/1.4 -apple-system, system-ui, Segoe UI, Roboto, sans-serif;
+  padding: 12px 0 24px;
+}
+#v-market h2 { margin: 0 0 8px; font-size: 22px; font-weight: 700; }
+#v-market .market-note, #v-market .note { color: var(--mu); font-size: 12px; }
+#v-market .market-banner { color: var(--gold); font-weight: 700; }
+#v-market .market-box, #v-market .settlement-box {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  margin: 0 0 12px;
+}
+#v-market .tools { align-items: center; }
+#v-market .tools .btn { margin-top: 0; flex: 0 0 auto; height: 44px; padding: 0 12px; }
+#v-market .market-feed-grid { display: grid; gap: 12px; }
+#v-market .m-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  margin: 0;
+}
+#v-market .m-photo {
+  position: relative;
+  height: 168px;
+  border-radius: 12px;
+  background: #0f1424;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+#v-market .m-photo img { width: 100%; height: 100%; object-fit: cover; }
+#v-market .m-nophoto { color: var(--mu); font-size: 13px; }
+#v-market .m-cond { position: absolute; top: 8px; left: 8px; margin: 0; }
+#v-market .m-price {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: var(--gold);
+  color: #111;
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+#v-market .market-box input,
+#v-market .market-box select,
+#v-market .market-actions input,
+#v-market .market-actions select,
+#v-market summary {
+  background: #141a2b;
+  border: 1px solid var(--line);
+  color: var(--tx);
+  border-radius: 10px;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 14px;
+  min-height: 44px;
+}
+#v-market summary { display: flex; align-items: center; cursor: pointer; font-weight: 700; }
+#v-market .market-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#v-market .market-modal { position: relative; margin: 0 0 12px; }
+#v-market a { color: var(--gold); }
+html.desktop #v-market.on { display: block; }
+@media (min-width: 720px) {
+  #v-market .market-feed-grid { grid-template-columns: 1fr 1fr; }
+}

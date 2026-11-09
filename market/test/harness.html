@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market test</title>
+</head>
+<body>
+<main></main>
+<script type="module">
+  import { mountMarket } from '../boot.js';
+  import { createMemory } from '../memory.js';
+  const memory = createMemory(() => Date.now());
+  window.__memory = memory;
+  window.__mount = (users) => mountMarket(document, {
+    client: memory,
+    testData: true,
+    users,
+    root: document.querySelector('main'),
+  });
+</script>
+</body>
+</html>
