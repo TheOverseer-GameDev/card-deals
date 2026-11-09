@@ -52,7 +52,11 @@ OLD_BTN = (
     "if(l.verified!==true||l.vetted===false)return`<a class=\"btn g mut\" href=\"${e(l.url)}\" target=_blank rel=noopener "
     "style=\"font-size:12px;font-weight:400\">${lab} (unverified)</a>`;"
 )
-NEW_BTN = "function btn(l,lab,cls){if(!liveBuy(l))return`<a class=\"btn g\">No live ${lab}</a>`;"
+NEW_BTN = (
+    "function itemUrl(l){return !!(l&&l.url&&/\\/itm\\/(?:[^/]+\\/)?\\d{9,15}(?:\\?|$)/.test(l.url)&&!/\\/sch\\/|_nkw=/.test(l.url))}"
+    "function btn(l,lab,cls){const stamp=l&&l.verified_at?`<span class=\"vt2\">last checked ${ago(l.verified_at)||'–'}</span>`:'';"
+    "if(!itemUrl(l)||!liveBuy(l))return`<a class=\"btn g\">no verified listing${stamp}</a>`;"
+)
 OLD_HEALTH_END = "el.onclick=()=>el.classList.toggle('open')})();"
 NEW_HEALTH_END = (
     "el.onclick=()=>el.classList.toggle('open');"

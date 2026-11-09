@@ -143,7 +143,24 @@ class ProductionCallSiteTests(unittest.TestCase):
         self.assertNotIn("open(P('.stamp'), 'w').write", mtg.split('def main', 1)[1].split('transport_stopped', 1)[0])
 
     def test_periodic_supervisor_reports_backup_pending_and_low_ram_deferred(self):
-        env = {**os.environ, 'CARD_ROOT': str(REPO), 'CARD_SUPERVISOR_FORCE': '1', 'CARD_BACKUP_MANIFEST': ''}
+        # The published catalog's verified_at ages out of the 36h window. This
+        # check is about backup and memory, so it uses a fixture site with no offers.
+        site = self.dest
+        (site / 'index.html').write_text('<script src="scan/boot.js"></script>')
+        (site / 'version.json').write_text('{"v":"1"}')
+        (site / 'sw.js').write_text(
+            "const C='cd3-1';\nscan/boot.js\nscan/engine.js\nscan/prices.js\nscan/scan.css\n"
+            "\\.(html|json|js|css)$\n"
+        )
+        (site / 'manifest.json').write_text('{"display":"standalone","icons":[{"src":"icon-192.png"}]}')
+        (site / 'data.js').write_text(
+            'window.D={"health":{"freshness":"current","level":"ok"},"ygo":{"cards":[]},"mtg":{"cards":[]}};'
+        )
+        for rel in ('scan/boot.js', 'scan/engine.js', 'scan/prices.js', 'scan/scan.css'):
+            path = site / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('// fixture\n')
+        env = {**os.environ, 'CARD_ROOT': str(site), 'CARD_SUPERVISOR_FORCE': '1', 'CARD_BACKUP_MANIFEST': ''}
         proc = subprocess.run([sys.executable, str(self.dest / 'card_ops' / 'supervisor_periodic.py')], env=env, text=True, capture_output=True)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn('DEGRADED', proc.stdout)

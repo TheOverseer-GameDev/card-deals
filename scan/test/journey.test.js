@@ -125,6 +125,7 @@ test('phone scan journey stays local and names the verified listing', async (t) 
       const video = document.querySelector('#scan-cam-video');
       return video && video.videoWidth > 0;
     });
+    await page.locator('#scan-mode-front').click();
     await page.locator('#scan-front-cam').click();
     await page.waitForFunction(() => (document.querySelector('#scan-front-note')?.textContent || '').includes('Working copy'));
     const chooser = page.waitForEvent('filechooser');
@@ -173,7 +174,10 @@ test('phone scan journey stays local and names the verified listing', async (t) 
       const ids = ['scan-front-cam', 'scan-gallery', 'scan-camera'];
       const controls = {};
       for (const id of ids) {
-        const r = document.getElementById(id).getBoundingClientRect();
+        const el = document.getElementById(id);
+        const shown = el && !el.hidden && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden';
+        if (!shown) { controls[id] = true; continue; }
+        const r = el.getBoundingClientRect();
         controls[id] = r.width > 0 && r.top >= v.offsetTop - 1 && r.bottom <= v.offsetTop + v.height + 1 && r.left >= v.offsetLeft - 1 && r.right <= v.offsetLeft + v.width + 1;
       }
       return {

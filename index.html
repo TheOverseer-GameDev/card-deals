@@ -63,24 +63,31 @@ const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#
 m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
 C=v=>v==null?'–':'C$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
 p=v=>v==null?'–':`<span class="${v>=0?'up':'dn'}">${v>=0?'+':''}${Math.round(v)}%</span>`,
-ago=t=>{if(!t)return'';const s=(Date.now()-(typeof t=='number'?t*1000:Date.parse(t)))/1000;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<172800?Math.round(s/3600)+' h ago':Math.round(s/86400)+' d ago'},
-FX=1.4,usd2c=v=>v==null?null:v*FX;
+ago=t=>{if(!t)return'';const s=(Date.now()-(typeof t=='number'?t*1000:Date.parse(t)))/1000;return s<90?'just now':s<5400?Math.round(s/60)+' min ago':s<172800?Math.round(s/3600)+' h ago':Math.round(s/86400)+' d ago'};
+const FXQ={rate:1.4066,date:'2026-11-06',source:'Frankfurter'};
+let FX=FXQ.rate,FXD=FXQ.date;
+function guideCad(v){if(!(+v>0))return'–';if(!(FX>0))return m(v)+' USD';return C(v*FX)}
 const LN={top:'Top buys',risky:'Risky buys',safe:'Safe buys'};let G='ygo',LS='top',BF='all',Q='',SO='rank';
 const BUD=D.budget_tiers||[100,500,2000];
-function sub(){$('#sub').textContent=`Ranked ${ago(D.ranked_at)} · prices in CAD · advice only, never auto-buys`}sub();setInterval(sub,60000);
-(function(){const H=D.health||{},el=$('#health'),lv=H.level||'warn',lc=H.links_checked_oldest_top20,ag=lc?Math.round((Date.now()-Date.parse(lc))/36e5):null;
+function sub(){$('#sub').textContent=`Ranked ${ago(D.ranked_at)} · ${FX>0?`CAD ${FX} (${FXD||'Frankfurter'})`:'CAD unavailable'} · advice only, never auto-buys`}sub();setInterval(sub,60000);
+(function(){const H=D.health||{},el=$('#health');
+ if(!H.freshness){const stamps=[];['ygo','mtg'].forEach(g=>((D[g]&&D[g].cards)||[]).forEach(c=>['lr','lg'].forEach(k=>{const t=c[k]&&Date.parse(c[k].verified_at);if(t)stamps.push(t)})));if(stamps.length&&(Date.now()-Math.min(...stamps))/36e5>36){H.freshness='stale';H.freshness_note='Prices are older than the verification window and are not buys.'}}
+ let lv=H.level||'warn';if(H.freshness&&H.freshness!=='current'&&lv==='ok')lv='warn';
+ const lc=H.links_checked_oldest_top20,ag=lc?Math.round((Date.now()-Date.parse(lc))/36e5):null;
 el.className='hb '+lv;el.innerHTML=(lv=='ok'?'● Healthy':lv=='stop'?'■ Paused':'▲ Check')+(ag!=null?` · links checked ${ag<1?'<1':ag}h ago`:'')+((H.problems||[]).length?`<div class="hp">${H.problems.map(e).join('<br>')}</div>`:'');el.onclick=()=>el.classList.toggle('open');if(H.freshness&&H.freshness!=='current'&&!document.getElementById('freshness-note')){const b=document.createElement('div');b.className='banner';b.id='freshness-note';b.textContent=H.freshness_note||'Prices are not current. Stale and failed checks are not buys.';const m=document.querySelector('main');if(m)m.prepend(b)}})();
 function liveBuy(l){if(!l||!l.url||l.verified!==true||l.vetted===false||l.buyable===false)return false;if(l.listing_state&&l.listing_state!=='current')return false;if(!l.verified_at)return false;const h=(Date.now()-Date.parse(l.verified_at))/36e5;return h>=0&&h<=36}const offer=c=>[c.lr,c.lg].find(liveBuy);
 const cost=c=>{const o=offer(c);return o&&o.cad_total!=null?+o.cad_total:(c.entry_cad??c.cad_total??null)};
 const ret=c=>c.exp_return_pct??c.ret_pct;
 function spark(a){if(!a||a.length<2)return'';const mn=Math.min(...a),mx=Math.max(...a),w=300,h=34,d=a.map((v,i)=>`${(i/(a.length-1)*w).toFixed(1)},${(h-2-(mx>mn?(v-mn)/(mx-mn):.5)*(h-4)).toFixed(1)}`).join(' ');
  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="${a[a.length-1]>=a[0]?'#3ddc97':'#ff6b6b'}" stroke-width="2" points="${d}"/></svg>`}
-function btn(l,lab,cls){if(!liveBuy(l))return`<a class="btn g">No live ${lab}</a>`;
- return `<a class="btn ${cls}" style="flex-direction:column;gap:0" href="${e(l.url)}" target=_blank rel=noopener>${lab}${l.site?' · '+e(l.site):''} ${l.cad_total!=null?C(l.cad_total):m(l.price)} ↗<span class="vt2">verified ${ago(l.verified_at)||'–'}</span></a>`}
+function itemUrl(l){return !!(l&&l.url&&/\/itm\/(?:[^/]+\/)?\d{9,15}(?:\?|$)/.test(l.url)&&!/\/sch\/|_nkw=/.test(l.url))}
+function btn(l,lab,cls){const stamp=l&&l.verified_at?`<span class="vt2">last checked ${ago(l.verified_at)||'–'}</span>`:'';
+ if(!itemUrl(l)||!liveBuy(l))return`<a class="btn g">no verified listing${stamp}</a>`;
+ return `<a class="btn ${cls}" style="flex-direction:column;gap:0" href="${e(l.url)}" target=_blank rel=noopener>${lab}${l.site?' · '+e(l.site):''} ${l.cad_total!=null?C(l.cad_total):m(l.price)} ↗${stamp}</a>`}
 function card(k,x){const c=D[k].cards[x.i],r=ret(c),pr=c.exp_profit_cad??c.ev_net,mv=x.mv==='new'?'<span class="mv" style="color:var(--gold)">new</span>':x.mv>0?`<span class="mv up">▲${x.mv}</span>`:x.mv<0?`<span class="mv dn">▼${-x.mv}</span>`:'<span class="mv" style="color:var(--mu)">–</span>';
  return `<div class="c" data-k="${k}" data-i="${x.i}"><div class="top"><div><div class="rk">${x.rank}</div>${mv}</div><div style="flex:1;min-width:0"><div class="nm">${e(c.name)}<span class="rl ${x.risk_level}">${x.risk_level} risk</span>${c.rl?'<span class="tag">Reserved List</span>':''}</div>
  <div class="why">${e(x.why)}</div></div><div class="sc"><b>${r!=null?p(r):'–'}</b><small>${pr!=null?(pr>=0?'+':'−')+'C$'+Math.abs(Math.round(pr))+' after fees':'exp. return'}</small></div></div>
- ${spark(c.spark)}<div class="row"><div class="st"><small>Raw</small><b>${C(usd2c(c.raw))}</b></div><div class="st"><small>PSA 9</small><b>${C(usd2c(c.p9))}</b></div><div class="st"><small>PSA 10</small><b>${C(usd2c(c.p10))}</b></div></div>
+ ${spark(c.spark)}<div class="row"><div class="st"><small>Raw</small><b>${guideCad(c.raw)}</b></div><div class="st"><small>PSA 9</small><b>${guideCad(c.p9)}</b></div><div class="st"><small>PSA 10</small><b>${guideCad(c.p10)}</b></div></div>
  <div class="btns">${btn(c.lr,'Raw','')}${btn(c.lg,'PSA 10','g')}</div>
  <button class="btn g rq" style="width:100%;border:1px solid var(--gold);color:var(--gold);font-size:15px" data-k="${k}" data-i="${x.i}">⭐ Request purchase</button>
  <div class="det"><div class="row"><div class="st"><small>3 mo</small><b>${p(c.t3)}</b></div><div class="st"><small>12 mo</small><b>${p(c.t12)}</b></div><div class="st"><small>Cost all-in</small><b>${C(cost(c))}</b></div></div>
@@ -95,9 +102,11 @@ async function chart(box,c,k){const cv=box.querySelector('canvas');if(!cv||cv.da
  let H=HC[c.id];if(!H){try{H=HC[c.id]=await (await fetch(`h/${k}/${c.id}.json?`+VER)).json()}catch(_){H={}}}
  const col={raw:'#7aa2ff',p9:'#3ddc97',p10:'#d4af37'},nm={raw:'Raw',p9:'PSA 9',p10:'PSA 10'},keys=Object.keys(col).filter(s=>H[s]&&H[s].length);
  if(!keys.length){cv.replaceWith(Object.assign(document.createElement('div'),{className:'note',textContent:'No price history yet.'}));return}
- const t0=Math.min(...keys.map(s=>H[s][0][0]));box.querySelector('.h0').textContent='Earliest real data: '+new Date(t0).toLocaleDateString('en-CA',{year:'numeric',month:'short'})+' (nothing before this is shown or estimated). Prices USD.';
- let lg=true,rg=0;const ch=new Chart(cv,{type:'line',data:{datasets:[]},options:{animation:{duration:250},parsing:false,scales:{x:{type:'linear',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>new Date(v).toLocaleDateString('en-CA',{month:'short',year:'2-digit'})},grid:{color:'#1a2136'}},y:{type:'logarithmic',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>'$'+v},grid:{color:'#1a2136'}}},plugins:{legend:{labels:{color:'#e8ecf6',boxWidth:10}}}}});
- function upd(){const end=Math.max(...keys.map(s=>H[s][H[s].length-1][0])),from=rg?end-rg*864e5:0;ch.data.datasets=keys.map(s=>({label:nm[s],data:H[s].filter(q=>q[0]>=from).map(([x,y])=>({x,y})),borderColor:col[s],pointRadius:rg&&rg<200?2:0,tension:.25,borderWidth:2}));ch.options.scales.y.type=lg?'logarithmic':'linear';ch.update();
+ const t0=Math.min(...keys.map(s=>H[s][0][0]));
+ const money=FX>0?`CAD at ${FX} (${FXD||'Frankfurter'}).`:'Prices USD. CAD unavailable.';
+ box.querySelector('.h0').textContent='Earliest real data: '+new Date(t0).toLocaleDateString('en-CA',{year:'numeric',month:'short'})+' (nothing before this is shown or estimated). '+money+' Stored points only. Missing months are not filled.';
+ let lg=true,rg=0;const ch=new Chart(cv,{type:'line',data:{datasets:[]},options:{animation:{duration:250},parsing:false,spanGaps:false,scales:{x:{type:'linear',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>new Date(v).toLocaleDateString('en-CA',{month:'short',year:'2-digit'})},grid:{color:'#1a2136'}},y:{type:'logarithmic',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>((FX>0)?'C$':'$')+v},grid:{color:'#1a2136'}}},plugins:{legend:{labels:{color:'#e8ecf6',boxWidth:10}}}}});
+ function upd(){const end=Math.max(...keys.map(s=>H[s][H[s].length-1][0])),from=rg?end-rg*864e5:0;ch.data.datasets=keys.map(s=>({label:nm[s],data:H[s].filter(q=>q[0]>=from).map(([x,y])=>({x,y:y>0?(FX>0?y*FX:y):null})),borderColor:col[s],pointRadius:rg&&rg<200?2:0,tension:0,spanGaps:false,borderWidth:2}));ch.options.scales.y.type=lg?'logarithmic':'linear';ch.options.scales.y.ticks.callback=v=>((FX>0)?'C$':'$')+v;ch.update();
   box.querySelector('.rg').innerHTML=RG.map(([l,d])=>`<button data-rg="${d}" class="${d==rg?'on':''}">${l}</button>`).join('')+`<button data-lg class="${lg?'on':''}">Log</button>`}
  box.querySelector('.rg').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;ev.stopPropagation();if(b.dataset.lg!==undefined)lg=!lg;else rg=+b.dataset.rg;upd()};upd()}
 $('#v-coll').innerHTML=D.coll.length?D.coll.map(r=>`<div class="c"><div class="nm">${e(r.name)}</div><div class="meta">${e(r.set_code)} · ${e(r.rarity)} · ${e(r.condition)}</div></div>`).join(''):'<div class="empty">No cards in your collection yet.</div>';
@@ -121,7 +130,7 @@ let W=JSON.parse(localStorage.getItem('wish')||'[]');
 function sv(){localStorage.setItem('wish',JSON.stringify(W));$('#v-wish').innerHTML=(W.length?W.map((w,i)=>`<div class="c"><div class="meta">${e(w.d)}</div><div class="nm">${e(w.n)}</div><div class="meta">${e(w.p)}</div><div class="btns"><button class="btn" data-sh="${i}" style="border:0">Share / copy</button><button class="btn g" data-del="${i}" style="border:0">Remove</button></div></div>`).join(''):'<div class="empty">Tap ⭐ Request purchase on any card to save it here.</div>')+'<div class="note">Saved only on this phone. Sharing just sends text; nothing is bought.</div>'}
 function toast(t){const d=Object.assign(document.createElement('div'),{textContent:t});d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#d4af37;color:#111;padding:10px 16px;border-radius:20px;font-weight:600;z-index:20;transition:opacity .4s';document.body.appendChild(d);setTimeout(()=>d.style.opacity=0,1600);setTimeout(()=>d.remove(),2100)}
 async function send(t){try{if(navigator.share){await navigator.share({title:'Card purchase request',text:t});return}}catch(_){return}try{await navigator.clipboard.writeText(t);toast('Copied, paste it to your bot')}catch(_){prompt('Copy this:',t)}}
-function req(c,k){const l=c.lr||c.lg,p=l?`Live ${l.cad_total!=null?'C$'+(+l.cad_total).toFixed(2):m(l.price)+' USD'}`:`Raw sold ${m(c.raw)} USD`,t=`Purchase request (${k=='ygo'?'Yu-Gi-Oh':'Magic'}): ${c.name}\nPrint/details: ${l?l.title||'':''}\nPrice: ${p} (raw ${m(c.raw)} / PSA 9 ${m(c.p9)} / PSA 10 ${m(c.p10)})\nBuy zone: ≤ ${m(c.buy)}\nLink: ${l?l.url:c.url||''}\nPlease verify print, condition and total cost in CAD before buying.`;
+function req(c,k){const l=offer(c),p=l?`Live ${l.cad_total!=null?'C$'+(+l.cad_total).toFixed(2):m(l.price)+' USD'}`:`Raw sold ${guideCad(c.raw)}`,t=`Purchase request (${k=='ygo'?'Yu-Gi-Oh':'Magic'}): ${c.name}\nPrint/details: ${l?l.title||'':''}\nPrice: ${p} (raw ${guideCad(c.raw)} / PSA 9 ${guideCad(c.p9)} / PSA 10 ${guideCad(c.p10)})\nBuy zone: ≤ ${guideCad(c.buy)}\nLink: ${l&&itemUrl(l)?l.url:'no verified listing'}\nPlease verify print, condition and total cost in CAD before buying.`;
  W.unshift({n:c.name,p:p,t:t,d:new Date().toLocaleDateString('en-CA')});sv();toast('Added to Wishlist');send(t)}
 sv();
 const VER='1793991594';
