@@ -25,7 +25,7 @@ import { buildGauges } from './gauges.js';
 import { cropCanvas, fileToCanvas, grayFromCanvas, releaseCanvas } from './image.js';
 import { createLookup } from './lookup.js';
 import { createPriceBook, emptyMarket } from './prices.js';
-import { gradePhoto, gradeSide } from './pipeline.js';
+import { gradePhoto, gradeSide, straighten } from './pipeline.js';
 import { collectionList, gradeBlock, matchCard, priceRows } from './screens.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
@@ -339,6 +339,21 @@ function boot() {
     state.originalWidth = decoded.originalWidth;
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
+    try {
+      const shot = state.canvas.getContext('2d').getImageData(0, 0, state.canvas.width, state.canvas.height);
+      const flat = straighten(shot.data, shot.width, shot.height);
+      state.flattened = Boolean(flat.flattened);
+      if (flat.flattened) {
+        const next = document.createElement('canvas');
+        next.width = 500;
+        next.height = 700;
+        next.getContext('2d').putImageData(new ImageData(flat.rgba, 500, 700), 0, 0);
+        releaseCanvas(state.canvas);
+        state.canvas = next;
+      } else if (slot === 'front') {
+        note.textContent += ' Front is tilted.';
+      }
+    } catch { /* Keep the original photo when the warp cannot run. */ }
     camToken += 1;
     releaseStream();
     ui.video.hidden = true;
