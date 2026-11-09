@@ -49,8 +49,8 @@ export async function mountMarket(doc, options = {}) {
     }
     if (!view.me.name) section.append(nameForm(client, paint));
     section.append(toolbar(view, client, paint, doc));
-    section.append(handlesForm(view, client, paint));
     section.append(feed(view, client, paint, doc));
+    section.append(handlesForm(view, client, paint));
     section.append(termsLink());
   };
   await paint();
@@ -74,7 +74,7 @@ function signIn(client, paint) {
   box.append(el('h2', 'Sign in'));
   const email = input('email', 'Email');
   email.id = 'market-email';
-  const button = el('button', 'Email me a sign-in link');
+  const button = el('button', 'Email me a sign-in link', 'btn');
   button.type = 'submit';
   box.append(email, button);
   box.addEventListener('submit', async (ev) => {
@@ -108,7 +108,7 @@ function nameForm(client, paint) {
   const box = el('form', null, 'market-box');
   const name = input('text', 'Display name');
   name.id = 'market-display-name';
-  const save = el('button', 'Save name');
+  const save = el('button', 'Save name', 'btn');
   save.type = 'submit';
   box.append(el('p', 'Choose a display name. It is shown on your listings.'), name, save);
   box.addEventListener('submit', async (ev) => {
@@ -119,18 +119,23 @@ function nameForm(client, paint) {
 }
 
 function handlesForm(view, client, paint) {
-  const box = el('form', null, 'market-box');
+  const box = document.createElement('details');
+  box.className = 'market-box';
   box.id = 'market-own-handles';
+  const summary = document.createElement('summary');
+  summary.textContent = 'My payment info';
+  const form = el('form');
   const interac = input('email', 'Your Interac email');
   interac.id = 'market-interac';
   interac.value = view.handles?.interac || '';
   const paypal = input('text', 'Your PayPal.me name');
   paypal.id = 'market-paypal';
   paypal.value = view.handles?.paypal || '';
-  const save = el('button', 'Save payment handles');
+  const save = el('button', 'Save payment handles', 'btn');
   save.type = 'submit';
-  box.append(el('p', 'Buyers can see these only after you accept their offer on a listing.'), interac, paypal, save);
-  box.addEventListener('submit', async (ev) => {
+  form.append(el('p', 'Buyers can see these only after you accept their offer on a listing.', 'note'), interac, paypal, save);
+  box.append(summary, form);
+  form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     await send(client, paint, { type: 'handles', interac: interac.value, paypal: paypal.value });
   });
@@ -138,33 +143,37 @@ function handlesForm(view, client, paint) {
 }
 
 function toolbar(view, client, paint, doc) {
-  const bar = el('div', null, 'market-toolbar');
-  bar.append(el('h2', view.me.name ? `Market · ${view.me.name}` : 'Market'));
+  const wrap = el('div');
+  wrap.append(el('h2', view.me.name ? `Market · ${view.me.name}` : 'Market'));
+  const bar = el('div', null, 'tools');
+  bar.id = 'market-toolbar';
   const search = input('search', 'Search name or set code');
   search.id = 'market-search';
   const game = document.createElement('select');
   game.id = 'market-game';
+  game.setAttribute('aria-label', 'Game');
   for (const [value, label] of [['', 'All games'], ['ygo', 'Yu-Gi-Oh'], ['mtg', 'Magic']]) {
     const option = document.createElement('option');
     option.value = value;
     option.textContent = label;
     game.append(option);
   }
-  const sell = el('button', 'Sell Card');
+  const sell = el('button', '+ Sell Card', 'btn');
   sell.id = 'market-sell';
   sell.type = 'button';
-  const saved = readSaved();
-  if (saved.length) {
-    const use = el('button', 'Prefill from a saved scan');
-    use.type = 'button';
-    use.addEventListener('click', () => openSell(doc, client, paint, saved[0]));
-    bar.append(use);
-  }
   sell.addEventListener('click', () => openSell(doc, client, paint, null));
   search.addEventListener('input', () => paintFeed(doc, view, client, paint, search.value, game.value));
   game.addEventListener('change', () => paintFeed(doc, view, client, paint, search.value, game.value));
   bar.append(search, game, sell);
-  return bar;
+  wrap.append(bar);
+  const saved = readSaved();
+  if (saved.length) {
+    const use = el('button', 'Prefill from a saved scan', 'btn g');
+    use.type = 'button';
+    use.addEventListener('click', () => openSell(doc, client, paint, saved[0]));
+    wrap.append(use);
+  }
+  return wrap;
 }
 
 function feed(view, client, paint, doc) {
@@ -198,25 +207,40 @@ function grid(view, client, paint, doc, query, game) {
 
 function card(row, view, client, paint, doc) {
   const node = el('article', null, 'm-card');
-  node.append(el('h3', row.name));
-  node.append(el('p', [GAMES[row.game] || row.game, row.setCode, row.edition, row.rarity].filter(Boolean).join(' · '), 'market-muted'));
-  node.append(el('p', `Asking ${cad(row.askCad)}`, 'market-price'));
-  node.append(el('p', `Seller: ${row.sellerName || 'Unnamed'}`, 'market-muted'));
-  if (row.estimateNote) node.append(el('p', row.estimateNote, 'market-muted'));
+  if (row.vaulted) node.classList.add('vaulted');
+  const photo = el('div', null, 'm-photo');
+  if (row.photoPath) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = row.photoPath;
+    photo.append(img);
+  } else {
+    photo.append(el('span', 'No photo', 'm-nophoto'));
+  }
+  photo.append(el('span', row.vaulted ? 'Vaulted' : (row.conditionNotes || 'Not stated'), row.vaulted ? 'tag m-cond vault-badge' : 'tag m-cond'));
+  photo.append(el('span', cad(row.askCad), 'm-price'));
+  node.append(photo);
+  node.append(el('h3', row.name, 'nm'));
+  node.append(el('p', [GAMES[row.game] || row.game, row.setCode, row.edition, row.rarity].filter(Boolean).join(' · '), 'meta'));
+  node.append(el('p', `Seller: ${row.sellerName || 'Unnamed'}`, 'meta'));
+  if (row.estimateNote) node.append(el('p', row.estimateNote, 'note'));
   if (row.vaulted) {
-    node.classList.add('vaulted');
-    node.append(el('p', 'Vaulted', 'vault-badge'));
-    node.append(el('p', 'A vaulted card is stored at PSA in Delaware and is bought and transferred through PSA or eBay. Card Deals does not transfer the card or ship it.', 'market-muted'));
-    node.append(safeLink('View vault listing', row.vaultUrl, 'vault-link'));
+    node.append(el('p', 'A vaulted card is stored at PSA in Delaware and is bought and transferred through PSA or eBay. Card Deals does not transfer the card or ship it.', 'note'));
+    node.append(safeLink('View vault listing', row.vaultUrl, 'btn vault-link'));
     const cert = safeLink('PSA cert', psaCertUrl(row.psaCert), 'psa-cert');
-    const label = el('p', null, 'market-muted');
+    const label = el('p', null, 'note');
     label.append(cert, document.createTextNode(' · Seller-provided. Not checked by Card Deals.'));
     node.append(label);
   } else if (view.me && view.me.id !== row.sellerId && row.status === 'active') {
-    const offer = el('button', 'Make Offer');
+    const actions = el('div', null, 'btns');
+    const offer = el('button', 'Make Offer', 'btn');
     offer.type = 'button';
     offer.addEventListener('click', () => openOffer(doc, client, paint, row));
-    node.append(offer);
+    const buy = el('button', 'Buy It Now', 'btn g');
+    buy.type = 'button';
+    buy.addEventListener('click', () => send(client, paint, { type: 'buy', listingId: row.id }));
+    actions.append(offer, buy);
+    node.append(actions);
   }
   return node;
 }
@@ -232,10 +256,10 @@ function trades(view, client, paint) {
       block.append(el('p', `Payment window ends ${new Date(trade.offer.paymentDue).toLocaleString()}`));
     }
     if (trade.listing?.vaulted) {
-      block.append(el('p', 'A vaulted card is stored at PSA in Delaware and is bought and transferred through PSA or eBay. Card Deals does not transfer the card or ship it.', 'market-muted'));
+      block.append(el('p', 'A vaulted card is stored at PSA in Delaware and is bought and transferred through PSA or eBay. Card Deals does not transfer the card or ship it.', 'note'));
       block.append(safeLink('View vault listing', trade.listing.vaultUrl, 'vault-link'));
       const cert = safeLink('PSA cert', psaCertUrl(trade.listing.psaCert), 'psa-cert');
-      const label = el('p', null, 'market-muted');
+      const label = el('p', null, 'note');
       label.append(cert, document.createTextNode(' · Seller-provided. Not checked by Card Deals.'));
       block.append(label);
     } else if (trade.handles) {
@@ -245,7 +269,7 @@ function trades(view, client, paint) {
       handles.append(el('p', trade.handles.paypal ? `PayPal.me: ${trade.handles.paypal}` : 'PayPal.me: not provided'));
       block.append(handles);
     } else if (trade.offer.buyerId === view.me.id && trade.offer.status === 'pending') {
-      block.append(el('p', 'Payment details stay hidden until the seller accepts.', 'market-muted'));
+      block.append(el('p', 'Payment details stay hidden until the seller accepts.', 'note'));
     }
     const actions = actionsFor(trade, view, client, paint);
     if (actions) block.append(actions);
@@ -305,13 +329,13 @@ function openOffer(doc, client, paint, listing) {
   card.append(el('p', `Asking ${cad(listing.askCad)}`));
   const amount = input('number', 'Your offer in CAD');
   amount.id = 'market-offer-amount';
-  const make = el('button', 'Make Offer');
+  const make = el('button', 'Make Offer', 'btn');
   make.type = 'button';
   make.id = 'market-make-offer';
-  const buy = el('button', 'Buy It Now');
+  const buy = el('button', 'Buy It Now', 'btn g');
   buy.type = 'button';
   buy.id = 'market-buy-now';
-  const cancel = el('button', 'Close');
+  const cancel = el('button', 'Close', 'btn g');
   cancel.type = 'button';
   make.addEventListener('click', () => send(client, paint, { type: 'offer', listingId: listing.id, amount: amount.value }).then(() => closeModal(doc)));
   buy.addEventListener('click', () => send(client, paint, { type: 'buy', listingId: listing.id }).then(() => closeModal(doc)));
@@ -370,9 +394,9 @@ function openSell(doc, client, paint, saved) {
   box.type = 'checkbox';
   box.id = 'market-photo-consent';
   consent.append(box, doc.createTextNode(' I agree to upload this photo to the market database. Otherwise no photo is stored.'));
-  const submit = el('button', 'Publish listing');
+  const submit = el('button', 'Publish listing', 'btn');
   submit.type = 'submit';
-  const cancel = el('button', 'Close');
+  const cancel = el('button', 'Close', 'btn g');
   cancel.type = 'button';
   cancel.addEventListener('click', () => closeModal(doc));
   card.append(name, game, setCode, edition, rarity, notes, centering, ask, vaultLabel, cert, vaultUrl, el('p', 'A vaulted card is stored at PSA in Delaware and is bought and transferred through PSA or eBay. Card Deals does not transfer the card or ship it.', 'market-muted'), file, consent);
@@ -422,7 +446,7 @@ function safeLink(label, href, className) {
 }
 
 function actionButton(label, onClick) {
-  const button = el('button', label);
+  const button = el('button', label, 'btn');
   button.type = 'button';
   button.addEventListener('click', onClick);
   return button;
@@ -448,7 +472,7 @@ function readSaved() {
 }
 
 function cad(value) {
-  return `CAD ${Number(value).toFixed(2)}`;
+  return `C$ ${Number(value).toFixed(2)}`;
 }
 
 function input(type, label) {
