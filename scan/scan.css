@@ -226,7 +226,7 @@ html.scan-cam #v-scan .scan-capture { position: relative; }
 #scan-blocked:not([hidden]) { position: absolute; z-index: 6; left: 12px; right: 12px; top: 28%; background: #fff; color: #14181F; margin: 0; padding: 16px; border-radius: 16px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
 #scan-blocked { background: #fff; color: #14181F; margin: 12px; padding: 16px; border-radius: 16px; text-align: center; }
 #scan-blocked #scan-cam-msg { color: #14181F; }
-#scan-cam-retry, #scan-blocked-gallery { background: #E10600; color: #FFFFFF; border: 0; border-radius: 22px; min-height: 44px; min-width: 44px; margin: 6px; }
+#v-scan #scan-cam-retry, #v-scan #scan-blocked-gallery { background: #E10600; color: #FFFFFF; -webkit-text-fill-color: #FFFFFF; border: 0; border-radius: 22px; min-height: 44px; min-width: 44px; margin: 6px; }
 #scan-blocked-gallery { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; }
 #scan-blocked-gallery svg { display: block; }
 #scan-thumbs { display: flex; gap: 8px; justify-content: center; padding: 6px 0; }
@@ -236,7 +236,8 @@ html.scan-cam #v-scan .scan-capture { position: relative; }
 .scan-tab-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
 #scan-tab-scan .scan-tab-icon svg { width: 28px; height: 28px; }
 .cd-art { display: block; width: 180px; margin: 8px auto; border-radius: 8px; }
-.cd-add { background: #1560BD; color: #fff; border: 0; border-radius: 22px; min-height: 44px; padding: 0 18px; }
+#v-scan #scan-add-card,
+.cd-add { background: #1560BD; color: #FFFFFF; -webkit-text-fill-color: #FFFFFF; border: 0; border-radius: 22px; min-height: 44px; padding: 0 18px; }
 .cd-seg { display: flex; background: #E4E7EC; border-radius: 22px; padding: 3px; margin: 12px 0; }
 .cd-seg button { flex: 1; min-height: 40px; border: 0; border-radius: 18px; background: transparent; color: #14181F; }
 .cd-seg button.on { background: #fff; }
@@ -316,8 +317,8 @@ html.scan-tight #scan-zoom-toggle, html.scan-tight #scan-thumbs, html.scan-tight
   background: #fff;
 }
 #v-scan .scan-cam-bar .btn { margin-top: 0; }
-#v-scan .scan-cam-side:first-child { justify-self: start; }
-#v-scan .scan-cam-side:last-child { justify-self: end; display: flex; align-items: center; gap: 8px; }
+#v-scan .scan-cam-left { justify-self: start; }
+#v-scan .scan-cam-right { justify-self: end; display: flex; align-items: center; gap: 8px; z-index: 2; }
 #v-scan .scan-shutter {
   position: absolute;
   left: 50%;

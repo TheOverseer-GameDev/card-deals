@@ -810,6 +810,13 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
         concentric: Math.max(Math.abs(coreC.x - ringC.x), Math.abs(coreC.y - ringC.y)),
         pillX: Math.abs(pillC.x - target),
         pillY: Math.abs(pillC.y - infoC.y),
+        gallery: (() => {
+          const g = document.getElementById('scan-gallery').getBoundingClientRect();
+          const style = getComputedStyle(document.getElementById('scan-gallery'));
+          return style.display !== 'none' && g.width >= 44 && g.left >= ring.right - 1
+            && g.top >= vv.offsetTop - 1 && g.bottom <= vv.offsetTop + vv.height + 1
+            && g.left >= vv.offsetLeft - 1 && g.right <= vv.offsetLeft + vv.width + 1;
+        })(),
       };
     };
     async function check(page, label, after) {
@@ -824,6 +831,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       assert.ok(box.concentric <= 1, `${label} shutter core ${JSON.stringify(box)}`);
       assert.ok(box.pillX <= 1, `${label} pill x ${JSON.stringify(box)}`);
       assert.ok(box.pillY <= 1, `${label} pill y ${JSON.stringify(box)}`);
+      assert.equal(box.gallery, true, `${label} gallery ${JSON.stringify(box)}`);
     }
     const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
     await check(await phone.newPage(), '390');

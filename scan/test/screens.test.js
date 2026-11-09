@@ -60,6 +60,24 @@ async function waitLive(page) {
   });
 }
 
+async function galleryInView(page, label) {
+  const box = await page.evaluate(() => {
+    const el = document.getElementById('scan-gallery');
+    const shutter = document.getElementById('scan-front-cam').getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const vv = visualViewport;
+    const style = getComputedStyle(el);
+    return {
+      visible: style.display !== 'none' && style.visibility !== 'hidden' && r.width >= 44 && r.height >= 32,
+      inside: r.top >= vv.offsetTop - 1 && r.bottom <= vv.offsetTop + vv.height + 1 && r.left >= vv.offsetLeft - 1 && r.right <= vv.offsetLeft + vv.width + 1,
+      right: r.left >= shutter.right - 1,
+    };
+  });
+  assert.equal(box.visible, true, `${label} gallery ${JSON.stringify(box)}`);
+  assert.equal(box.inside, true, `${label} gallery inside ${JSON.stringify(box)}`);
+  assert.equal(box.right, true, `${label} gallery right of shutter ${JSON.stringify(box)}`);
+}
+
 async function contrastOf(page, selector) {
   return page.evaluate((sel) => {
     const node = document.querySelector(sel);
@@ -88,6 +106,29 @@ async function contrastOf(page, selector) {
     const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     return { fg, light, ratio, theme: deck.classList.contains('cd-theme') };
   }, selector);
+}
+
+async function addContrast(page) {
+  return page.evaluate(() => {
+    const btn = document.getElementById('scan-add-card');
+    const cs = getComputedStyle(btn);
+    const parse = (value) => value.match(/[\d.]+/g).slice(0, 3).map(Number);
+    const lin = (c) => {
+      const s = c / 255;
+      return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    const L = (rgb) => {
+      const [r, g, b] = parse(rgb).map(lin);
+      return (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+    };
+    const a = L(cs.color);
+    const b = L(cs.backgroundColor);
+    return {
+      fg: cs.color,
+      bg: cs.backgroundColor,
+      ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05),
+    };
+  });
 }
 
 async function mockLookup(page, base) {
@@ -138,6 +179,7 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     await page.goto(base + '/');
     await page.locator('nav button[data-v="scan"]').click();
     await waitLive(page);
+    await galleryInView(page, '390');
     await shot(page, 'phone-scan.png');
     await page.locator('#scan-tab-search').click();
     await page.locator('#scan-code').fill('LOB-005');
@@ -146,6 +188,9 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     const matchContrast = await contrastOf(page, '#scan-match h2');
     assert.ok(matchContrast.theme, JSON.stringify(matchContrast));
     assert.ok(matchContrast.ratio >= 4.5, JSON.stringify(matchContrast));
+    const add = await addContrast(page);
+    assert.equal(add.fg, 'rgb(255, 255, 255)', JSON.stringify(add));
+    assert.ok(add.ratio >= 4.5, JSON.stringify(add));
     assert.match(await page.locator('#scan-match').innerText(), /Dark Magician/);
     assert.match(await page.locator('#scan-match').innerText(), /Test fixture/);
     await shot(page, 'phone-match.png');
@@ -176,6 +221,16 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     await shot(denied, 'phone-blocked.png');
     await blocked.close();
 
+    const land = await browser.newContext({ viewport: { width: 800, height: 360 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    await land.grantPermissions(['camera']);
+    const landPage = await land.newPage();
+    await landPage.goto(base + '/');
+    await landPage.locator('nav button[data-v="scan"]').click();
+    await waitLive(landPage);
+    await galleryInView(landPage, 'landscape');
+    await shot(landPage, 'landscape-scan.png');
+    await land.close();
+
     const desk = await browser.newContext({
       viewport: { width: 980, height: 2178 },
       screen: { width: 360, height: 800 },
@@ -195,6 +250,7 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 980 / 360 });
     await wide.locator('nav button[data-v="scan"]').click();
     await waitLive(wide);
+    await galleryInView(wide, 's22');
     await saveCdp(client, 's22-scan.png');
     await wide.locator('#scan-tab-search').click();
     await wide.locator('#scan-code').fill('LOB-005');
@@ -202,6 +258,9 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     await wide.waitForSelector('#scan-add-card');
     const wideContrast = await contrastOf(wide, '#scan-match h2');
     assert.ok(wideContrast.ratio >= 4.5, JSON.stringify(wideContrast));
+    const wideAdd = await addContrast(wide);
+    assert.equal(wideAdd.fg, 'rgb(255, 255, 255)', JSON.stringify(wideAdd));
+    assert.ok(wideAdd.ratio >= 4.5, JSON.stringify(wideAdd));
     await saveCdp(client, 's22-match.png');
     await wide.locator('#scan-tab-card').click();
     for (const id of ['pricing', 'grade', 'text']) {

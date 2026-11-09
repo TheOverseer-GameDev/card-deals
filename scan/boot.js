@@ -1361,10 +1361,10 @@ function build(section, missingList) {
   thumbs.id = 'scan-thumbs';
   thumbs.hidden = true;
   const camLeft = document.createElement('div');
-  camLeft.className = 'scan-cam-side';
+  camLeft.className = 'scan-cam-side scan-cam-left';
   camLeft.append(zoomToggle);
   const camRight = document.createElement('div');
-  camRight.className = 'scan-cam-side';
+  camRight.className = 'scan-cam-side scan-cam-right';
   camRight.append(gallery, next);
   const camBar = document.createElement('div');
   camBar.className = 'scan-cam-bar';
