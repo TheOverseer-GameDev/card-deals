@@ -25,8 +25,9 @@ import { buildGauges } from './gauges.js';
 import { cropCanvas, fileToCanvas, grayFromCanvas, releaseCanvas } from './image.js';
 import { createLookup } from './lookup.js';
 import { createPriceBook, emptyMarket } from './prices.js';
-import { gradePhoto, gradeSide, straighten } from './pipeline.js';
-import { collectionList, gradeBlock, matchCard, priceRows } from './screens.js';
+import { formatGuide, gradePhoto, gradeSide, straighten } from './pipeline.js';
+import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
+import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
@@ -109,7 +110,7 @@ function boot() {
   let confirmedKey = null;
   let suggestBox = null;
   let drag = null;
-  let mode = 'front-only';
+  let mode = 'front-and-back';
   let captureSide = 'front';
   let camToken = 0;
 
@@ -169,6 +170,23 @@ function boot() {
 
   function activeSlot() {
     return captureSide === 'back' ? 'back' : 'front';
+  }
+
+  function paintThumbs() {
+    if (!ui.thumbs) return;
+    ui.thumbs.replaceChildren();
+    let count = 0;
+    for (const side of ['front', 'back']) {
+      const source = slots[side].canvas;
+      if (!source) continue;
+      const thumb = document.createElement('canvas');
+      thumb.width = 48;
+      thumb.height = 67;
+      thumb.getContext('2d').drawImage(source, 0, 0, 48, 67);
+      ui.thumbs.append(thumb);
+      count += 1;
+    }
+    ui.thumbs.hidden = count === 0;
   }
 
   function wire() {
@@ -300,8 +318,10 @@ function boot() {
     if (!both) ui.step.textContent = 'Front only. Scan or upload the front of your card.';
     else if (captureSide === 'back') ui.step.textContent = 'Step 2 of 2. Scan or upload the back of your card.';
     else ui.step.textContent = 'Step 1 of 2. Scan or upload the front of your card.';
-    ui.next.hidden = false;
-    ui.next.textContent = 'Next';
+    const frontReady = Boolean(slots.front.canvas);
+    const backReady = Boolean(slots.back.canvas);
+    ui.next.hidden = both ? !(frontReady && backReady) : !frontReady;
+    ui.next.textContent = 'Review';
   }
 
   function showActive() {
@@ -371,6 +391,7 @@ function boot() {
     }
     updateStep();
     showActive();
+    paintThumbs();
   }
 
   function cropFractions() {
@@ -581,13 +602,8 @@ function boot() {
     ui.step.hidden = true;
     ui.camRetry.hidden = false;
     const name = err && err.name;
-    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-      ui.camMsg.textContent = 'Camera permission was denied. You can still upload a photo.';
-    } else if (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'NotReadableError' || name === 'AbortError') {
-      ui.camMsg.textContent = 'No usable camera was found. You can still upload a photo.';
-    } else {
-      ui.camMsg.textContent = 'The camera could not be opened. You can still upload a photo.';
-    }
+    ui.camMsg.textContent = 'Camera is blocked. Allow it, or choose a photo.';
+    ui.blocked.hidden = false;
   }
 
   async function lockRearZoom(stream) {
@@ -620,6 +636,7 @@ function boot() {
     });
     const values = [...select.options].map((option) => option.value);
     select.value = values.includes(current) ? current : 'facing:environment';
+    select.hidden = devices.length < 2;
   }
 
   async function openCamera(slot) {
@@ -630,6 +647,7 @@ function boot() {
     updateStep();
     ui.camMsg.textContent = '';
     ui.camRetry.hidden = true;
+    if (ui.blocked) ui.blocked.hidden = true;
     ui.step.hidden = false;
     ui.video.hidden = false;
     ui.outline.hidden = false;
@@ -638,7 +656,9 @@ function boot() {
     const listed = fillCameraList();
     if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
       await listed;
-      ui.camMsg.textContent = 'This browser has no camera API. You can still upload a photo.';
+      ui.camMsg.textContent = 'Camera is blocked. Allow it, or choose a photo.';
+      ui.camRetry.hidden = false;
+      ui.blocked.hidden = false;
       return;
     }
     let stream = null;
@@ -662,6 +682,9 @@ function boot() {
       return;
     }
     ui.stream = stream;
+    const track = stream.getVideoTracks()[0];
+    const caps = track && track.getCapabilities && track.getCapabilities();
+    if (ui.torch) ui.torch.hidden = !(caps && caps.torch);
     await lockRearZoom(stream);
     if (my !== camToken) {
       releaseStream();
@@ -696,6 +719,7 @@ function boot() {
     const box = captureSize(ui.video.videoWidth, ui.video.videoHeight);
     if (!box) {
       ui.camMsg.textContent = 'The camera has no frame yet.';
+      ui.blocked.hidden = false;
       return;
     }
     const canvas = document.createElement('canvas');
@@ -708,6 +732,7 @@ function boot() {
     releaseCanvas(canvas);
     if (!blob) {
       ui.camMsg.textContent = 'The frame could not be copied. You can still upload a photo.';
+      ui.blocked.hidden = false;
       return;
     }
     await loadFile(slot, new File([blob], 'camera.jpg', { type: 'image/jpeg' }));
@@ -1262,8 +1287,8 @@ function build(section, missingList) {
   s22Note.className = 'note';
   s22Note.textContent = 'Galaxy S22 capture notes. Pro mode is not listed here, and this screen does not invent ISO or exposure numbers.';
 
-  const modeFront = modeButton('Front Only', 'scan-mode-front', true);
-  const modeBoth = modeButton('Front & Back', 'scan-mode-both', false);
+  const modeFront = modeButton('Front only', 'scan-mode-front', false);
+  const modeBoth = modeButton('Front & back', 'scan-mode-both', true);
   const modeBar = document.createElement('div');
   modeBar.className = 'scan-mode';
   modeBar.append(modeFront, modeBoth);
@@ -1310,23 +1335,43 @@ function build(section, missingList) {
   const outline = document.createElement('div');
   outline.className = 'scan-outline';
   outline.id = 'scan-outline';
-  finder.append(video, viewport, backView, outline, modeBar);
+  finder.append(video, viewport, backView, outline);
 
-  const gallery = button('Gallery', 'scan-gallery', true);
+  const gallery = button('', 'scan-gallery', true);
+  gallery.setAttribute('aria-label', 'Gallery');
+  gallery.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M4 6h3l2-2h6l2 2h3v12H4V6zm8 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>';
   const frontCam = button('', 'scan-front-cam', false);
   frontCam.className = 'scan-shutter';
   frontCam.setAttribute('aria-label', 'Shutter');
-  const next = button('Next', 'scan-next', true);
+  const next = button('Review', 'scan-next', true);
   next.hidden = true;
+  const zoomHalf = button('.5x', 'scan-zoom-half', true);
+  const zoomOne = button('1x', 'scan-zoom-one', true);
+  zoomOne.classList.add('on');
+  const zoomToggle = document.createElement('div');
+  zoomToggle.id = 'scan-zoom-toggle';
+  zoomToggle.append(zoomHalf, zoomOne);
   const camStop = button('Close', 'scan-cam-stop', true);
   camStop.hidden = true;
+  const thumbs = document.createElement('div');
+  thumbs.id = 'scan-thumbs';
+  thumbs.hidden = true;
   const camBar = document.createElement('div');
   camBar.className = 'scan-cam-bar';
-  camBar.append(gallery, frontCam, next);
+  camBar.append(zoomToggle, frontCam, gallery, next);
   const camMsg = document.createElement('p');
   camMsg.id = 'scan-cam-msg';
-  const camRetry = button('Try the camera again', 'scan-cam-retry', false);
+  const camRetry = button('Retry', 'scan-cam-retry', false);
   camRetry.hidden = true;
+  const blocked = document.createElement('div');
+  blocked.id = 'scan-blocked';
+  blocked.className = 'scan-blocked';
+  blocked.hidden = true;
+  const blockedGallery = button('', 'scan-blocked-gallery', true);
+  blockedGallery.setAttribute('aria-label', 'Gallery');
+  blockedGallery.innerHTML = gallery.innerHTML;
+  blockedGallery.addEventListener('click', () => gallery.click());
+  blocked.append(camMsg, camRetry, blockedGallery);
   const close = button('×', 'scan-close', true);
   close.setAttribute('aria-label', 'Close scan');
   const game = document.createElement('select');
@@ -1340,11 +1385,15 @@ function build(section, missingList) {
   camera.setAttribute('aria-label', 'Camera');
   camera.append(cameraOption('facing:environment', 'Rear 1×'), cameraOption('facing:user', 'Front'));
   camera.value = loadCameraChoice();
+  camera.hidden = true;
+  const torch = button('', 'scan-torch', true);
+  torch.setAttribute('aria-label', 'Torch');
+  torch.hidden = true;
   const infoBtn = button('i', 'scan-info-btn', true);
   infoBtn.setAttribute('aria-label', 'Scan info');
   const top = document.createElement('div');
   top.className = 'scan-top';
-  top.append(close, game, camera, infoBtn);
+  top.append(close, modeBar, torch, infoBtn, camera);
 
   const frontFile = fileInput('scan-front-file');
   const backFile = fileInput('scan-back-file');
@@ -1489,7 +1538,10 @@ function build(section, missingList) {
   const tightNote = document.createElement('p');
   tightNote.id = 'scan-tight-note';
   tightNote.textContent = 'Zoom out or turn upright to frame the card. Shutter and gallery still work.';
-  capture.append(top, finder, step, tightNote, camMsg, camRetry, camBar, infoSheet, frontFile, backFile);
+  const align = document.createElement('p');
+  align.id = 'scan-align';
+  align.textContent = 'Align the card in the frame.';
+  capture.append(top, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, frontFile, backFile);
   const panel = document.createElement('div');
   panel.className = 'scan-panel';
   panel.append(
@@ -1502,10 +1554,6 @@ function build(section, missingList) {
   const layout = document.createElement('div');
   layout.className = 'scan-layout';
   layout.append(capture, panel);
-  const align = document.createElement('p');
-  align.id = 'scan-align';
-  align.textContent = 'Align the card in the frame.';
-  finder.append(align);
   const deck = document.createElement('div');
   deck.id = 'scan-deck';
   deck.hidden = true;
@@ -1520,32 +1568,173 @@ function build(section, missingList) {
   const code = document.createElement('input');
   code.id = 'scan-code';
   code.placeholder = 'Name or set code';
-  sheets['scan-search-sheet'].append(code);
+  const lookupRow = document.createElement('div');
+  const lookupBtn = document.createElement('button');
+  lookupBtn.type = 'button';
+  lookupBtn.id = 'scan-lookup';
+  lookupBtn.textContent = 'Look up';
+  lookupRow.append(code, lookupBtn);
+  sheets['scan-search-sheet'].append(game, lookupRow);
   matchCard(sheets['scan-match'], null, null);
   const gray = new Float32Array(500 * 700);
   gray.fill(140);
-  const marks = gradeSide(gray, 500, 700, 'Centering: 55.0/45.0 left/right. 50.0/50.0 top/bottom.', true);
-  gradeBlock(sheets['scan-card'], gradePhoto({ front: { flattened: true, marks }, back: null, frontBack: false }));
-  collectionList(sheets['scan-collection'], []);
-  priceRows(sheets['scan-guide'], {});
+  const sampleGrade = gradePhoto({
+    front: { flattened: true, marks: gradeSide(gray, 500, 700, 'Centering: 55.0/45.0 left/right. 50.0/50.0 top/bottom.', true) },
+    back: null,
+    frontBack: true,
+  });
+  cardScreen(sheets['scan-card'], { name: 'No card open', grade: sampleGrade, grades: {} });
+  let savedPrints = [];
+  try { savedPrints = JSON.parse(localStorage.getItem('carddeals-coll-v1') || '[]'); } catch { savedPrints = []; }
+  collectionList(sheets['scan-collection'], savedPrints);
+  const feedNote = document.createElement('p');
+  feedNote.id = 'scan-feed-note';
+  sheets['scan-guide'].append(feedNote);
   const tabs = document.createElement('div');
   tabs.id = 'scan-tabs';
   tabs.setAttribute('role', 'tablist');
   const tabFor = { search: 'scan-search-sheet', match: 'scan-match', collection: 'scan-collection', prices: 'scan-guide', card: 'scan-card' };
+  let lastMatch = null;
+  function setZoom(scale, on, off) {
+    video.style.transform = `scale(${scale})`;
+    on.classList.add('on');
+    off.classList.remove('on');
+  }
+  async function toggleTorch() {
+    const track = video.srcObject && video.srcObject.getVideoTracks && video.srcObject.getVideoTracks()[0];
+    if (!track || !track.applyConstraints) return;
+    const next = torch.getAttribute('aria-pressed') !== 'true';
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next }] });
+      torch.setAttribute('aria-pressed', next ? 'true' : 'false');
+    } catch { torch.setAttribute('aria-pressed', 'false'); }
+  }
+  async function lookUpCode() {
+    const input = document.getElementById('scan-code');
+    const printed = (input && input.value || '').trim();
+    const { lookupSetCode, cadRate } = await import('./feeds.js');
+    const rows = await lookupSetCode(printed);
+    const rate = await cadRate();
+    if (rows && rows.error) {
+      matchCard(sheets['scan-match'], null, null);
+      showDeck('match');
+      return;
+    }
+    lastMatch = (rows && rows[0]) || null;
+    matchCard(sheets['scan-match'], lastMatch, rate);
+    if (lastMatch) {
+      cardScreen(sheets['scan-card'], {
+        name: lastMatch.name,
+        setName: lastMatch.setName,
+        code: lastMatch.code,
+        number: lastMatch.number || lastMatch.code,
+        rarity: lastMatch.rarity,
+        language: 'English',
+        finish: lastMatch.finish || '',
+        image: lastMatch.image,
+        text: lastMatch.text,
+        grade: sampleGrade,
+        grades: lastMatch.price == null ? {} : {
+          guide: {
+            price: lastMatch.price,
+            cad: rate && rate.rate ? lastMatch.price * rate.rate : null,
+            source: 'YGOPRODeck set price',
+          },
+        },
+      });
+    }
+    showDeck('match');
+  }
+  function saveMatch() {
+    if (!lastMatch) return;
+    const row = {
+      name: lastMatch.name,
+      code: lastMatch.code,
+      usd: lastMatch.price,
+      setName: lastMatch.setName,
+      rarity: lastMatch.rarity,
+    };
+    const current = JSON.parse(localStorage.getItem('carddeals-coll-v1') || '[]');
+    current.unshift(row);
+    localStorage.setItem('carddeals-coll-v1', JSON.stringify(current));
+    collectionList(sheets['scan-collection'], current);
+  }
+  async function refreshCollection() {
+    const rows = JSON.parse(localStorage.getItem('carddeals-coll-v1') || '[]');
+    const { lookupSetCode } = await import('./feeds.js');
+    const result = await refreshSaved(rows, async (row) => {
+      const found = await lookupSetCode(row.code || '');
+      if (!found || found.error) return { error: true };
+      const hit = found.find((item) => item.code === row.code) || found[0];
+      return hit ? { price: hit.price } : { error: true };
+    });
+    localStorage.setItem('carddeals-coll-v1', JSON.stringify(result.rows));
+    collectionList(sheets['scan-collection'], result.rows);
+  }
+  async function loadPrices() {
+    const host = sheets['scan-guide'];
+    if (host.dataset.loaded === '1') return;
+    host.dataset.loaded = '1';
+    const note = document.getElementById('scan-feed-note');
+    const { loadStapleFeed, cadRate } = await import('./feeds.js');
+    const result = await loadStapleFeed();
+    const rate = await cadRate();
+    if (!result || result.error) {
+      if (note) note.textContent = FEED_FAIL;
+      return;
+    }
+    const list = document.createElement('div');
+    for (const item of result.items) {
+      const guide = formatGuide(item.price, rate && rate.rate, rate && rate.date);
+      const line = document.createElement('p');
+      line.textContent = `${item.name} · ${item.code || ''} · ${guide.cadText} · ${guide.usdText}`;
+      if (guide.note) line.textContent += ` ${guide.note}`;
+      list.append(line);
+    }
+    if (note) host.insertBefore(list, note);
+  }
   function showDeck(id) {
     const sheet = id !== 'scan';
     deck.hidden = !sheet;
     section.classList.toggle('scan-sheet', sheet);
     for (const node of deck.children) node.hidden = node.id !== tabFor[id];
+    for (const tab of tabs.children) tab.classList.toggle('on', tab.id === `scan-tab-${id}`);
+    if (id === 'prices') loadPrices();
   }
+  lookupBtn.addEventListener('click', () => lookUpCode());
+  sheets['scan-collection'].addEventListener('click', (event) => {
+    if (event.target && event.target.id === 'scan-refresh') refreshCollection();
+  });
+  sheets['scan-card'].addEventListener('click', (event) => {
+    if (event.target && event.target.id === 'scan-done') showDeck('scan');
+  });
+  sheets['scan-match'].addEventListener('click', (event) => {
+    if (event.target && event.target.id === 'scan-add-card') saveMatch();
+  });
+  zoomHalf.addEventListener('click', () => setZoom(0.5, zoomHalf, zoomOne));
+  zoomOne.addEventListener('click', () => setZoom(1, zoomOne, zoomHalf));
+  torch.addEventListener('click', () => toggleTorch());
+  const tabIcons = {
+    search: '<svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/></svg>',
+    scan: '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/></svg>',
+    collection: '<svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM8 7V4h8v3"/></svg>',
+    prices: '<svg viewBox="0 0 24 24"><path d="M5 16l4-5 3 3 7-8"/></svg>',
+    card: '<svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="2"/></svg>',
+  };
   for (const [id, label] of [['search', 'Search'], ['scan', 'Scan'], ['collection', 'Collection'], ['prices', 'Prices'], ['card', 'Card']]) {
     const tab = document.createElement('button');
     tab.type = 'button';
     tab.id = `scan-tab-${id}`;
-    tab.textContent = label;
+    const icon = document.createElement('span');
+    icon.className = 'scan-tab-icon';
+    icon.innerHTML = tabIcons[id];
+    const text = document.createElement('span');
+    text.textContent = label;
+    tab.append(icon, text);
     tab.addEventListener('click', () => showDeck(id));
     tabs.append(tab);
   }
+  tabs.querySelector('#scan-tab-scan').classList.add('on');
   section.append(h, layout, deck, tabs);
   return {
     frontFile,
@@ -1554,6 +1743,9 @@ function build(section, missingList) {
     gallery,
     next,
     close,
+    blocked,
+    thumbs,
+    torch,
     infoBtn,
     infoClose,
     infoSheet,

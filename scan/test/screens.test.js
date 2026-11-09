@@ -37,33 +37,77 @@ async function shot(page, name) {
   fs.writeFileSync(path.join(out, name), buf);
 }
 
+async function saveCdp(client, name) {
+  const frame = await client.send('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(out, name), Buffer.from(frame.data, 'base64'));
+}
+
+async function mockLookup(page, base) {
+  const card = {
+    id: 46986414,
+    name: 'Blue-Eyes White Dragon',
+    desc: 'This legendary dragon is a powerful engine of destruction.',
+    card_images: [{ image_url: `${base}/icon-512.png` }],
+    card_sets: [{ set_name: 'Legend of Blue Eyes White Dragon', set_code: 'LOB-005', set_rarity: 'Ultra Rare', set_price: '5.00' }],
+  };
+  await page.route('**/cardsetsinfo.php**', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ id: card.id, set_code: 'LOB-005', set_name: card.card_sets[0].set_name, set_rarity: 'Ultra Rare', set_price: '5.00' }),
+  }));
+  await page.route('**/cardinfo.php**', (route) => {
+    const url = route.request().url();
+    if (url.includes('staple=yes')) {
+      route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ data: [{ ...card, name: 'Ash Blossom & Joyous Spring', card_sets: [{ set_name: 'Maximum Gold', set_code: 'MAGO-EN001', set_rarity: 'Rare', set_price: '2.50' }] }] }),
+      });
+      return;
+    }
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: [card] }) });
+  });
+  await page.route('**/api.frankfurter.dev/**', (route) => route.fulfill({
+    contentType: 'application/json',
+    body: JSON.stringify({ rates: { CAD: 1.36 }, date: '2026-11-09' }),
+  }));
+}
+
 test('scanner screens at phone and desktop-site sizes', async () => {
-  const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const browser = await chromium.launch({
+    executablePath: chrome,
+    headless: true,
+    args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+  });
   const server = await startServer();
   const base = `http://127.0.0.1:${server.address().port}`;
-  const tabs = [['scan', 'scan'], ['card', 'card'], ['collection', 'collection'], ['prices', 'prices']];
   try {
     const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    await phone.addInitScript(() => {
+      localStorage.setItem('carddeals-coll-v1', JSON.stringify([{ name: 'Blue-Eyes White Dragon', code: 'LOB-005', usd: 5 }]));
+    });
     const page = await phone.newPage();
+    await mockLookup(page, base);
     await page.goto(base + '/');
     await page.locator('nav button[data-v="scan"]').click();
-    await page.waitForSelector('#v-scan.on');
-    await shot(page, 'phone-scan.png');
-    await page.evaluate(() => {
-      const deck = document.getElementById('scan-deck');
-      deck.hidden = false;
-      document.getElementById('v-scan').classList.add('scan-sheet');
-      for (const node of deck.children) node.hidden = node.id !== 'scan-match';
+    await page.waitForFunction(() => {
+      const video = document.getElementById('scan-cam-video');
+      return video && video.hidden === false && video.readyState >= 2;
     });
-    await shot(page, 'phone-match.png');
-    for (const [id, name] of [['card', 'card'], ['collection', 'collection'], ['prices', 'prices']]) {
-      await page.locator(`#scan-tab-${id}`).click();
-      await page.waitForSelector('#scan-deck:not([hidden])');
-      await shot(page, `phone-${name}.png`);
-    }
+    await shot(page, 'phone-scan.png');
     await page.locator('#scan-tab-search').click();
     await page.locator('#scan-code').fill('LOB-005');
-    await shot(page, 'phone-search.png');
+    await page.locator('#scan-lookup').click();
+    await page.waitForSelector('#scan-add-card');
+    await shot(page, 'phone-match.png');
+    await page.locator('#scan-tab-card').click();
+    for (const id of ['pricing', 'grade', 'text']) {
+      await page.locator(`#scan-seg-${id}`).click();
+      await shot(page, `phone-card-${id}.png`);
+    }
+    await page.locator('#scan-tab-collection').click();
+    await shot(page, 'phone-collection.png');
+    await page.locator('#scan-tab-prices').click();
+    await page.waitForFunction(() => document.getElementById('scan-guide')?.textContent?.includes('Ash Blossom'));
+    await shot(page, 'phone-prices.png');
     await phone.close();
 
     const desk = await browser.newContext({
@@ -74,28 +118,35 @@ test('scanner screens at phone and desktop-site sizes', async () => {
       deviceScaleFactor: 3,
       serviceWorkers: 'block',
     });
+    await desk.addInitScript(() => {
+      localStorage.setItem('carddeals-coll-v1', JSON.stringify([{ name: 'Blue-Eyes White Dragon', code: 'LOB-005', usd: 5 }]));
+    });
     const wide = await desk.newPage();
+    await mockLookup(wide, base);
     await wide.goto(base + '/');
     const client = await desk.newCDPSession(wide);
     await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 980 / 360 });
     await wide.locator('nav button[data-v="scan"]').click();
-    await wide.waitForSelector('html.scan-cam');
-    const png = await client.send('Page.captureScreenshot', { format: 'png' });
-    fs.writeFileSync(path.join(out, 's22-scan.png'), Buffer.from(png.data, 'base64'));
-    await wide.evaluate(() => {
-      const deck = document.getElementById('scan-deck');
-      deck.hidden = false;
-      document.getElementById('v-scan').classList.add('scan-sheet');
-      for (const node of deck.children) node.hidden = node.id !== 'scan-match';
+    await wide.waitForFunction(() => {
+      const video = document.getElementById('scan-cam-video');
+      return video && video.hidden === false && video.readyState >= 2;
     });
-    const match = await client.send('Page.captureScreenshot', { format: 'png' });
-    fs.writeFileSync(path.join(out, 's22-match.png'), Buffer.from(match.data, 'base64'));
-    for (const [id, name] of tabs) {
-      if (id === 'scan') continue;
-      await wide.locator(`#scan-tab-${id}`).click();
-      const frame = await client.send('Page.captureScreenshot', { format: 'png' });
-      fs.writeFileSync(path.join(out, `s22-${name}.png`), Buffer.from(frame.data, 'base64'));
+    await saveCdp(client, 's22-scan.png');
+    await wide.locator('#scan-tab-search').click();
+    await wide.locator('#scan-code').fill('LOB-005');
+    await wide.locator('#scan-lookup').click();
+    await wide.waitForSelector('#scan-add-card');
+    await saveCdp(client, 's22-match.png');
+    await wide.locator('#scan-tab-card').click();
+    for (const id of ['pricing', 'grade', 'text']) {
+      await wide.locator(`#scan-seg-${id}`).click();
+      await saveCdp(client, `s22-card-${id}.png`);
     }
+    await wide.locator('#scan-tab-collection').click();
+    await saveCdp(client, 's22-collection.png');
+    await wide.locator('#scan-tab-prices').click();
+    await wide.waitForFunction(() => document.getElementById('scan-guide')?.textContent?.includes('Ash Blossom'));
+    await saveCdp(client, 's22-prices.png');
     await desk.close();
   } finally {
     await browser.close();

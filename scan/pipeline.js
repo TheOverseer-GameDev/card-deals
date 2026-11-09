@@ -638,6 +638,8 @@ export function rowsFromCardInfo(code, info) {
         name: card.name,
         setName: set.set_name,
         code: set.set_code,
+        number: set.set_code,
+        text: card.desc || '',
         rarity: set.set_rarity,
         price: positiveGuide(set.set_price),
         id: card.id,

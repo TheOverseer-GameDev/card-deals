@@ -3,6 +3,7 @@
  * User-Agent is Card Deals, not the draft name.
  */
 import { positiveGuide, rowsFromCardInfo } from './pipeline.js';
+import { priceFeed } from './library.js';
 
 const UA = 'CardDeals/1.0';
 
@@ -35,6 +36,25 @@ export async function lookupSetCode(code, fetchImpl = globalThis.fetch) {
     }
   }
   return rowsFromCardInfo(printed, { data: cards });
+}
+
+export async function loadStapleFeed(fetchImpl = globalThis.fetch) {
+  try {
+    const res = await fetchImpl('https://db.ygoprodeck.com/api/v7/cardinfo.php?staple=yes', { headers: { Accept: 'application/json', 'User-Agent': UA } });
+    if (!res.ok) return { error: true, items: [] };
+    const body = await res.json();
+    const items = [];
+    for (const card of body.data || []) {
+      for (const set of card.card_sets || []) {
+        const price = positiveGuide(set.set_price);
+        if (price == null) continue;
+        items.push({ name: card.name, game: 'ygo', staple: true, price, code: set.set_code });
+      }
+    }
+    return { error: false, items: priceFeed(items) };
+  } catch {
+    return { error: true, items: [] };
+  }
 }
 
 export async function cadRate(fetchImpl = globalThis.fetch, now = Date.now()) {

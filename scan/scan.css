@@ -61,7 +61,7 @@ html.desktop #v-scan.view.on { display: block; }
 #v-scan .scan-mode { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 3; display: flex; width: max-content; gap: 2px; background: rgba(28, 22, 16, .72); border: 0; border-radius: 22px; padding: 3px; margin: 0; }
 #v-scan .scan-mode button { min-height: 32px; border: 0; background: transparent; color: #f3efe6; font-weight: 700; border-radius: 18px; padding: 6px 14px; font-size: 13px; }
 #v-scan .scan-mode button.on { background: #3a3128; color: #fff; }
-#v-scan #scan-step { margin: 0; padding: 4px 12px 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: #f3efe6; }
+#v-scan #scan-step { margin: 0; padding: 4px 12px 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: #5D6773; }
 #v-scan #scan-cam-msg { margin: 0; padding: 8px 16px; text-align: center; white-space: normal; color: #fff; font-size: 15px; }
 #v-scan #scan-cam-retry { margin: 0 16px 8px; }
 html.scan-cam, html.scan-cam body { overflow: hidden !important; }
@@ -133,6 +133,7 @@ html.scan-tight #v-scan .scan-gallery, html.scan-tight #v-scan .scan-next { min-
   height: 72px;
   border-radius: 50%;
   border: 6px solid #fff;
+  box-shadow: 0 0 0 1px #D0D5DD;
   background: #E10600;
   color: #fff;
   font-size: 12px;
@@ -203,3 +204,40 @@ html.phone #v-scan .scan-outline { width: 76%; }
 }
 html.scan-cam #v-scan.scan-sheet.on { background: #F4F5F7; }
 html.scan-cam #v-scan.scan-sheet.on .scan-layout { display: none !important; }
+html.scan-cam #v-scan.on, #v-scan.on { background: #fff; }
+#v-scan .scan-top, #v-scan .scan-cam-bar, #scan-thumbs { background: #fff; color: #14181F; }
+#v-scan .scan-top button { color: #14181F; }
+#v-scan .scan-mode { position: static; transform: none; background: #7A1020; }
+#v-scan .scan-mode button { color: #fff; }
+#v-scan .scan-mode button.on { background: #E10600; color: #fff; }
+#v-scan .scan-outline {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: auto; height: 68%; aspect-ratio: 2.5 / 3.5; max-width: 78%;
+  border-radius: 16px; border: 3px solid #fff;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .45);
+}
+#scan-align { color: #14181F; padding: 6px 12px 0; }
+#v-scan #scan-camera { max-width: 92px; flex: 0 1 92px; }
+#scan-zoom-toggle { display: flex; background: #14181F; border-radius: 22px; overflow: hidden; }
+#scan-zoom-toggle button { min-width: 44px; min-height: 44px; border: 0; background: transparent; color: #fff; }
+#scan-zoom-toggle button.on { background: #E10600; }
+#scan-gallery { color: #14181F; background: transparent; border: 0; min-width: 44px; width: 44px; min-height: 44px; padding: 0; }
+html.scan-cam #v-scan .scan-capture { position: relative; }
+#scan-blocked:not([hidden]) { position: absolute; z-index: 6; left: 12px; right: 12px; top: 28%; background: #fff; color: #14181F; margin: 0; padding: 16px; border-radius: 16px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
+#scan-blocked { background: #fff; color: #14181F; margin: 12px; padding: 16px; border-radius: 16px; text-align: center; }
+#scan-blocked #scan-cam-msg { color: #14181F; }
+#scan-cam-retry, #scan-blocked-gallery { background: #E10600; color: #fff; border: 0; border-radius: 22px; min-height: 44px; min-width: 44px; margin: 6px; }
+#scan-thumbs { display: flex; gap: 8px; justify-content: center; padding: 6px 0; }
+#scan-thumbs canvas { width: 48px; height: 67px; border-radius: 6px; }
+#scan-tabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #5D6773; font-size: 11px; }
+#scan-tabs button.on { color: #E10600; }
+.scan-tab-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+#scan-tab-scan .scan-tab-icon svg { width: 28px; height: 28px; }
+.cd-art { display: block; width: 180px; margin: 8px auto; border-radius: 8px; }
+.cd-add { background: #1560BD; color: #fff; border: 0; border-radius: 22px; min-height: 44px; padding: 0 18px; }
+.cd-seg { display: flex; background: #E4E7EC; border-radius: 22px; padding: 3px; margin: 12px 0; }
+.cd-seg button { flex: 1; min-height: 40px; border: 0; border-radius: 18px; background: transparent; color: #14181F; }
+.cd-seg button.on { background: #fff; }
+.cd-top { display: flex; align-items: center; gap: 8px; }
+.cd-top h2 { font-size: 17px; }
+html.scan-tight #scan-zoom-toggle, html.scan-tight #scan-thumbs, html.scan-tight #scan-align { display: none !important; }

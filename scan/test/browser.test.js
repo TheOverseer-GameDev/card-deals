@@ -325,7 +325,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await page.goto(base + '/');
     await page.locator('nav button[data-v="scan"]').click();
     await page.locator('#scan-front-cam').click();
-    await page.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('Camera permission was denied'));
+    await page.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('Camera is blocked'));
     assert.equal(await page.locator('#scan-cam-retry').isVisible(), true);
     assert.equal(await page.locator('#scan-gallery').isVisible(), true);
     assert.equal(await page.locator('#scan-front-file').isEnabled(), true);
@@ -347,7 +347,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await page.goto(base + '/');
     await page.locator('nav button[data-v="scan"]').click();
     await page.locator('#scan-front-cam').click();
-    await page.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('no camera API'));
+    await page.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('Camera is blocked'));
     assert.equal(await page.locator('#scan-back-file').isEnabled(), true);
     await context.close();
   });
@@ -614,7 +614,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       return box.top <= vv.offsetTop + 2 && box.height >= vv.height - 2 && box.width >= vv.width - 2
         && s.bottom <= vv.offsetTop + vv.height + 1 && s.width >= 44
         && gallery.getBoundingClientRect().bottom <= vv.offsetTop + vv.height + 1
-        && picker.getBoundingClientRect().top >= vv.offsetTop - 1
+        && (picker.hidden || picker.getBoundingClientRect().top >= vv.offsetTop - 1)
         && hit && hit.closest('#v-scan');
     });
     await page.setViewportSize({ width: 980, height: 520 });
@@ -633,6 +633,10 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       const controls = {};
       for (const id of ids) {
         const el = document.getElementById(id);
+        if (el.hidden) {
+          controls[id] = { inside: true, hidden: true };
+          continue;
+        }
         const r = el.getBoundingClientRect();
         controls[id] = {
           top: r.top, bottom: r.bottom, left: r.left, right: r.right,
@@ -699,7 +703,12 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       const ids = ['scan-front-cam', 'scan-gallery', 'scan-camera'];
       const controls = {};
       for (const id of ids) {
-        const r = document.getElementById(id).getBoundingClientRect();
+        const el = document.getElementById(id);
+        if (el.hidden) {
+          controls[id] = { ok: true, hidden: true };
+          continue;
+        }
+        const r = el.getBoundingClientRect();
         controls[id] = { ok: r.width >= 44 && r.height >= 32 && r.top >= v.offsetTop - 1 && r.bottom <= v.offsetTop + v.height + 1 && r.left >= v.offsetLeft - 1 && r.right <= v.offsetLeft + v.width + 1, t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height) };
       }
       return { controls, tight: document.documentElement.classList.contains('scan-tight'), h: v.height, w: v.width, z: getComputedStyle(document.documentElement).zoom, shell: document.getElementById('v-scan').getBoundingClientRect().height };
