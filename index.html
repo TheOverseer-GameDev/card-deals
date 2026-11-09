@@ -2,7 +2,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="theme-color" content="#0b0f1a"><script>(function(){var d=document.documentElement,n=navigator,ua=n.userAgent||'',tp=n.maxTouchPoints||0,mm=function(q){return matchMedia(q).matches},sw=Math.min(screen.width,screen.height),
 f=localStorage.getItem('view'),ph=(n.userAgentData&&n.userAgentData.mobile)||/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||(tp>0&&sw<900&&mm('(pointer:coarse)'))||(devicePixelRatio>=2&&tp>0&&!mm('(any-pointer:fine)'));
 if(f)ph=f=='phone';d.classList.add(ph?'phone':'desktop');
-if(ph){var v=document.querySelector('meta[name=viewport]');v&&v.setAttribute('content','width=device-width,initial-scale=1,viewport-fit=cover');if(innerWidth>screen.width*1.3)d.style.zoom=innerWidth/screen.width}})()</script><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png">
+if(ph){var v=document.querySelector('meta[name=viewport]');v&&v.setAttribute('content','width=device-width,initial-scale=1,viewport-fit=cover');if(innerWidth>screen.width*1.3)d.style.zoom=innerWidth/screen.width}})()</script><link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><title>Card Deals</title>
 <style>
 :root{--bg:#0b0f1a;--card:#141a2b;--line:#222b44;--tx:#e8ecf6;--mu:#8b95b0;--gold:#d4af37;--up:#3ddc97;--dn:#ff6b6b}
@@ -18,7 +18,7 @@ main{padding:0 14px}.view{display:none;animation:f .25s ease}.view.on{display:bl
 .up{color:var(--up)}.dn{color:var(--dn)}.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:#163a2b;color:var(--up);margin-left:6px;vertical-align:middle}
 .btn{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;height:46px;border-radius:12px;background:var(--gold);color:#111;font-weight:700;text-decoration:none}
 .btn.g{background:#1f2740;color:var(--tx)}.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.det{max-height:0;overflow:hidden;transition:max-height .35s ease}.c.open .det{max-height:900px}canvas{margin-top:12px}
+.det{max-height:0;overflow:hidden;transition:max-height .35s ease}.c.open .det{max-height:900px}.det canvas,#tg{display:block;width:100%;max-width:100%;margin-top:12px}
 .note{color:var(--mu);font-size:12px;margin-top:10px}
 nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(14,19,33,.92);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:9}
 nav button{flex:1;background:none;border:0;color:var(--mu);padding:10px 0 9px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s}
@@ -53,7 +53,7 @@ html.desktop #lists .view{display:none}html.desktop #lists .view.on{display:grid
 <div class="st3"><button data-l="top" class="on">Top buys</button><button data-l="risky">Risky buys</button><button data-l="safe">Safe buys</button></div>
 <div class="tools"><input id="q" type="search" placeholder="Search cards"><select id="so"><option value="rank">Sort: rank</option><option value="price">Price ↑</option><option value="ret">Return ↓</option></select></div>
 <div class="chips" id="chips"></div><div class="cnt" id="cnt"></div>
-<section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section></div>
+<section class="view on" id="v-ygo"><div class="empty">Loading the lists…</div></section><section class="view" id="v-mtg"></section></div>
 <section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
 <aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside>
 <nav><button data-v="lists" class="on"><span>🏆</span>Lists</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
@@ -126,7 +126,8 @@ document.addEventListener('click',ev=>{const t=ev.target;
  c.classList.toggle('open');chart(c,cd,c.dataset.k)});
 const PH=document.documentElement.classList.contains('phone');$('#vt').textContent=PH?'🖥 PC view':'📱 Phone view';$('#vt').onclick=()=>{localStorage.setItem('view',PH?'desktop':'phone');location.reload()};
 const desk=()=>!PH&&matchMedia('(min-width:900px)').matches;
-let W=JSON.parse(localStorage.getItem('wish')||'[]');
+function loadWish(){try{const v=JSON.parse(localStorage.getItem('wish')||'[]');return Array.isArray(v)?v.filter(w=>w&&typeof w==='object'):[]}catch{return []}}
+let W=loadWish();
 function sv(){localStorage.setItem('wish',JSON.stringify(W));$('#v-wish').innerHTML=(W.length?W.map((w,i)=>`<div class="c"><div class="meta">${e(w.d)}</div><div class="nm">${e(w.n)}</div><div class="meta">${e(w.p)}</div><div class="btns"><button class="btn" data-sh="${i}" style="border:0">Share / copy</button><button class="btn g" data-del="${i}" style="border:0">Remove</button></div></div>`).join(''):'<div class="empty">Tap ⭐ Request purchase on any card to save it here.</div>')+'<div class="note">Saved only on this phone. Sharing just sends text; nothing is bought.</div>'}
 function toast(t){const d=Object.assign(document.createElement('div'),{textContent:t});d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#d4af37;color:#111;padding:10px 16px;border-radius:20px;font-weight:600;z-index:20;transition:opacity .4s';document.body.appendChild(d);setTimeout(()=>d.style.opacity=0,1600);setTimeout(()=>d.remove(),2100)}
 async function send(t){try{if(navigator.share){await navigator.share({title:'Card purchase request',text:t});return}}catch(_){return}try{await navigator.clipboard.writeText(t);toast('Copied, paste it to your bot')}catch(_){prompt('Copy this:',t)}}
@@ -135,7 +136,7 @@ function req(c,k){const l=offer(c),p=l?`Live ${l.cad_total!=null?'C$'+(+l.cad_to
 sv();
 const VER='1793991594';
 (async()=>{try{const r=await fetch('version.json?'+Date.now(),{cache:'no-store'}),j=await r.json();if(j.v!==VER&&!sessionStorage.getItem('rl'+j.v)){sessionStorage.setItem('rl'+j.v,1);if(window.caches)for(const k of await caches.keys())await caches.delete(k);const g=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();g&&await g.update();location.reload()}}catch(_){}})();
-if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update()})});
+if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{if(!r||typeof r.update!='function')return;const refresh=()=>r.update().catch(()=>{});refresh();document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()})}).catch(()=>{});
  let rl;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rl&&!sessionStorage.getItem('cc'+VER)){rl=1;sessionStorage.setItem('cc'+VER,1);location.reload()}})}
 render();
 </script><!-- card-scan:start -->
