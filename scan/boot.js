@@ -1343,6 +1343,10 @@ function build(section, missingList) {
   const frontCam = button('', 'scan-front-cam', false);
   frontCam.className = 'scan-shutter';
   frontCam.setAttribute('aria-label', 'Shutter');
+  const shutterCore = document.createElement('span');
+  shutterCore.className = 'scan-shutter-core';
+  shutterCore.setAttribute('aria-hidden', 'true');
+  frontCam.append(shutterCore);
   const next = button('Review', 'scan-next', true);
   next.hidden = true;
   const zoomHalf = button('.5x', 'scan-zoom-half', true);
@@ -1356,9 +1360,15 @@ function build(section, missingList) {
   const thumbs = document.createElement('div');
   thumbs.id = 'scan-thumbs';
   thumbs.hidden = true;
+  const camLeft = document.createElement('div');
+  camLeft.className = 'scan-cam-side';
+  camLeft.append(zoomToggle);
+  const camRight = document.createElement('div');
+  camRight.className = 'scan-cam-side';
+  camRight.append(gallery, next);
   const camBar = document.createElement('div');
   camBar.className = 'scan-cam-bar';
-  camBar.append(zoomToggle, frontCam, gallery, next);
+  camBar.append(camLeft, camRight, frontCam);
   const camMsg = document.createElement('p');
   camMsg.id = 'scan-cam-msg';
   const camRetry = button('Retry', 'scan-cam-retry', false);
@@ -1697,6 +1707,7 @@ function build(section, missingList) {
     const sheet = id !== 'scan';
     deck.hidden = !sheet;
     section.classList.toggle('scan-sheet', sheet);
+    deck.classList.toggle('cd-theme', id === 'match' || id === 'card');
     for (const node of deck.children) node.hidden = node.id !== tabFor[id];
     for (const tab of tabs.children) tab.classList.toggle('on', tab.id === `scan-tab-${id}`);
     if (id === 'prices') loadPrices();

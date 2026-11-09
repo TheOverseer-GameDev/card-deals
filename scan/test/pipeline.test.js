@@ -7,6 +7,7 @@ import {
   measureCentering,
   normalizeSetCode,
   positiveGuide,
+  catalogImage,
   rowsFromCardInfo,
   straighten,
 } from '../pipeline.js';
@@ -81,6 +82,11 @@ test('set codes stay printed and a zero guide is dropped', () => {
   assert.equal(rows.length, 1);
   assert.equal(rows[0].code, 'LAVD-ENO34');
   assert.equal(rows[0].price, null);
+  assert.equal(catalogImage('https://images.ygoprodeck.com/images/cards/46986414.jpg'), 'https://images.ygoprodeck.com/images/cards/46986414.jpg');
+  assert.equal(catalogImage('https://cards.scryfall.io/normal/front/a.jpg'), 'https://cards.scryfall.io/normal/front/a.jpg');
+  assert.equal(catalogImage('/icon-512.png'), null);
+  assert.equal(catalogImage('https://example.com/drawn-card.png'), null);
+  assert.equal(catalogImage('/scan/test/fixture-art.svg'), '/scan/test/fixture-art.svg');
   const none = rowsFromCardInfo('ZZZZ-EN999', { data: [] });
   assert.equal(none.length, 0);
   const many = rowsFromCardInfo('RA01-EN008', {

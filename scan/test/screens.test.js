@@ -1,6 +1,7 @@
 import fs from 'fs';
 import http from 'http';
 import path from 'path';
+import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fileURLToPath } from 'url';
 import { chromium } from 'playwright-core';
@@ -25,6 +26,7 @@ function startServer() {
       : file.endsWith('.css') ? 'text/css; charset=utf-8'
       : file.endsWith('.json') ? 'application/json; charset=utf-8'
       : file.endsWith('.png') ? 'image/png'
+      : file.endsWith('.svg') ? 'image/svg+xml'
       : 'text/html; charset=utf-8';
     res.writeHead(200, { 'content-type': type, 'cache-control': 'no-store' });
     res.end(fs.readFileSync(file));
@@ -42,12 +44,58 @@ async function saveCdp(client, name) {
   fs.writeFileSync(path.join(out, name), Buffer.from(frame.data, 'base64'));
 }
 
+async function waitLive(page) {
+  await page.waitForFunction(() => {
+    const video = document.getElementById('scan-cam-video');
+    const blocked = document.getElementById('scan-blocked');
+    if (!window.isSecureContext || !video || video.hidden || !video.srcObject) return false;
+    if (video.readyState < 2 || video.videoWidth < 2 || !blocked || !blocked.hidden) return false;
+    const canvas = document.createElement('canvas');
+    canvas.width = 4;
+    canvas.height = 4;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, 4, 4);
+    const px = ctx.getImageData(0, 0, 1, 1).data;
+    return px[0] + px[1] + px[2] > 24;
+  });
+}
+
+async function contrastOf(page, selector) {
+  return page.evaluate((sel) => {
+    const node = document.querySelector(sel);
+    const deck = document.getElementById('scan-deck');
+    const light = getComputedStyle(deck).getPropertyValue('--cd-theme-light').trim();
+    const fg = getComputedStyle(node).color;
+    const parse = (value) => {
+      const raw = value.trim();
+      if (raw.startsWith('#')) {
+        const hex = raw.slice(1);
+        const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+        return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
+      }
+      return raw.match(/[\d.]+/g).slice(0, 3).map(Number);
+    };
+    const lin = (c) => {
+      const s = c / 255;
+      return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    };
+    const L = (rgb) => {
+      const [r, g, b] = parse(rgb).map(lin);
+      return (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+    };
+    const a = L(fg);
+    const b = L(light);
+    const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    return { fg, light, ratio, theme: deck.classList.contains('cd-theme') };
+  }, selector);
+}
+
 async function mockLookup(page, base) {
   const card = {
     id: 46986414,
-    name: 'Blue-Eyes White Dragon',
-    desc: 'This legendary dragon is a powerful engine of destruction.',
-    card_images: [{ image_url: `${base}/icon-512.png` }],
+    name: 'Dark Magician',
+    desc: 'The ultimate wizard in terms of attack and defense.',
+    card_images: [{ image_url: `${base}/scan/test/fixture-art.svg` }],
     card_sets: [{ set_name: 'Legend of Blue Eyes White Dragon', set_code: 'LOB-005', set_rarity: 'Ultra Rare', set_price: '5.00' }],
   };
   await page.route('**/cardsetsinfo.php**', (route) => route.fulfill({
@@ -82,23 +130,28 @@ test('scanner screens at phone and desktop-site sizes', async () => {
   try {
     const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
     await phone.addInitScript(() => {
-      localStorage.setItem('carddeals-coll-v1', JSON.stringify([{ name: 'Blue-Eyes White Dragon', code: 'LOB-005', usd: 5 }]));
+      localStorage.setItem('carddeals-coll-v1', JSON.stringify([{ name: 'Dark Magician', code: 'LOB-005', usd: 5 }]));
     });
     const page = await phone.newPage();
+    await phone.grantPermissions(['camera']);
     await mockLookup(page, base);
     await page.goto(base + '/');
     await page.locator('nav button[data-v="scan"]').click();
-    await page.waitForFunction(() => {
-      const video = document.getElementById('scan-cam-video');
-      return video && video.hidden === false && video.readyState >= 2;
-    });
+    await waitLive(page);
     await shot(page, 'phone-scan.png');
     await page.locator('#scan-tab-search').click();
     await page.locator('#scan-code').fill('LOB-005');
     await page.locator('#scan-lookup').click();
     await page.waitForSelector('#scan-add-card');
+    const matchContrast = await contrastOf(page, '#scan-match h2');
+    assert.ok(matchContrast.theme, JSON.stringify(matchContrast));
+    assert.ok(matchContrast.ratio >= 4.5, JSON.stringify(matchContrast));
+    assert.match(await page.locator('#scan-match').innerText(), /Dark Magician/);
+    assert.match(await page.locator('#scan-match').innerText(), /Test fixture/);
     await shot(page, 'phone-match.png');
     await page.locator('#scan-tab-card').click();
+    const detailContrast = await contrastOf(page, '#scan-card h2');
+    assert.ok(detailContrast.ratio >= 4.5, JSON.stringify(detailContrast));
     for (const id of ['pricing', 'grade', 'text']) {
       await page.locator(`#scan-seg-${id}`).click();
       await shot(page, `phone-card-${id}.png`);
@@ -110,6 +163,19 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     await shot(page, 'phone-prices.png');
     await phone.close();
 
+    const blocked = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    await blocked.addInitScript(() => {
+      const reject = () => Promise.reject(Object.assign(new Error('denied'), { name: 'NotAllowedError' }));
+      Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: reject, enumerateDevices: async () => [] } });
+    });
+    const denied = await blocked.newPage();
+    await denied.goto(base + '/');
+    await denied.locator('nav button[data-v="scan"]').click();
+    await denied.locator('#scan-front-cam').click();
+    await denied.waitForFunction(() => document.querySelector('#scan-cam-msg')?.textContent?.includes('Camera is blocked'));
+    await shot(denied, 'phone-blocked.png');
+    await blocked.close();
+
     const desk = await browser.newContext({
       viewport: { width: 980, height: 2178 },
       screen: { width: 360, height: 800 },
@@ -119,23 +185,23 @@ test('scanner screens at phone and desktop-site sizes', async () => {
       serviceWorkers: 'block',
     });
     await desk.addInitScript(() => {
-      localStorage.setItem('carddeals-coll-v1', JSON.stringify([{ name: 'Blue-Eyes White Dragon', code: 'LOB-005', usd: 5 }]));
+      localStorage.setItem('carddeals-coll-v1', JSON.stringify([{ name: 'Dark Magician', code: 'LOB-005', usd: 5 }]));
     });
+    await desk.grantPermissions(['camera']);
     const wide = await desk.newPage();
     await mockLookup(wide, base);
     await wide.goto(base + '/');
     const client = await desk.newCDPSession(wide);
     await client.send('Emulation.setPageScaleFactor', { pageScaleFactor: 980 / 360 });
     await wide.locator('nav button[data-v="scan"]').click();
-    await wide.waitForFunction(() => {
-      const video = document.getElementById('scan-cam-video');
-      return video && video.hidden === false && video.readyState >= 2;
-    });
+    await waitLive(wide);
     await saveCdp(client, 's22-scan.png');
     await wide.locator('#scan-tab-search').click();
     await wide.locator('#scan-code').fill('LOB-005');
     await wide.locator('#scan-lookup').click();
     await wide.waitForSelector('#scan-add-card');
+    const wideContrast = await contrastOf(wide, '#scan-match h2');
+    assert.ok(wideContrast.ratio >= 4.5, JSON.stringify(wideContrast));
     await saveCdp(client, 's22-match.png');
     await wide.locator('#scan-tab-card').click();
     for (const id of ['pricing', 'grade', 'text']) {

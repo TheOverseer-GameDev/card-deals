@@ -14,29 +14,27 @@ export function matchCard(host, row, rate) {
   }
   const card = document.createElement('article');
   card.className = 'cd-match';
-  if (row.image) {
-    const art = document.createElement('img');
-    art.src = row.image;
-    art.alt = '';
-    art.className = 'cd-art';
-    card.append(art);
-  }
+  appendArt(card, row.image);
   const name = document.createElement('h3');
   name.textContent = row.name;
   const meta = document.createElement('p');
   meta.textContent = [row.setName, row.number || row.code, row.rarity, 'English'].filter(Boolean).join(' · ');
   const guide = formatGuide(row.price, rate && rate.rate, rate && rate.date);
-  const price = document.createElement('p');
-  price.className = 'cd-price';
-  price.textContent = `Guide ${guide.cadText}`;
+  const guideBox = document.createElement('div');
+  guideBox.className = 'cd-guide';
+  const cad = document.createElement('p');
+  cad.className = 'cd-cad';
+  cad.textContent = guide.cadText;
   const usd = document.createElement('p');
+  usd.className = 'cd-usd';
   usd.textContent = guide.usdText;
+  guideBox.append(cad, usd);
   const add = document.createElement('button');
   add.type = 'button';
   add.id = 'scan-add-card';
   add.className = 'cd-add';
   add.textContent = 'Add this card';
-  card.append(name, meta, price, usd, add);
+  card.append(name, meta, guideBox, add);
   if (guide.note) card.append(line(guide.note));
   if (row.code === 'RA01-EN008') {
     card.append(line('RA01-EN008 is printed in more than one rarity. Each rarity is separate. A missing price is not copied from another rarity.'));
@@ -104,23 +102,20 @@ export function cardScreen(host, model) {
   const done = document.createElement('button');
   done.type = 'button';
   done.id = 'scan-done';
+  done.className = 'cd-done';
   done.textContent = 'Done';
   const title = document.createElement('h2');
   title.textContent = 'Details';
   bar.append(done, title);
   host.append(bar);
-  if (model.image) {
-    const art = document.createElement('img');
-    art.className = 'cd-art';
-    art.alt = '';
-    art.src = model.image;
-    host.append(art);
-  }
+  const sheet = document.createElement('article');
+  sheet.className = 'cd-sheet';
+  appendArt(sheet, model.image);
   const name = document.createElement('h3');
   name.textContent = model.name || 'No card open';
   const meta = document.createElement('p');
   meta.textContent = [model.setName, model.number || model.code, model.rarity, model.language || 'English', model.finish].filter(Boolean).join(' · ');
-  host.append(name, meta);
+  sheet.append(name, meta);
   const seg = document.createElement('div');
   seg.className = 'cd-seg';
   const panels = {};
@@ -140,7 +135,8 @@ export function cardScreen(host, model) {
     });
     seg.append(button);
   }
-  host.append(seg, panels.pricing, panels.grade, panels.text);
+  sheet.append(seg, panels.pricing, panels.grade, panels.text);
+  host.append(sheet);
   priceRows(panels.pricing, model.grades || {});
   gradeBlock(panels.grade, model.grade);
   panels.text.append(line(model.text || 'Rules text is unavailable until a catalog row is open.'));
@@ -165,6 +161,16 @@ export function priceRows(host, grades) {
     host.append(row);
   }
   host.append(line('Delivered cost: Unavailable'));
+}
+
+function appendArt(parent, url) {
+  if (!url) return;
+  const art = document.createElement('img');
+  art.className = 'cd-art';
+  art.alt = String(url).includes('fixture-art') ? 'Test fixture. Not card art.' : '';
+  art.src = url;
+  parent.append(art);
+  if (String(url).includes('fixture-art')) parent.append(line('Test fixture. Not card art.'));
 }
 
 function line(text) {

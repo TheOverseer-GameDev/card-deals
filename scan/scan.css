@@ -207,9 +207,9 @@ html.scan-cam #v-scan.scan-sheet.on .scan-layout { display: none !important; }
 html.scan-cam #v-scan.on, #v-scan.on { background: #fff; }
 #v-scan .scan-top, #v-scan .scan-cam-bar, #scan-thumbs { background: #fff; color: #14181F; }
 #v-scan .scan-top button { color: #14181F; }
-#v-scan .scan-mode { position: static; transform: none; background: #7A1020; }
+#v-scan .scan-mode { background: #7A1020; }
 #v-scan .scan-mode button { color: #fff; }
-#v-scan .scan-mode button.on { background: #E10600; color: #fff; }
+#v-scan .scan-mode button.on { background: #E10600; color: #FFFFFF; }
 #v-scan .scan-outline {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: auto; height: 68%; aspect-ratio: 2.5 / 3.5; max-width: 78%;
@@ -226,7 +226,9 @@ html.scan-cam #v-scan .scan-capture { position: relative; }
 #scan-blocked:not([hidden]) { position: absolute; z-index: 6; left: 12px; right: 12px; top: 28%; background: #fff; color: #14181F; margin: 0; padding: 16px; border-radius: 16px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.18); }
 #scan-blocked { background: #fff; color: #14181F; margin: 12px; padding: 16px; border-radius: 16px; text-align: center; }
 #scan-blocked #scan-cam-msg { color: #14181F; }
-#scan-cam-retry, #scan-blocked-gallery { background: #E10600; color: #fff; border: 0; border-radius: 22px; min-height: 44px; min-width: 44px; margin: 6px; }
+#scan-cam-retry, #scan-blocked-gallery { background: #E10600; color: #FFFFFF; border: 0; border-radius: 22px; min-height: 44px; min-width: 44px; margin: 6px; }
+#scan-blocked-gallery { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 50%; }
+#scan-blocked-gallery svg { display: block; }
 #scan-thumbs { display: flex; gap: 8px; justify-content: center; padding: 6px 0; }
 #scan-thumbs canvas { width: 48px; height: 67px; border-radius: 6px; }
 #scan-tabs button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #5D6773; font-size: 11px; }
@@ -241,3 +243,175 @@ html.scan-cam #v-scan .scan-capture { position: relative; }
 .cd-top { display: flex; align-items: center; gap: 8px; }
 .cd-top h2 { font-size: 17px; }
 html.scan-tight #scan-zoom-toggle, html.scan-tight #scan-thumbs, html.scan-tight #scan-align { display: none !important; }
+
+#v-scan .scan-top {
+  --scan-corner: 8px;
+  --scan-round: 44px;
+  position: relative;
+  display: block;
+  height: calc(var(--scan-round) + (var(--scan-corner) * 2));
+  min-height: calc(var(--scan-round) + (var(--scan-corner) * 2));
+  padding: 0;
+}
+#v-scan #scan-close,
+#v-scan #scan-info-btn {
+  position: absolute;
+  top: var(--scan-corner);
+  width: var(--scan-round);
+  height: var(--scan-round);
+  min-width: var(--scan-round);
+  min-height: var(--scan-round);
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+#v-scan #scan-close { left: max(var(--scan-corner), env(safe-area-inset-left)); }
+#v-scan #scan-info-btn {
+  right: max(var(--scan-corner), env(safe-area-inset-right));
+  left: auto;
+  margin-left: 0;
+  border: 1px solid #14181F;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 700;
+}
+#v-scan .scan-mode {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  z-index: 2;
+}
+#v-scan #scan-camera {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 6px);
+  transform: translateX(-50%);
+  z-index: 4;
+  width: 92px;
+  max-width: 92px;
+}
+#v-scan #scan-torch {
+  position: absolute;
+  top: var(--scan-corner);
+  right: calc(max(var(--scan-corner), env(safe-area-inset-right)) + var(--scan-round) + 6px);
+  width: 44px;
+  height: 44px;
+  margin: 0;
+}
+#v-scan .scan-cam-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  position: relative;
+  min-height: 88px;
+  padding: 8px 12px;
+  background: #fff;
+}
+#v-scan .scan-cam-bar .btn { margin-top: 0; }
+#v-scan .scan-cam-side:first-child { justify-self: start; }
+#v-scan .scan-cam-side:last-child { justify-self: end; display: flex; align-items: center; gap: 8px; }
+#v-scan .scan-shutter {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  min-height: 72px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 1px #D0D5DD;
+  z-index: 1;
+}
+.scan-shutter-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #E10600;
+  pointer-events: none;
+}
+html.scan-tight #v-scan .scan-cam-bar { min-height: 48px; }
+html.scan-tight #v-scan .scan-shutter {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+html.scan-tight .scan-shutter-core { width: 32px; height: 32px; }
+html.scan-tight #v-scan #scan-close,
+html.scan-tight #v-scan #scan-info-btn {
+  top: 4px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+}
+#scan-zoom-toggle button.on { color: #FFFFFF; }
+#scan-done {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #E10600;
+  font-weight: 700;
+  font-size: 17px;
+  min-height: 44px;
+  padding: 0;
+}
+.cd-guide { margin: 10px 0 12px; }
+.cd-cad { display: block; margin: 0; font-size: 28px; font-weight: 800; line-height: 1.1; color: #14181F; }
+.cd-usd { display: block; margin: 2px 0 0; font-size: 15px; line-height: 1.2; color: #5D6773; }
+.cd-fixture { margin: 6px 0 0; text-align: center; color: #5D6773; font-size: 13px; }
+#scan-deck.cd-theme {
+  --cd-theme-light: #9a0828;
+  position: relative;
+  color: #FFFFFF;
+  background-color: #0b1744;
+  background-image:
+    linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.08) 50%, transparent 60%),
+    repeating-linear-gradient(118deg, transparent 0 54px, rgba(255, 255, 255, 0.16) 54px 55px, transparent 55px 108px),
+    repeating-linear-gradient(64deg, transparent 0 78px, rgba(255, 255, 255, 0.1) 78px 79px, transparent 79px 132px),
+    radial-gradient(90% 55% at 0% 0%, rgba(225, 6, 0, 0.35), transparent 58%),
+    radial-gradient(80% 60% at 100% 100%, rgba(20, 18, 80, 0.85), transparent 62%),
+    linear-gradient(155deg, #5c0014 0%, #9a0828 36%, #24145c 68%, #0b1744 100%);
+  background-repeat: no-repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-size: 220% 100%, auto, auto, auto, auto, auto;
+  animation: cd-sheen 12s ease-in-out infinite;
+}
+@keyframes cd-sheen {
+  0%, 100% { background-position: 0% 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+  50% { background-position: 100% 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #scan-deck.cd-theme { animation: none; }
+}
+#scan-deck.cd-theme > #scan-match > h2,
+#scan-deck.cd-theme .cd-top,
+#scan-deck.cd-theme .cd-top h2,
+#scan-deck.cd-theme #scan-done { color: #FFFFFF; }
+#scan-deck.cd-theme .cd-match,
+#scan-deck.cd-theme .cd-sheet {
+  background: #FFFFFF;
+  color: #14181F;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+#scan-deck.cd-theme .cd-sheet { margin-top: 8px; padding: 16px; }
+#scan-deck.cd-theme .cd-art {
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35), 0 0 16px rgba(255, 255, 255, 0.28);
+}

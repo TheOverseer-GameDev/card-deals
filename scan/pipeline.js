@@ -625,6 +625,16 @@ export function gradePhoto({ front, back, frontBack }) {
   return { headline, half, detail, notes, marks, range: [low, high] };
 }
 
+export function catalogImage(url) {
+  const value = String(url || '').trim();
+  if (!value || /icon-192\.png|icon-512\.png/i.test(value)) return null;
+  if (value.includes('fixture-art')) return value;
+  let host = '';
+  try { host = new URL(value).hostname; } catch { return null; }
+  if (host === 'images.ygoprodeck.com' || host.endsWith('.ygoprodeck.com') || host.endsWith('scryfall.io')) return value;
+  return null;
+}
+
 export function rowsFromCardInfo(code, info) {
   const want = String(code || '').replace(/\s+/g, '').toLowerCase();
   const rows = [];
@@ -643,7 +653,7 @@ export function rowsFromCardInfo(code, info) {
         rarity: set.set_rarity,
         price: positiveGuide(set.set_price),
         id: card.id,
-        image: card.card_images && card.card_images[0] ? card.card_images[0].image_url : null,
+        image: catalogImage(card.card_images && card.card_images[0] ? card.card_images[0].image_url : null),
       });
     }
   }
