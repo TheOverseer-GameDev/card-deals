@@ -1,0 +1,54 @@
+#v-market {
+  --bg: #0e1321;
+  --card: #171d2e;
+  --line: #2a3348;
+  --tx: #e8ecf6;
+  --mu: #8b95b0;
+  --gold: #d4af37;
+  --up: #3ddc97;
+  --dn: #ff6b6b;
+  background: var(--bg);
+  color: var(--tx);
+  padding: 12px 0 24px;
+}
+#v-market h2, #v-market h3 { margin: 0 0 8px; }
+#v-market .market-muted, #v-market .market-note { color: var(--mu); }
+#v-market .market-note { font-size: 13px; }
+#v-market .market-banner { color: var(--gold); font-weight: 700; }
+#v-market .market-toolbar, #v-market .market-box, #v-market .m-card, #v-market .settlement-box {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  margin: 10px 0;
+}
+#v-market .market-box, #v-market .market-toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+#v-market label { display: block; }
+#v-market .market-feed-grid { display: grid; gap: 10px; }
+#v-market .market-price { color: var(--gold); font-weight: 700; }
+#v-market button, #v-market input, #v-market select {
+  font: inherit;
+  color: var(--tx);
+  background: #121826;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 8px 10px;
+}
+#v-market button { background: var(--gold); color: #14181F; font-weight: 700; }
+#v-market .market-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#v-market .market-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .55);
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+}
+#v-market a { color: var(--gold); }
+html.desktop #v-market.on { display: block; }
+@media (min-width: 720px) {
+  #v-market .market-feed-grid { grid-template-columns: 1fr 1fr; }
+}

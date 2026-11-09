@@ -56,7 +56,7 @@ html.desktop #lists .view{display:none}html.desktop #lists .view.on{display:grid
 <section class="view on" id="v-ygo"></section><section class="view" id="v-mtg"></section></div>
 <section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
 <aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside>
-<nav><button data-v="lists" class="on"><span>🏆</span>Lists</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
+<nav><button data-v="lists" class="on"><span>🏆</span>Lists</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button><button data-v="market"><span>✦</span>Market</button></nav>
 <script src="chart.min.js?1793991594" defer></script><script src="data.js?1793991594"></script>
 <script>
 const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';'),
@@ -132,4 +132,5 @@ render();
 </script><!-- card-scan:start -->
 <script type="module" src="scan/boot.js"></script>
 <!-- card-scan:end -->
+<script type="module" src="market/boot.js"></script>
 </body></html>
