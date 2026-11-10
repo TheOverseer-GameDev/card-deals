@@ -54,6 +54,20 @@ test('guide positions become the border ratio and the PSA cutoff', () => {
   assert.equal(back.withinCutoff, true);
   assert.match(formatManual(back), /Measured by you/);
   assert.match(formatManual(back), /back 75\/25/);
+  const thin = manualCentering({
+    width: 500,
+    height: 700,
+    outerLeft: 0,
+    innerLeft: 2,
+    innerRight: 497,
+    outerRight: 499,
+    outerTop: 0,
+    innerTop: 40,
+    innerBottom: 659,
+    outerBottom: 699,
+    back: false,
+  });
+  assert.equal(thin, null);
   const crossed = clampGuides({
     width: 500,
     height: 700,

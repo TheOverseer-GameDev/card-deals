@@ -40,7 +40,7 @@ import { compareReference } from './consistency.js';
 import { printQuality } from './printq.js';
 import { estimateRange } from './range.js';
 import { gradingWorth } from './worth.js';
-import { openScanHistory, saveScan } from './history.js';
+import { HISTORY_VERSION, openScanHistory, presentScan, saveScan } from './history.js';
 import { addToSession, createSession, cue, sessionTotal, storedCad, toCsv } from './session.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
@@ -145,7 +145,7 @@ function boot() {
       ui.historyCsv.hidden = false;
       ui.historyCsv.value = toCsv((rows || []).map((row) => ({
         name: row.name,
-        condition: row.summary,
+        condition: presentScan(row),
       })));
     }).catch(() => {
       ui.historyCsv.hidden = false;
@@ -316,6 +316,7 @@ function boot() {
     }
     const viewport = ui.viewport;
     viewport.addEventListener('pointerdown', (ev) => {
+      if (ev.target.closest && ev.target.closest('.scan-guide')) return;
       drag = { x: ev.clientX, y: ev.clientY, px: Number(ui.panX.value), py: Number(ui.panY.value) };
       viewport.setPointerCapture(ev.pointerId);
     });
@@ -398,6 +399,7 @@ function boot() {
     }
     if (state.canvas) releaseCanvas(state.canvas);
     state.canvas = decoded.canvas;
+    if (ui.blocked) ui.blocked.hidden = true;
     state.originalWidth = decoded.originalWidth;
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
@@ -1029,6 +1031,7 @@ function boot() {
     const summary = `${range.text} ${stains.status}. ${creases.status}.`;
     openScanHistory().then((store) => saveScan(store, {
       at: Date.now(),
+      version: HISTORY_VERSION,
       name: confirmedName || 'Unnamed card',
       summary,
     })).then((result) => refreshHistory(result && result.reason)).catch(() => refreshHistory('The scan was not saved on this phone.'));
@@ -1047,7 +1050,7 @@ function boot() {
       for (const row of rows) {
         const line = document.createElement('p');
         const when = new Date(row.at || Date.now()).toLocaleString();
-        line.textContent = `${when}. ${row.name || 'Unnamed card'}. ${row.summary || ''}`;
+        line.textContent = `${when}. ${row.name || 'Unnamed card'}. ${presentScan(row)}`;
         ui.historyList.append(line);
       }
     }).catch(() => {
@@ -2006,7 +2009,7 @@ function build(section, missingList) {
   const historyList = document.createElement('div');
   historyList.id = 'scan-history-list';
   const historyDelete = button('Delete all scans on this phone', 'scan-history-delete', true);
-  const historyExport = button('Copy scan history as CSV', 'scan-history-csv', true);
+  const historyExport = button('Copy scan history as CSV', 'scan-history-export', true);
   const historyCsv = document.createElement('textarea');
   historyCsv.id = 'scan-history-csv';
   historyCsv.readOnly = true;
@@ -2025,7 +2028,7 @@ function build(section, missingList) {
   const sessionList = document.createElement('div');
   sessionList.id = 'scan-session-list';
   sessionHost.append(sessionTitle, sessionSoundLabel, sessionList);
-  const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
+  const backQualityBtn = button('Check back photo', 'scan-back-quality-btn', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
 

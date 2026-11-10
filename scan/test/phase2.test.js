@@ -8,7 +8,7 @@ import { compareReference } from '../consistency.js';
 import { printQuality } from '../printq.js';
 import { estimateRange } from '../range.js';
 import { gradingWorth } from '../worth.js';
-import { createMemoryHistory, saveScan } from '../history.js';
+import { createMemoryHistory, presentScan, saveScan } from '../history.js';
 
 function paint(width, height, pixel) {
   const rgba = new Uint8ClampedArray(width * height * 4);
@@ -152,6 +152,13 @@ test('the grading check is CAD-first and leaves missing prices and fees unavaila
   const noRate = gradingWorth({ grades, low: 9, high: 9, feeCad: 20, rate: null });
   assert.match(noRate.text, /Unavailable/);
   assert.doesNotMatch(noRate.text, /CAD 14/);
+});
+
+test('an old automatic centering pair is hidden and a tagged row is kept', () => {
+  const oldRow = presentScan({ summary: 'Estimate: PSA 7–8. Centering: 48.0/52.0 left/right.' });
+  assert.match(oldRow, /older automatic centering number is hidden/);
+  assert.doesNotMatch(oldRow, /48\.0\/52\.0/);
+  assert.equal(presentScan({ version: 2, summary: 'Estimate: PSA 7–8. Measured 55.0/45.0 left/right.' }), 'Estimate: PSA 7–8. Measured 55.0/45.0 left/right.');
 });
 
 test('scan history stays in the store, deletes, and stops when storage is full', async () => {

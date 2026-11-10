@@ -4,6 +4,23 @@
  * A full photo is not kept. A storage limit drops the oldest note, then stops.
  */
 
+export const HISTORY_VERSION = 2;
+
+// Rows saved before the version tag can contain an automatic centering pair.
+// New rows are tagged and shown as stored. Old pairs are not repeated.
+export function presentScan(row) {
+  const summary = String((row && row.summary) || '');
+  if (row && row.version >= HISTORY_VERSION) return summary;
+  const cleaned = summary
+    .replace(/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?/g, '')
+    .replace(/Centering:[^.]*(?:\.|$)/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,])/g, '$1')
+    .trim();
+  if (cleaned === summary.trim()) return summary;
+  return `${cleaned} An older automatic centering number is hidden.`.replace(/\s{2,}/g, ' ').trim();
+}
+
 const DB = 'card-deals-scan-history';
 const STORE = 'scans';
 

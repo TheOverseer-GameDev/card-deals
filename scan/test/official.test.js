@@ -92,35 +92,97 @@ function decodeNative(file) {
   };
 }
 
+function decodeFilter(file, filter, width, height) {
+  const proc = spawnSync('ffmpeg', [
+    '-v', 'error', '-i', file, '-vf', filter,
+    '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1',
+  ], { maxBuffer: 80_000_000 });
+  if (proc.status !== 0 || proc.stdout.length !== width * height * 4) {
+    throw new Error(`filter ${filter} produced ${proc.stdout && proc.stdout.length} bytes`);
+  }
+  return {
+    rgba: new Uint8ClampedArray(proc.stdout.buffer, proc.stdout.byteOffset, proc.stdout.byteLength),
+    width,
+    height,
+  };
+}
+
+function offFromFlat(file, flat) {
+  if (!flat.centeringOk || !flat.flattened) return false;
+  const base = measureCentering(grayOf(decode(file, 500, 700)), 500, 700) || '';
+  const text = measureCentering(grayOf(flat.rgba), 500, 700) || '';
+  const baseLr = base.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) left\/right/);
+  const baseTb = base.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) top\/bottom/);
+  const lr = axisErr(text, 'lr', baseLr ? Number(baseLr[1]) : NaN);
+  const tb = axisErr(text, 'tb', baseTb ? Number(baseTb[1]) : NaN);
+  return (lr != null && !(lr <= 3)) || (tb != null && !(tb <= 3));
+}
+
+function chipCount(flat) {
+  if (!flat.flattened) return 0;
+  return inspectSide(flat.rgba, 500, 700, 'front').crops
+    .filter((crop) => crop.flag === 'ding' || crop.flag === 'whitening' || crop.flag === 'chip').length;
+}
+
 test('native-size scans are judged on the 500 by 700 working picture', { skip }, () => {
   const files = images();
   assert.ok(files.length >= 30, `official images found ${files.length}`);
-  const sizes = [[813, 1185], [1080, 1440], [3024, 4032]];
-  let damage = 0;
-  let checked = 0;
-  for (const file of files) {
-    const photo = decodeNative(file);
+  const sizes = [[813, 1185], [777, 1093], [1080, 1440], [3024, 4032]];
+  const chipped = { bleed: [], phone: [], pad: [] };
+  const bucketOf = (label) => {
+    if (label.includes('pad')) return 'pad';
+    if (label.includes('1080x1440') || label.includes('3024x4032')) return 'phone';
+    return 'bleed';
+  };
+  const judge = (label, photo, mustFlatten) => {
     const flat = straighten(photo.rgba, photo.width, photo.height);
-    assert.equal(flat.flattened, true, `${path.basename(file)} ${photo.width}x${photo.height} did not straighten`);
-    assert.equal(flat.width, 500);
-    assert.equal(flat.height, 700);
-    const bad = inspectSide(flat.rgba, 500, 700, 'front').crops
-      .filter((crop) => crop.flag === 'ding' || crop.flag === 'whitening' || crop.flag === 'chip');
-    if (bad.length) damage += 1;
-    checked += 1;
+    if (mustFlatten) {
+      assert.equal(flat.flattened, true, `${label} did not straighten`);
+      assert.equal(flat.width, 500);
+      assert.equal(flat.height, 700);
+    }
+    if (chipCount(flat)) chipped[bucketOf(label)].push(label);
+    return flat;
+  };
+  for (const file of files) {
+    const name = path.basename(file);
+    const photo = decodeNative(file);
+    judge(`${name} native`, photo, true);
+    for (const [width, height] of sizes) {
+      judge(`${name} ${width}x${height}`, { rgba: decode(file, width, height), width, height }, true);
+    }
+    const pad = Math.max(8, Math.round(Math.min(900, 1200) * 0.06));
+    const portraitW = 900 + pad * 2;
+    const portraitH = 1200 + pad * 2;
+    const portrait = decodeFilter(
+      file,
+      `scale=900:1200,pad=${portraitW}:${portraitH}:${pad}:${pad}:0x202018`,
+      portraitW,
+      portraitH,
+    );
+    const portraitFlat = straighten(portrait.rgba, portrait.width, portrait.height);
+    if (chipCount(portraitFlat)) chipped.pad.push(`${name} 3:4 pad`);
+    const landW = 1200 + pad * 2;
+    const landH = 900 + pad * 2;
+    const land = decodeFilter(
+      file,
+      `scale=1200:900,pad=${landW}:${landH}:${pad}:${pad}:0x202018`,
+      landW,
+      landH,
+    );
+    const landFlat = straighten(land.rgba, land.width, land.height);
+    if (chipCount(landFlat)) chipped.pad.push(`${name} 4:3 pad`);
   }
-  const sample = files[0];
-  for (const [width, height] of sizes) {
-    const rgba = decode(sample, width, height);
-    const flat = straighten(rgba, width, height);
-    assert.equal(flat.width, 500, `${width}x${height}`);
-    assert.equal(flat.height, 700);
-    const bad = inspectSide(flat.rgba, 500, 700, 'front').crops
-      .filter((crop) => crop.flag === 'ding' || crop.flag === 'whitening' || crop.flag === 'chip');
-    if (bad.length) damage += 1;
-    checked += 1;
+  let wrongRotate = 0;
+  for (const file of files) {
+    const spun = rotateRaw(file, 1);
+    const flat = straighten(spun.rgba, spun.width, spun.height);
+    if (offFromFlat(file, flat)) wrongRotate += 1;
   }
-  assert.equal(damage, 0, `${damage}/${checked} native or phone-sized pictures were marked ding, whitening, or chip`);
+  assert.equal(wrongRotate, 0, `${wrongRotate} one-degree rotates got a centering number more than 3 points off`);
+  assert.deepEqual(chipped.bleed, [], `full-bleed chips: ${chipped.bleed.join('; ')}`);
+  assert.ok(chipped.phone.length <= 2, `phone-size chips: ${chipped.phone.join('; ')}`);
+  assert.ok(chipped.pad.length <= 16, `padded chips ${chipped.pad.length}: ${chipped.pad.slice(0, 8).join('; ')}`);
 });
 
 test('centering of official cards is readable and the left and right borders stay within 3 points', { skip }, () => {

@@ -188,6 +188,10 @@ html.desktop:has(#v-scan.on) #panel { display: none; }
 html.phone #v-scan .scan-layout { display: block; }
 html.phone #v-scan .scan-outline { width: 76%; }
 @media (max-width: 840px) {
+  /* The camera control hangs under the top bar, and the step line sits on
+     the bottom of the photo. Keep the picture, and its border guides, clear. */
+  #v-scan.on .scan-finder { padding: 48px 22px 40px; }
+  #v-scan.on .scan-guides { inset: 0; }
   html.desktop nav {
     top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
     width: auto !important; height: auto !important; flex-direction: row !important;
