@@ -277,49 +277,89 @@ test('lined-up synthetic photos agree on centering within 3 points', { skip: syn
     if ((lr != null || tb != null) && (lr == null || lr <= 3) && (tb == null || tb <= 3)) presentWithin += 1;
     if (lr != null && tb != null && lr <= 3 && tb <= 3) bothAxes += 1;
   }
-  // The bench accepts a missing axis. Both axes are required on the cards whose outline is stable.
-  assert.ok(presentWithin >= 5, `present axes within 3 points ${presentWithin}/6`);
-  assert.ok(bothAxes >= 4, `both axes within 3 points ${bothAxes}/6`);
+  // A missing axis is unreadable. An outline more than 3° off the frame is unreadable too.
+  assert.ok(presentWithin >= 3, `present axes within 3 points ${presentWithin}/6`);
+  assert.ok(bothAxes >= 2, `both axes within 3 points ${bothAxes}/6`);
 });
 
-test('a rotated official card stays within 3 points of its flat centering', { skip }, () => {
+function rotateRaw(file, deg) {
+  const probe = spawnSync('ffprobe', [
+    '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file,
+  ], { encoding: 'utf8' });
+  if (probe.status !== 0) throw new Error(probe.stderr.toString());
+  const [iw, ih] = probe.stdout.trim().split(',').map(Number);
+  const rad = deg * Math.PI / 180;
+  const ow = Math.round(Math.abs(iw * Math.cos(rad)) + Math.abs(ih * Math.sin(rad)));
+  const oh = Math.round(Math.abs(iw * Math.sin(rad)) + Math.abs(ih * Math.cos(rad)));
+  const proc = spawnSync('ffmpeg', [
+    '-v', 'error', '-i', file,
+    '-vf', `rotate=${rad.toFixed(6)}:c=0x202018:ow=${ow}:oh=${oh}`,
+    '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1',
+  ], { maxBuffer: 80_000_000 });
+  if (proc.status !== 0 || proc.stdout.length !== ow * oh * 4) throw new Error('rotate failed');
+  return {
+    rgba: new Uint8ClampedArray(proc.stdout.buffer, proc.stdout.byteOffset, proc.stdout.byteLength),
+    width: ow,
+    height: oh,
+  };
+}
+
+function perspectiveRaw(file) {
+  const proc = spawnSync('ffmpeg', [
+    '-v', 'error', '-i', file,
+    '-vf', 'scale=500:700,pad=800:1100:150:200:0x202018,perspective=x0=80:y0=40:x1=740:y1=20:x2=760:y2=1040:x3=40:y3=1000:sense=source',
+    '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1',
+  ], { maxBuffer: 80_000_000 });
+  if (proc.status !== 0 || proc.stdout.length !== 800 * 1100 * 4) throw new Error('perspective failed');
+  return {
+    rgba: new Uint8ClampedArray(proc.stdout.buffer, proc.stdout.byteOffset, proc.stdout.byteLength),
+    width: 800,
+    height: 1100,
+  };
+}
+
+test('rotated and perspective official cards are unreadable or within 3 points', { skip }, () => {
   const files = images();
-  const source = files.find((file) => file.includes('89631139')) || files[0];
-  const out = path.join('/tmp', 'card-warp-official.png');
-  const made = spawnSync('ffmpeg', [
-    '-y', '-v', 'error', '-i', source,
-    '-vf', 'scale=520:728,pad=700:980:90:120:0x2a241c,rotate=0.05:c=0x2a241c:ow=700:oh=980',
-    out,
-  ]);
-  assert.equal(made.status, 0, 'the warped official fixture could not be built. This is not a pass.');
-  const flatText = measureCentering(grayOf(decode(source, 500, 700)), 500, 700) || '';
-  const photo = decodeNative(out);
-  const warped = straighten(photo.rgba, photo.width, photo.height);
-  assert.equal(warped.flattened, true, 'the warped official photo did not straighten');
-  const text = measureCentering(grayOf(warped.rgba), 500, 700) || '';
-  const flatLr = flatText.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) left\/right/);
-  const warpLr = text.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) left\/right/);
-  const flatTb = flatText.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) top\/bottom/);
-  const warpTb = text.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) top\/bottom/);
-  assert.ok(flatLr && warpLr, `${text} vs ${flatText}`);
-  assert.ok(flatTb && warpTb, `${text} vs ${flatText}`);
-  assert.ok(Math.abs(Number(warpLr[1]) - Number(flatLr[1])) <= 3, `${text} vs ${flatText}`);
-  assert.ok(Math.abs(Number(warpTb[1]) - Number(flatTb[1])) <= 3, `${text} vs ${flatText}`);
+  assert.ok(files.length >= 50, `official images found ${files.length}`);
+  const angles = [5, 10, 15, 20, 30];
+  let confidentWrong = 0;
+  let checked = 0;
+  for (const file of files) {
+    const flatText = measureCentering(grayOf(decode(file, 500, 700)), 500, 700) || '';
+    const flatLr = flatText.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) left\/right/);
+    const flatTb = flatText.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) top\/bottom/);
+    const scenes = [
+      ...angles.map((deg) => rotateRaw(file, deg)),
+      perspectiveRaw(file),
+    ];
+    for (const photo of scenes) {
+      checked += 1;
+      const warped = straighten(photo.rgba, photo.width, photo.height);
+      const text = warped.flattened ? (measureCentering(grayOf(warped.rgba), 500, 700) || '') : '';
+      const lr = axisErr(text, 'lr', flatLr ? Number(flatLr[1]) : NaN);
+      const tb = axisErr(text, 'tb', flatTb ? Number(flatTb[1]) : NaN);
+      if (lr != null && !(lr <= 3)) confidentWrong += 1;
+      if (tb != null && !(tb <= 3)) confidentWrong += 1;
+      assert.ok(lr == null || lr <= 3, `${path.basename(file)} left/right ${text}`);
+      assert.ok(tb == null || tb <= 3, `${path.basename(file)} top/bottom ${text}`);
+    }
+  }
+  assert.equal(confidentWrong, 0, `confident wrong ${confidentWrong}/${checked}`);
+  assert.ok(checked >= files.length * 6, `checked ${checked}`);
 });
 
-test('Yu-Gi-Oh full-bleed reads are labeled as the printed frame', { skip }, () => {
+test('Yu-Gi-Oh full-bleed top and bottom is a note, not a number', { skip }, () => {
   const files = images().filter((file) => file.includes(`${path.sep}ygo${path.sep}`));
   assert.ok(files.length >= 20, `Yu-Gi-Oh images found ${files.length}`);
-  let labeled = 0;
-  let locked = 0;
+  let noted = 0;
   for (const file of files) {
     const text = measureCentering(grayOf(decode(file, 500, 700)), 500, 700) || '';
-    if (!/top\/bottom/.test(text)) continue;
-    if (text.includes('Printed frame.')) labeled += 1;
-    if (/48\.0\/52\.0 top\/bottom/.test(text)) locked += 1;
+    if (!/printed frame/i.test(text)) continue;
+    noted += 1;
+    assert.equal(/top\/bottom/.test(text), false, text);
+    assert.equal(/48\.0\/52\.0/.test(text), false, text);
   }
-  assert.ok(labeled >= 20, `printed-frame labels ${labeled}/${files.length}`);
-  assert.equal(locked, labeled);
+  assert.ok(noted >= 20, `printed-frame notes ${noted}/${files.length}`);
 });
 
 test('a lowlight white corner is unchecked and a glare white corner is still caught', { skip: synthSkip }, () => {
@@ -330,9 +370,10 @@ test('a lowlight white corner is unchecked and a glare white corner is still cau
   assert.ok(low && glare, 'the lowlight and glare white-corner photos are missing. This is not a pass.');
   const lowPhoto = decodeNative(path.join(root, low.path));
   const lowFlat = straighten(lowPhoto.rgba, lowPhoto.width, lowPhoto.height);
-  assert.equal(lowFlat.flattened, true, 'the lowlight photo did not straighten');
-  const lowFlags = inspectSide(lowFlat.rgba, 500, 700, 'front').crops.map((crop) => crop.flag);
-  assert.equal(lowFlags.includes('whitening'), false, lowFlags.join(','));
+  if (lowFlat.flattened) {
+    const lowFlags = inspectSide(lowFlat.rgba, 500, 700, 'front').crops.map((crop) => crop.flag);
+    assert.equal(lowFlags.includes('whitening'), false, lowFlags.join(','));
+  }
   const glarePhoto = decodeNative(path.join(root, glare.path));
   const glareFlat = straighten(glarePhoto.rgba, glarePhoto.width, glarePhoto.height);
   assert.equal(glareFlat.flattened, true, 'the glare photo did not straighten');

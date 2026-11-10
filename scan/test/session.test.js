@@ -20,6 +20,10 @@ test('csv export quotes fields and a target is not compared without a price', ()
   const csv = toCsv(session.items);
   assert.match(csv, /name,set,number/);
   assert.match(csv, /"Say ""hi"""/);
+  const hostile = toCsv([{ name: '=cmd', set: '+1', number: '-2', variant: '@x', foil: false, qty: 1, condition: '\tcell', cad: '\r1' }]);
+  for (const bad of ['"\'=cmd"', '"\'+1"', '"\'-2"', '"\'@x"', '"\'\tcell"', '"\'\r1"']) {
+    assert.ok(hostile.includes(bad), hostile);
+  }
   assert.match(targetNote('', 10), /Set a CAD target/);
   assert.match(targetNote('8', 0), /unavailable/);
   assert.match(targetNote('8', 7.5), /At or under/);

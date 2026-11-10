@@ -459,6 +459,30 @@ function outerQuad(gray, width, height, scale) {
   return ordered.map((p) => ({ x: p.x / scale, y: p.y / scale }));
 }
 
+function quadPose(quad) {
+  const angle = (a, b) => Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+  const edges = [0, 1, 2, 3].map((i) => angle(quad[i], quad[(i + 1) % 4]));
+  const toAxis = (deg) => {
+    let d = Math.abs(deg % 180);
+    if (d > 90) d = 180 - d;
+    return Math.min(d, 90 - d);
+  };
+  const parallelDelta = (a, b) => {
+    let d = Math.abs(a - b) % 180;
+    if (d > 90) d = 180 - d;
+    return d;
+  };
+  const len = (i) => Math.hypot(quad[(i + 1) % 4].x - quad[i].x, quad[(i + 1) % 4].y - quad[i].y);
+  const width = (len(0) + len(2)) / 2;
+  const height = (len(1) + len(3)) / 2;
+  const ratio = Math.min(width, height) / (Math.max(width, height) || 1);
+  return {
+    tilt: Math.min(...edges.map(toAxis)),
+    parallel: parallelDelta(edges[0], edges[2]) <= 3 && parallelDelta(edges[1], edges[3]) <= 3,
+    aspectOk: Math.abs(ratio - 63 / 88) <= 0.08,
+  };
+}
+
 export function straighten(rgba, width, height) {
   const located = findQuad(rgba, width, height, 480, 0.18);
   let paper = located.gray ? outerQuad(located.gray, located.width, located.height, located.scale) : null;
@@ -474,9 +498,16 @@ export function straighten(rgba, width, height) {
   }
   const quad = paper || (located.found ? located.quad : null);
   if (!quad) return { flattened: false, reason: located.reason || 'no card edge' };
+  const pose = quadPose(quad);
+  // A detected edge more than 3° from the nearest image axis is past the point
+  // where this border walk stays within 3 percentage points. At 5° the official
+  // set still emitted wrong numbers, so a rotated card stays unreadable.
+  if (pose.tilt > 3) {
+    return { flattened: false, reason: 'rotated', pose };
+  }
   const warped = warp(rgba, width, height, quad);
   if (!warped) return { flattened: false, reason: 'warp' };
-  return { flattened: true, width: 500, height: 700, rgba: warped.rgba, paper: !!paper, quad };
+  return { flattened: true, width: 500, height: 700, rgba: warped.rgba, paper: !!paper, quad, pose };
 }
 
 function median(nums) {
@@ -597,14 +628,16 @@ export function measureCentering(gray, width, height) {
     return [(left / sum) * 100, (right / sum) * 100];
   }
   const lr = axis('left', 'right', true);
-  const tb = axis('top', 'bottom', false);
-  if (!lr && !tb) return null;
+  let tb = axis('top', 'bottom', false);
+  const frame = printedFrame(gray, width, height);
+  if (frame) tb = null;
+  if (!lr && !tb && !frame) return null;
   const bits = [];
   if (lr) bits.push(`${lr[0].toFixed(1)}/${lr[1].toFixed(1)} left/right`);
   if (tb) bits.push(`${tb[0].toFixed(1)}/${tb[1].toFixed(1)} top/bottom`);
-  let text = `Centering: ${bits.join('. ')}.`;
-  if (tb && printedFrame(gray, width, height)) text += ' Printed frame.';
-  return text;
+  const note = frame ? ' Top/bottom is the printed frame in this picture, so it is not measured.' : '';
+  if (!bits.length) return `Centering:${note}`;
+  return `Centering: ${bits.join('. ')}.${note}`;
 }
 
 function printedFrame(gray, width, height) {
