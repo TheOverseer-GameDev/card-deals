@@ -28,7 +28,7 @@ import { inspectSide } from './edges.js';
 import { compareTilt } from './tilt.js';
 import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
-import { AUTO_CENTERING } from './engine.js';
+import { AUTO_CENTERING, ESTIMATE_UNAVAILABLE } from './engine.js';
 import { psaEstimate } from './engine.js';
 import { estimateBorders, formatGuide, gradePhoto, gradeSide, grayOf, measureCentering, straighten } from './pipeline.js';
 import { mountGuides } from './manual.js';
@@ -986,7 +986,7 @@ function boot() {
     const gray = grayOf(rgba, width, height);
     const manual = slots.front.manual;
     let centeringText = '';
-    if (AUTO_CENTERING && width === 500 && height === 700) {
+    if (AUTO_CENTERING && flat && flat.centeringOk && width === 500 && height === 700) {
       centeringText = measureCentering(gray, width, height) || '';
     } else if (manual && Number.isFinite(manual.leftPct) && Number.isFinite(manual.topPct)) {
       centeringText = `Centering: ${manual.leftPct.toFixed(1)}/${manual.rightPct.toFixed(1)} left/right. ${manual.topPct.toFixed(1)}/${manual.bottomPct.toFixed(1)} top/bottom.`;
@@ -1030,12 +1030,13 @@ function boot() {
       cell.textContent = `${label}: ${shown}`;
       grid.append(cell);
     }
-    showCheck(ui.rangeHost, [range.text, range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.', ...rangeNotes].join(' '));
+    const headline = centeringText ? range.text : ESTIMATE_UNAVAILABLE;
+    showCheck(ui.rangeHost, [headline, range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.', ...rangeNotes].join(' '));
     showCheck(ui.worthHost, `Estimate, not a PSA grade. ${worth.text}`);
     const token = `${width}x${height}:${rgba[0]}:${rgba[rgba.length - 1]}:${flat ? 'flat' : 'raw'}`;
     if (token === savedToken) return;
     savedToken = token;
-    const summary = `${range.text} ${stains.status}. ${creases.status}.`;
+    const summary = `${headline} ${stains.status}. ${creases.status}.`;
     openScanHistory().then((store) => saveScan(store, {
       at: Date.now(),
       version: HISTORY_VERSION,

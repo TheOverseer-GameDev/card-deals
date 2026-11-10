@@ -12,6 +12,8 @@ export function presentScan(row) {
   const summary = String((row && row.summary) || '');
   if (row && row.version >= HISTORY_VERSION) return summary;
   const cleaned = summary
+    .replace(/Estimate:\s*PSA\b[^.]*(?:\.|$)/gi, '')
+    .replace(/Centering\b.*?\(auto\)\.?/gi, '')
     .replace(/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?/g, '')
     .replace(/Centering:[^.]*(?:\.|$)/gi, '')
     .replace(/\s{2,}/g, ' ')

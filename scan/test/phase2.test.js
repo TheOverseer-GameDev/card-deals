@@ -158,6 +158,12 @@ test('an old automatic centering pair is hidden and a tagged row is kept', () =>
   const oldRow = presentScan({ summary: 'Estimate: PSA 7–8. Centering: 48.0/52.0 left/right.' });
   assert.match(oldRow, /older automatic centering number is hidden/);
   assert.doesNotMatch(oldRow, /48\.0\/52\.0/);
+  assert.doesNotMatch(oldRow, /Estimate:\s*PSA/);
+  const autoRow = presentScan({ summary: 'Estimate: PSA 8–9. Centering 50.0/50.0 left/right (auto).' });
+  assert.match(autoRow, /older automatic centering number is hidden/);
+  assert.doesNotMatch(autoRow, /PSA/);
+  assert.doesNotMatch(autoRow, /\(auto\)/);
+  assert.doesNotMatch(autoRow, /50\.0\/50\.0/);
   assert.equal(presentScan({ version: 2, summary: 'Estimate: PSA 7–8. Measured 55.0/45.0 left/right.' }), 'Estimate: PSA 7–8. Measured 55.0/45.0 left/right.');
 });
 

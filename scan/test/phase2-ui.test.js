@@ -71,7 +71,7 @@ test('phase 2 sections appear from a local photo and history can be cleared', { 
   assert.match(text.marks, /stamp/i);
   assert.match(text.consistency, /not compared|looks consistent|looks inconsistent/);
   assert.match(text.printq, /print-run verdict/);
-  assert.match(text.range, /PSA \d+–\d+|Unavailable/);
+  assert.match(text.range, /PSA \d+–\d+|Unavailable|Estimate unavailable/);
   assert.match(text.range, /No back photo/);
   assert.match(text.range, /Centering is not measured/);
   assert.match(text.worth, /Unavailable/);
