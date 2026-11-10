@@ -370,6 +370,7 @@ function boot() {
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
     state.flat = null;
+    if (slot === 'front' && ui.tiltHost && ui.tiltHost.reset) ui.tiltHost.reset();
     try {
       const shot = state.canvas.getContext('2d').getImageData(0, 0, state.canvas.width, state.canvas.height);
       const flat = straighten(shot.data, shot.width, shot.height);
@@ -386,19 +387,19 @@ function boot() {
         note.textContent += ' Front is tilted.';
       }
     } catch { /* Keep the original photo when the warp cannot run. */ }
+    captureSide = slot;
     renderCloseups();
     camToken += 1;
     releaseStream();
     ui.video.hidden = true;
-    captureSide = slot;
     if (slot === 'front') {
-      ui.stage.replaceChildren(decoded.canvas, ui.map, ui.rect);
+      ui.stage.replaceChildren(state.canvas, ui.map, ui.rect, ui.defectLayer);
       ui.readBtn.disabled = false;
       ui.video.hidden = true;
       runQuality('front');
       offerCrop();
     } else {
-      ui.backStage.replaceChildren(decoded.canvas, ui.backMap);
+      ui.backStage.replaceChildren(state.canvas, ui.backMap);
       ui.video.hidden = true;
       runQuality('back');
     }
@@ -799,15 +800,20 @@ function boot() {
     officialUrl = url;
     officialArt = null;
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
       if (officialUrl !== url) return;
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || img.width;
-      canvas.height = img.naturalHeight || img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      const shot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      officialArt = { rgba: shot.data, width: canvas.width, height: canvas.height };
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const shot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        officialArt = { rgba: shot.data, width: canvas.width, height: canvas.height };
+      } catch {
+        officialArt = null;
+      }
       renderArt();
     };
     img.onerror = () => {
@@ -830,7 +836,9 @@ function boot() {
     const layer = ui.defectLayer;
     if (!layer) return;
     layer.replaceChildren();
+    const shown = captureSide === 'back' ? 'back' : 'front';
     for (const mark of map.marks) {
+      if (!mark.id.startsWith(shown) && !mark.id.startsWith('tilt-')) continue;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'scan-defect';
@@ -839,6 +847,7 @@ function boot() {
       btn.style.width = `${Math.max(mark.w * 100, 8)}%`;
       btn.style.height = `${Math.max(mark.h * 100, 6)}%`;
       btn.textContent = mark.label;
+      btn.setAttribute('aria-label', mark.label);
       btn.addEventListener('click', () => {
         const note = ui.defectHost && ui.defectHost.querySelector('p');
         if (note) note.textContent = `${mark.label}. ${mark.detail}`;
@@ -1639,6 +1648,11 @@ function build(section, missingList) {
     tiltReport = report;
     tiltHost.dispatchEvent(new Event('tilt-report'));
   });
+  tiltHost.reset = () => {
+    tiltFrames.length = 0;
+    tiltReport = null;
+    tiltNote.textContent = compareTilt([]).note;
+  };
   tiltHost.append(tiltTitle, tiltNote, tiltBtn, tiltFile);
   const artHost = document.createElement('div');
   artHost.id = 'scan-artmatch';

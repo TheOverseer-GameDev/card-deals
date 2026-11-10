@@ -107,14 +107,18 @@ function borderGap(rgba, width, height, id) {
 function rounding(rgba, width, height, corner) {
   const outward = corner.includes('tl') ? [0, 0] : corner.includes('tr') ? [width - 1, 0] : corner.includes('br') ? [width - 1, height - 1] : [0, height - 1];
   const inward = corner.includes('tl') ? [1, 1] : corner.includes('tr') ? [-1, 1] : corner.includes('br') ? [-1, -1] : [1, -1];
+  const inset = Math.floor(Math.min(width, height) * 0.45);
+  const ix = Math.max(0, Math.min(width - 1, outward[0] + inward[0] * inset));
+  const iy = Math.max(0, Math.min(height - 1, outward[1] + inward[1] * inset));
+  const border = grayAt(rgba, (iy * width + ix) * 4);
   let gap = 0;
   for (let step = 0; step < Math.min(width, height); step++) {
     const x = outward[0] + inward[0] * step;
     const y = outward[1] + inward[1] * step;
-    if (grayAt(rgba, (y * width + x) * 4) < 210) break;
+    if (Math.abs(grayAt(rgba, (y * width + x) * 4) - border) < 35) break;
     gap = step;
   }
-  return gap > Math.min(width, height) * 0.18;
+  return gap > Math.min(width, height) * 0.16;
 }
 
 function chips(rgba, width, height, median) {
