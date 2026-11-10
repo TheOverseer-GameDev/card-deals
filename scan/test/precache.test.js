@@ -2,6 +2,7 @@
  * An offline Scan screen can only open modules the service worker stored.
  */
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'fs';
 import path from 'path';
 import test from 'node:test';
@@ -17,4 +18,21 @@ test('the service worker precaches every scan module', () => {
   for (const name of files) {
     assert.equal(listed.has(`scan/${name}`), true, `sw.js does not precache scan/${name}`);
   }
+});
+
+test('the publisher writes that same scan list', () => {
+  const files = fs.readdirSync(path.join(root, 'scan')).filter((name) => /\.(js|css|json)$/.test(name));
+  const out = spawnSync('python3', ['-c', [
+    'import importlib.util',
+    'spec = importlib.util.spec_from_file_location("build", "ops/deploy/card_app/build.py")',
+    'mod = importlib.util.module_from_spec(spec)',
+    'spec.loader.exec_module(mod)',
+    'print("\\n".join(mod.precache_files()))',
+  ].join('\n')], { cwd: root, encoding: 'utf8' });
+  assert.equal(out.status, 0, out.stderr);
+  const listed = new Set(out.stdout.trim().split('\n'));
+  for (const name of files) {
+    assert.equal(listed.has(`scan/${name}`), true, `build.py does not precache scan/${name}`);
+  }
+  assert.equal([...listed].some((item) => item.includes('scan/vendor') || item.includes('scan/market')), false);
 });

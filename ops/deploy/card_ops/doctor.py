@@ -236,8 +236,11 @@ def scan_issues():
     try:
         ix=open(os.path.join(SITE,'index.html')).read(); sw=open(os.path.join(SITE,'sw.js')).read()
         if 'scan/boot.js' not in ix: out.append('index.html missing scan/boot.js hook')
-        for a in ('scan/boot.js','scan/engine.js','scan/lookup.js','scan/image.js','scan/prices.js','scan/charts.js','scan/gauges.js','scan/scan.css','scan/verified-prices.json'):
-            if a not in sw: out.append(f'sw.js precache missing {a}')
+        scan_dir=os.path.join(SITE,'scan')
+        if os.path.isdir(scan_dir):
+            for name in sorted(os.listdir(scan_dir)):
+                if name.endswith(('.js','.css','.json')) and f'scan/{name}' not in sw:
+                    out.append(f'sw.js precache missing scan/{name}')
         if 'scan/market/' in sw: out.append('sw.js must not precache market shards')
         # OCR vendor files must NOT be in install precache (INTEGRATION.md)
         if 'scan/vendor/' in sw and 'eng.traineddata' in sw: out.append('sw.js must not precache multi-MB OCR vendor files')

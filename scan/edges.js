@@ -249,11 +249,19 @@ function chips(rgba, width, height, median, paper, tip) {
       const stack = [i];
       seen[i] = 1;
       let count = 0;
+      let minX = x;
+      let maxX = x;
+      let minY = y;
+      let maxY = y;
       while (stack.length) {
         const cur = stack.pop();
         count += 1;
         const cx = cur % width;
         const cy = (cur - cx) / width;
+        if (cx < minX) minX = cx;
+        if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy;
+        if (cy > maxY) maxY = cy;
         const next = [cur - 1, cur + 1, cur - width, cur + width];
         for (const n of next) {
           if (n < 0 || n >= seen.length || seen[n]) continue;
@@ -306,7 +314,7 @@ function findingFor(kind, sample, rgba, width, height, id, paper) {
   return { flag: 'clear', text: 'No whitening, ding, rounding, or chip stood out on this crop.', trusted: true };
 }
 
-export function inspectSide(rgba, width, height, side) {
+export function inspectSide(rgba, width, height, side, options) {
   if (width !== 500 || height !== 700 || !rgba || rgba.length < width * height * 4) {
     return {
       side,
@@ -321,6 +329,10 @@ export function inspectSide(rgba, width, height, side) {
     const sample = stats(pixels);
     const paper = (x, y) => onCardPaper(box, x, y, width, height);
     const found = findingFor(box.kind, sample, pixels, box.w, box.h, box.id, paper);
+    if (options && options.edgesOk === false && (found.flag === 'chip' || found.flag === 'ding' || found.flag === 'whitening')) {
+      found.flag = 'clear';
+      found.text = 'No whitening, ding, rounding, or chip stood out on this crop.';
+    }
     crops.push({
       id: `${side}-${box.id}`,
       side,

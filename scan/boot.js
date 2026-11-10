@@ -386,7 +386,14 @@ function boot() {
         next.getContext('2d').putImageData(new ImageData(flat.rgba, 500, 700), 0, 0);
         releaseCanvas(state.canvas);
         state.canvas = next;
-        state.flat = { rgba: flat.rgba, width: 500, height: 700 };
+        state.flat = {
+          rgba: flat.rgba,
+          width: 500,
+          height: 700,
+          centeringOk: Boolean(flat.centeringOk),
+          parallel: !(flat.pose && flat.pose.parallel === false),
+          edgesOk: flat.edgesOk !== false,
+        };
         const gray = grayOf(flat.rgba, 500, 700);
         let autoLine = 'Measure centering yourself.';
         if (AUTO_CENTERING && flat.centeringOk) {
@@ -788,7 +795,7 @@ function boot() {
     title.textContent = 'Corner and edge close-ups';
     host.append(title);
     for (const side of sides) {
-      const report = inspectSide(slots[side].flat.rgba, 500, 700, side);
+      const report = inspectSide(slots[side].flat.rgba, 500, 700, side, { edgesOk: slots[side].flat.edgesOk !== false });
       const note = document.createElement('p');
       note.className = 'note';
       note.textContent = report.note;
@@ -872,7 +879,7 @@ function boot() {
   }
 
   function renderDefects() {
-    const reports = ['front', 'back'].filter((side) => slots[side].flat).map((side) => inspectSide(slots[side].flat.rgba, 500, 700, side));
+    const reports = ['front', 'back'].filter((side) => slots[side].flat).map((side) => inspectSide(slots[side].flat.rgba, 500, 700, side, { edgesOk: slots[side].flat.edgesOk !== false }));
     const map = buildDefectMap(reports, tiltReport);
     const host = ui.defectHost;
     if (host) {

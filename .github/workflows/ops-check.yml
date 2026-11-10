@@ -30,4 +30,4 @@ jobs:
       - name: scanner tests
         run: |
           npm install --no-save --no-audit --no-fund playwright-core
-          node --test --test-concurrency=1 scan/test/*.js
+          node --test --test-concurrency=1 scan/test/*.js scan/test/*.mjs

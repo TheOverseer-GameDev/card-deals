@@ -119,7 +119,7 @@ def main():
     open(os.path.join(S,'data.js'),'w').write('window.D='+json.dumps(D,separators=(',',':'))+';')
     v=str(int(time.time()))
     open(os.path.join(S,'index.html'),'w').write(open(os.path.join(B,'index.tpl.html')).read().replace('__V__',v))
-    open(os.path.join(S,'sw.js'),'w').write(SW.replace('__V__',v))
+    open(os.path.join(S,'sw.js'),'w').write(SW.replace('__V__',v).replace('__FILES__', json.dumps(precache_files(), separators=(',',':'))))
     json.dump(dict(name='Card Deals',short_name='Card Deals',start_url='./',display='standalone',background_color='#0b0f1a',theme_color='#0b0f1a',
       icons=[dict(src='icon-192.png',sizes='192x192',type='image/png'),dict(src='icon-512.png',sizes='512x512',type='image/png',purpose='any maskable')]),open(os.path.join(S,'manifest.json'),'w'))
     open(os.path.join(S,'.nojekyll'),'w').close()
@@ -153,7 +153,15 @@ def main():
     except FileNotFoundError:
         print('scan/ missing: Scan not integrated this build')
 
-SW=r"""const C='cd3-__V__',F=['./','index.html','data.js','chart.min.js','manifest.json','icon-192.png','scan/boot.js','scan/engine.js','scan/lookup.js','scan/image.js','scan/prices.js','scan/charts.js','scan/gauges.js','scan/scan.css','scan/verified-prices.json'];
+def precache_files():
+    """Every scan module the offline screen imports, plus the app shell.
+    Vendor OCR and market shards stay out: they are large and loaded on demand."""
+    repo=os.path.dirname(os.path.dirname(os.path.dirname(B)))
+    scan=os.path.join(repo,'scan')
+    names=sorted(n for n in os.listdir(scan) if n.endswith(('.js','.css','.json')))
+    return ['./','index.html','data.js','chart.min.js','manifest.json','icon-192.png']+[f'scan/{n}' for n in names]
+
+SW=r"""const C='cd3-__V__',F=__FILES__;
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(u=>new Request(u,{cache:'reload'})))))});
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!=C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{const r=e.request;if(r.method!='GET')return;const u=new URL(r.url);if(u.origin!=location.origin)return;
