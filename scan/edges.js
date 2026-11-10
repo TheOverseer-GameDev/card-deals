@@ -127,11 +127,30 @@ function rounding(rgba, width, height, corner) {
 function cornerScuff(rgba, width, height, corner) {
   const isLeft = corner.endsWith('l');
   const isTop = corner.includes('tl') || corner.includes('tr');
-  const ox = isLeft ? 0 : width - 1;
-  const oy = isTop ? 0 : height - 1;
+  let ox = isLeft ? 0 : width - 1;
+  let oy = isTop ? 0 : height - 1;
   const ax = isLeft ? 1 : -1;
   const ay = isTop ? 1 : -1;
   const at = (x, y) => grayAt(rgba, (y * width + x) * 4);
+  // A sliver of table can sit outside the paper. Start where the paper begins.
+  for (let step = 0; step < 6; step++) {
+    const edge = at(ox + ax * step, oy + ay * step);
+    const inside = at(ox + ax * (step + 6), oy + ay * (step + 6));
+    if (edge < 90 && inside > edge + 70) {
+      for (let s = step; s < step + 8; s++) {
+        const x = ox + ax * s;
+        const y = oy + ay * s;
+        if (x < 0 || y < 0 || x >= width || y >= height) break;
+        if (at(x, y) >= 200) {
+          ox = x;
+          oy = y;
+          break;
+        }
+      }
+      break;
+    }
+    if (edge >= 180) break;
+  }
   const start = at(ox, oy);
   if (start < 200) return false;
   function reach(dx, dy) {
@@ -149,7 +168,7 @@ function cornerScuff(rgba, width, height, corner) {
   const near = Math.min(reach(ax, 0), reach(0, ay));
   // A corner scuff is lighter than the border beside it. A highlight of a few
   // pixels, and a border that stays light across the whole crop, are not.
-  return near >= 24 && near <= 80;
+  return near >= 18 && near <= 80;
 }
 
 function onCardPaper(box, x, y, cardW, cardH) {
