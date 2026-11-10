@@ -428,7 +428,8 @@ html.scan-tight #v-scan #scan-info-btn {
   z-index: 0;
 }
 html.scan-tight #scan-capture-ring { width: 52px; height: 52px; }
-#scan-edges { margin-top: 12px; }
+#scan-edges, #scan-tilt, #scan-artmatch, #scan-defects { margin-top: 12px; }
+#scan-tilt h3, #scan-artmatch h3, #scan-defects h3 { margin: 0 0 6px; font-size: 16px; }
 #scan-edges h3 { margin: 0 0 6px; font-size: 16px; }
 #scan-edges .scan-crops { display: flex; flex-wrap: wrap; gap: 8px; }
 #scan-edges .scan-crop { width: 72px; max-width: 30%; }

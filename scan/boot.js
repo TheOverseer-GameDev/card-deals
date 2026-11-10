@@ -26,6 +26,7 @@ import { cropCanvas, fileToCanvas, grayFromCanvas, releaseCanvas } from './image
 import { createLookup } from './lookup.js';
 import { createPriceBook, emptyMarket } from './prices.js';
 import { inspectSide } from './edges.js';
+import { compareTilt } from './tilt.js';
 import { formatGuide, gradePhoto, gradeSide, straighten } from './pipeline.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
@@ -1516,6 +1517,35 @@ function build(section, missingList) {
   const edgesHost = document.createElement('div');
   edgesHost.id = 'scan-edges';
   edgesHost.hidden = true;
+  const tiltHost = document.createElement('div');
+  tiltHost.id = 'scan-tilt';
+  const tiltTitle = document.createElement('h3');
+  tiltTitle.textContent = 'Tilt-light check';
+  const tiltNote = document.createElement('p');
+  tiltNote.id = 'scan-tilt-note';
+  tiltNote.className = 'note';
+  const tiltFrames = [];
+  const tiltFile = fileInput('scan-tilt-file');
+  const tiltBtn = button('Add angled photo', 'scan-tilt-add', true);
+  tiltNote.textContent = compareTilt([]).note;
+  tiltBtn.addEventListener('click', () => tiltFile.click());
+  tiltFile.addEventListener('change', async () => {
+    const file = tiltFile.files && tiltFile.files[0];
+    tiltFile.value = '';
+    if (!file) return;
+    const decoded = await fileToCanvas(file);
+    if (!decoded.ok) {
+      tiltNote.textContent = fileMessage(decoded.code);
+      return;
+    }
+    const shot = decoded.canvas.getContext('2d').getImageData(0, 0, decoded.canvas.width, decoded.canvas.height);
+    tiltFrames.push({ rgba: shot.data, width: shot.width, height: shot.height });
+    releaseCanvas(decoded.canvas);
+    while (tiltFrames.length > 3) tiltFrames.shift();
+    const report = compareTilt(tiltFrames);
+    tiltNote.textContent = [report.note, ...report.findings.map((item) => item.text)].filter(Boolean).join(' ');
+  });
+  tiltHost.append(tiltTitle, tiltNote, tiltBtn, tiltFile);
   const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
@@ -1641,7 +1671,7 @@ function build(section, missingList) {
   panel.append(
     fresh,
     frontNote, backNote, retakes, backQualityBtn, backQuality,
-    controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost,
+    controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost, tiltHost,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
     identity, psa, sold, asks, prices, chartCard, gauges, condition,

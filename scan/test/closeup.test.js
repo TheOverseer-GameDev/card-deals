@@ -66,6 +66,14 @@ test('a straightened photo shows eight front close-ups at 320px', async () => {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   assert.equal(overflow, true, 'close-ups overflow 320px');
   assert.deepEqual(errors, []);
+  const angled = page.waitForEvent('filechooser');
+  await page.locator('#scan-tilt-add').click();
+  await (await angled).setFiles({ name: 'flat.png', mimeType: 'image/png', buffer: cardPNG() });
+  const again = page.waitForEvent('filechooser');
+  await page.locator('#scan-tilt-add').click();
+  await (await again).setFiles({ name: 'flat-2.png', mimeType: 'image/png', buffer: cardPNG() });
+  await page.waitForFunction(() => /same angle/.test(document.getElementById('scan-tilt-note').textContent));
+  assert.deepEqual(errors, []);
   await browser.close();
   server.close();
 });
