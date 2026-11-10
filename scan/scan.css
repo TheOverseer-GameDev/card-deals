@@ -428,6 +428,12 @@ html.scan-tight #v-scan #scan-info-btn {
   z-index: 0;
 }
 html.scan-tight #scan-capture-ring { width: 52px; height: 52px; }
+#scan-edges { margin-top: 12px; }
+#scan-edges h3 { margin: 0 0 6px; font-size: 16px; }
+#scan-edges .scan-crops { display: flex; flex-wrap: wrap; gap: 8px; }
+#scan-edges .scan-crop { width: 72px; max-width: 30%; }
+#scan-edges canvas { width: 100%; height: auto; background: #fff; border: 1px solid #E4E7EC; border-radius: 8px; }
+#scan-edges .scan-crop p { margin: 4px 0 0; font-size: 11px; line-height: 1.3; color: #5D6773; }
 #scan-live-edge {
   position: absolute;
   inset: 0;

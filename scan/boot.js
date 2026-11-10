@@ -25,6 +25,7 @@ import { buildGauges } from './gauges.js';
 import { cropCanvas, fileToCanvas, grayFromCanvas, releaseCanvas } from './image.js';
 import { createLookup } from './lookup.js';
 import { createPriceBook, emptyMarket } from './prices.js';
+import { inspectSide } from './edges.js';
 import { formatGuide, gradePhoto, gradeSide, straighten } from './pipeline.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
@@ -101,8 +102,8 @@ function boot() {
   const lookup = createLookup();
   const book = createPriceBook();
   const slots = {
-    front: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0 },
-    back: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0 },
+    front: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0, flat: null },
+    back: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0, flat: null },
   };
   const reports = { front: null, back: null };
   let readerPromise = null;
@@ -352,7 +353,9 @@ function boot() {
       return;
     }
     if (!decoded.ok) {
+      state.flat = null;
       note.textContent = fileMessage(decoded.code);
+      renderCloseups();
       return;
     }
     if (state.canvas) releaseCanvas(state.canvas);
@@ -360,6 +363,7 @@ function boot() {
     state.originalWidth = decoded.originalWidth;
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
+    state.flat = null;
     try {
       const shot = state.canvas.getContext('2d').getImageData(0, 0, state.canvas.width, state.canvas.height);
       const flat = straighten(shot.data, shot.width, shot.height);
@@ -371,10 +375,12 @@ function boot() {
         next.getContext('2d').putImageData(new ImageData(flat.rgba, 500, 700), 0, 0);
         releaseCanvas(state.canvas);
         state.canvas = next;
+        state.flat = { rgba: flat.rgba, width: 500, height: 700 };
       } else if (slot === 'front') {
         note.textContent += ' Front is tilted.';
       }
     } catch { /* Keep the original photo when the warp cannot run. */ }
+    renderCloseups();
     camToken += 1;
     releaseStream();
     ui.video.hidden = true;
@@ -712,6 +718,43 @@ function boot() {
         });
       },
     });
+  }
+
+  function renderCloseups() {
+    const host = ui.edgesHost;
+    if (!host) return;
+    host.replaceChildren();
+    const sides = ['front', 'back'].filter((side) => slots[side].flat);
+    if (!sides.length) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    const title = document.createElement('h3');
+    title.textContent = 'Corner and edge close-ups';
+    host.append(title);
+    for (const side of sides) {
+      const report = inspectSide(slots[side].flat.rgba, 500, 700, side);
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = report.note;
+      host.append(note);
+      const row = document.createElement('div');
+      row.className = 'scan-crops';
+      for (const item of report.crops) {
+        const cell = document.createElement('div');
+        cell.className = 'scan-crop';
+        const canvas = document.createElement('canvas');
+        canvas.width = item.width;
+        canvas.height = item.height;
+        canvas.getContext('2d').putImageData(new ImageData(item.rgba, item.width, item.height), 0, 0);
+        const label = document.createElement('p');
+        label.textContent = `${item.label}. ${item.text}`;
+        cell.append(canvas, label);
+        row.append(cell);
+      }
+      host.append(row);
+    }
   }
 
   function releaseStream() {
@@ -1470,6 +1513,9 @@ function build(section, missingList) {
   const qualityBtn = button('Check this crop', 'scan-quality-btn', true);
   const frontQuality = document.createElement('div');
   frontQuality.id = 'scan-front-quality';
+  const edgesHost = document.createElement('div');
+  edgesHost.id = 'scan-edges';
+  edgesHost.hidden = true;
   const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
@@ -1595,7 +1641,7 @@ function build(section, missingList) {
   panel.append(
     fresh,
     frontNote, backNote, retakes, backQualityBtn, backQuality,
-    controls, suggestNote, suggestBtn, qualityBtn, frontQuality,
+    controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
     identity, psa, sold, asks, prices, chartCard, gauges, condition,
@@ -1833,6 +1879,7 @@ function build(section, missingList) {
     suggestBtn,
     qualityBtn,
     frontQuality,
+    edgesHost,
     readBtn,
     cancelBtn,
     progress,
