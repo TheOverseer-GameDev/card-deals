@@ -52,14 +52,17 @@ export function sessionTotal(session) {
   };
 }
 
+export function csvCell(value) {
+  let text = value == null ? '' : String(value).normalize('NFKC');
+  text = text.replace(/^(?:[\s\u0000-\u001F\u007F-\u009F]|\uFEFF)+/u, '');
+  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
 export function toCsv(rows) {
   const list = Array.isArray(rows) ? rows : [];
   const keys = ['name', 'set', 'number', 'variant', 'foil', 'qty', 'condition', 'cad'];
-  const cell = (value) => {
-    let text = value == null ? '' : String(value);
-    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
-    return `"${text.replace(/"/g, '""')}"`;
-  };
+  const cell = csvCell;
   const lines = [keys.join(',')];
   for (const row of list) lines.push(keys.map((key) => cell(row[key])).join(','));
   return lines.join('\n');

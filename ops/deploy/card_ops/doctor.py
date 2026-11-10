@@ -370,13 +370,27 @@ def live():
         iss+=['live '+x for x in layout(LIVE)]
     except Exception as x: iss.append(f'live check failed: {x}')
     return iss
+def cooldown_message():
+    """The shared guard's 429 pause, or None when a re-check is allowed to start."""
+    if OPS not in sys.path: sys.path.insert(0,OPS)
+    from quota import Guard
+    guard=Guard(os.path.join(OPS,'source_guard.json'))
+    if not guard.blocked(time.time()): return None
+    state=guard.read()
+    left=max(0,int((state.get('cooldown_until') or 0)-time.time()))
+    return f'eBay HTTP 429 cooldown ({left}s left, Retry-After {state.get("retry_after")}); nothing re-checked'
 def fix(maxcalls=MAXCALLS,fetch=None,files=None,tok=None):
     """priority re-verification; merge-safe writes. Returns counts dict."""
     C=jload(CACHE,{}); cnt=dict(checked=0,cached=0,fixed=0,dropped=0,unresolved=0,promoted=0,calls=0); log=[]
     files=files or {'ygo':os.path.join(ROOT,'ygo_cards/latest.json'),'mtg':os.path.join(ROOT,'mtg_cards/latest.json')}
     if fetch is None:
+        blocked=cooldown_message()
+        if blocked: return dict(cnt,error=blocked),[blocked]
         tok=tok if tok is not None else ygo_verifier().T.ebay_token()
-        if not tok: return dict(cnt,error='no eBay token'),['no eBay token: nothing re-checked']
+        if not tok:
+            blocked=cooldown_message()
+            msg=blocked or 'no eBay token: nothing re-checked'
+            return dict(cnt,error=msg),[msg]
         fetch=lambda i:fetch_item(tok,i)
     work=[]
     for g,f in files.items():

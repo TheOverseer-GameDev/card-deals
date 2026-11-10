@@ -413,6 +413,7 @@ function boot() {
         releaseCanvas(state.canvas);
         state.canvas = next;
         state.flat = { rgba: flat.rgba, width: 500, height: 700 };
+        if (flat.centeringOk === false) note.textContent += ' Centering is unreadable until the card is held flat. Corners, edges, and surface are still checked.';
       } else if (slot === 'front') {
         note.textContent += ' Front is tilted.';
       }
@@ -745,6 +746,7 @@ function boot() {
     ui.stopLive = startLive(ui.video, {
       onFrame(view) {
         if (ui.align) ui.align.textContent = view.hint;
+        if (ui.tightNote) ui.tightNote.textContent = view.hint;
         if (ui.setCaptureProgress) ui.setCaptureProgress(view.progress);
         drawLiveQuad(ui.liveEdge, ui.video, view.quad, view.code);
       },
@@ -1656,6 +1658,11 @@ function build(section, missingList) {
   modeBar.append(modeFront, modeBoth);
   const step = document.createElement('p');
   step.id = 'scan-step';
+  const priceLimitText = 'PSA 5 through PSA 8 stay unavailable unless scan/verified-prices.json has a sourced figure. Market shards that were not exported stay unavailable.';
+  const priceLimitLive = document.createElement('p');
+  priceLimitLive.id = 'scan-price-limit-live';
+  priceLimitLive.className = 'note';
+  priceLimitLive.textContent = priceLimitText;
 
   const finder = document.createElement('div');
   finder.className = 'scan-finder';
@@ -1964,6 +1971,10 @@ function build(section, missingList) {
   const storedHeading = document.createElement('h3');
   storedHeading.textContent = 'Stored catalog figures';
   prices.append(storedHeading, text('Confirm a catalog row to see stored prices.'));
+  const priceLimit = document.createElement('p');
+  priceLimit.id = 'scan-price-limit';
+  priceLimit.className = 'note';
+  priceLimit.textContent = priceLimitText;
   const chartCard = document.createElement('details');
   chartCard.id = 'scan-chart-card';
   chartCard.className = 'scan-card';
@@ -2028,7 +2039,7 @@ function build(section, missingList) {
   const align = document.createElement('p');
   align.id = 'scan-align';
   align.textContent = 'Align the card in the frame.';
-  capture.append(top, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, frontFile, backFile);
+  capture.append(top, finder, align, step, priceLimitLive, tightNote, blocked, thumbs, camBar, infoSheet, frontFile, backFile);
   const fresh = document.createElement('p');
   fresh.id = 'scan-freshness';
   fresh.className = 'note';
@@ -2047,7 +2058,7 @@ function build(section, missingList) {
     stainHost, creaseHost, foilHost, markHost, consistencyHost, printHost, rangeHost, worthHost, historyHost, sessionHost,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
-    identity, psa, sold, asks, prices, chartCard, gauges, condition,
+    identity, psa, sold, asks, priceLimit, prices, chartCard, gauges, condition,
   );
   const layout = document.createElement('div');
   layout.className = 'scan-layout';
@@ -2261,6 +2272,7 @@ function build(section, missingList) {
     camRetry,
     video,
     align,
+    tightNote,
     liveEdge,
     setCaptureProgress: captureRing.set,
     stopLive: null,

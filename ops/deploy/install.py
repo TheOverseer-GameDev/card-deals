@@ -28,6 +28,7 @@ TREE = [
     ('ops/deploy/card_ops/status.py', 'card_ops/status.py'),
     ('ops/deploy/card_ops/alerts.py', 'card_ops/alerts.py'),
     ('ops/deploy/card_app/publish.sh', 'card_app/publish.sh'),
+    ('ops/deploy/card_app/clean_generated.py', 'card_app/clean_generated.py'),
     ('ops/deploy/card_app/build.py', 'card_app/build.py'),
     ('ops/deploy/card_app/build_market_input.py', 'card_app/build_market_input.py'),
     ('ops/deploy/card_app/index.tpl.html', 'card_app/index.tpl.html'),

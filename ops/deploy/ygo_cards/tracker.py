@@ -179,17 +179,31 @@ def pc(card):
 _tok=None
 def ebay_token():
     global _tok
-    if _tok is not None: return _tok
+    if _tok: return _tok
+    ops=_ops_path()
+    from quota import Guard
+    guard=Guard(os.path.join(ops,'source_guard.json'))
+    if guard.blocked(time.time()):
+        print('ebay token blocked: HTTP 429 cooldown')
+        return ''
     root=os.environ.get('CARD_ROOT','/workspace')
+    found=False
     for c in [P('.ebay_env'),os.path.join(root,'pokebot','.ebay_env'),os.path.join(root,'ygo_cards','.ebay_env')]:
         if os.path.exists(c):
+            found=True
             e=dict(l.strip().split('=',1) for l in open(c) if '=' in l)
             b=base64.b64encode(f"{e['EBAY_CLIENT_ID']}:{e['EBAY_CLIENT_SECRET']}".encode()).decode()
             try:
                 _tok=json.loads(get('https://api.ebay.com/identity/v1/oauth2/token',{'Authorization':'Basic '+b,'Content-Type':'application/x-www-form-urlencoded'},
                     b'grant_type=client_credentials&scope=https%3A%2F%2Fapi.ebay.com%2Foauth%2Fapi_scope')[1])['access_token']; return _tok
+            except urllib.error.HTTPError as x:
+                if x.code==429 or '429' in str(x.reason) or 'cooldown' in str(x.reason):
+                    print('ebay token blocked: HTTP 429 cooldown')
+                    return ''
+                print('ebay token fail',x)
             except Exception as x: print('ebay token fail',x)
-    _tok=''; return _tok
+    if not found: print('ebay token fail: no credentials')
+    return ''
 BADCOND=r'damaged|\bdmg\b|\bhp\b|heavily|\bplayed\b|\bmp\b|moderately|\bpoor\b|crease|bent|water|scratch|wear(ed)?\b|\bdent'
 REPRINTS=r'\b(lc\d\w*|legendary collection|op\d+|ots|speed duel|25th|quarter century|rarity collection|ra0\d|lart|mged|ldk2|lds\d|sbc|dcr|dlg)\b'
 COUNTERFEIT_CARDS=('Blue-Eyes White Dragon','Red-Eyes Black Dragon','Dark Magician','Dark Magician Girl','Jinzo','Exodia the Forbidden One','Black Luster Soldier','Gate Guardian','Summoned Skull')

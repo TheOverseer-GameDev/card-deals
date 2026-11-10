@@ -459,7 +459,7 @@ function outerQuad(gray, width, height, scale) {
   return ordered.map((p) => ({ x: p.x / scale, y: p.y / scale }));
 }
 
-function quadPose(quad) {
+export function quadPose(quad) {
   const angle = (a, b) => Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
   const edges = [0, 1, 2, 3].map((i) => angle(quad[i], quad[(i + 1) % 4]));
   const toAxis = (deg) => {
@@ -476,9 +476,15 @@ function quadPose(quad) {
   const width = (len(0) + len(2)) / 2;
   const height = (len(1) + len(3)) / 2;
   const ratio = Math.min(width, height) / (Math.max(width, height) || 1);
+  const tilts = edges.map(toAxis);
+  const opposite = Math.max(parallelDelta(edges[0], edges[2]), parallelDelta(edges[1], edges[3]));
   return {
-    tilt: Math.min(...edges.map(toAxis)),
-    parallel: parallelDelta(edges[0], edges[2]) <= 3 && parallelDelta(edges[1], edges[3]) <= 3,
+    // The worst edge, not the straightest. One aligned side used to hide a 5–30° card.
+    tilt: Math.max(...tilts),
+    minTilt: Math.min(...tilts),
+    parallelDelta: opposite,
+    parallel: opposite <= 3,
+    ratio,
     aspectOk: Math.abs(ratio - 63 / 88) <= 0.08,
   };
 }
@@ -499,15 +505,55 @@ export function straighten(rgba, width, height) {
   const quad = paper || (located.found ? located.quad : null);
   if (!quad) return { flattened: false, reason: located.reason || 'no card edge' };
   const pose = quadPose(quad);
-  // A detected edge more than 3° from the nearest image axis is past the point
-  // where this border walk stays within 3 percentage points. At 5° the official
-  // set still emitted wrong numbers, so a rotated card stays unreadable.
-  if (pose.tilt > 3) {
-    return { flattened: false, reason: 'rotated', pose };
-  }
   const warped = warp(rgba, width, height, quad);
-  if (!warped) return { flattened: false, reason: 'warp' };
-  return { flattened: true, width: 500, height: 700, rgba: warped.rgba, paper: !!paper, quad, pose };
+  if (!warped) return { flattened: false, reason: 'warp', pose };
+  // Corners, edges, and surface still use this straightened picture.
+  // A centering number is refused when the worst edge is past 2°, the
+  // opposite edges are not parallel, or the quad is not a card shape.
+  const centeringOk = centeringAllowed(pose);
+  // The gray fingerprint lets a later centering read refuse this same picture
+  // when the quad was tilted or not a card-shaped parallelogram. Defect checks
+  // still use the straightened pixels.
+  rememberPose(grayOf(warped.rgba, 500, 700), pose);
+  return {
+    flattened: true,
+    width: 500,
+    height: 700,
+    rgba: warped.rgba,
+    paper: !!paper,
+    quad,
+    pose,
+    centeringOk,
+    reason: centeringOk ? '' : 'rotated',
+  };
+}
+
+// A 2° quad on an official card still invented a top/bottom number the flat
+// read did not have. Anything steeper stays unreadable. Opposite edges that
+// diverge by more than 3°, or a quad whose shape is not a trading card, are
+// the same kind of bad outline.
+function centeringAllowed(pose) {
+  if (!pose) return false;
+  return pose.tilt <= 2 && pose.parallel && pose.aspectOk;
+}
+
+const poseByPrint = new Map();
+
+function printOf(gray) {
+  let h1 = 2166136261;
+  let h2 = 2166136261;
+  for (let i = 0; i < gray.length; i += 64) {
+    const v = gray[i] | 0;
+    h1 ^= v;
+    h1 = Math.imul(h1, 16777619);
+    h2 ^= v + i;
+    h2 = Math.imul(h2, 2246822519);
+  }
+  return `${h1}:${h2}:${gray.length}`;
+}
+
+function rememberPose(gray, pose) {
+  poseByPrint.set(printOf(gray), pose);
 }
 
 function median(nums) {
@@ -605,24 +651,47 @@ function borderRun(gray, width, height, side, fixed) {
 
 export function measureCentering(gray, width, height) {
   if (!gray || width !== 500 || height !== 700 || gray.length < width * height) return null;
+  const pose = poseByPrint.get(printOf(gray));
+  if (pose && !centeringAllowed(pose)) return null;
+  const strict = !!pose;
   function axis(sideA, sideB, horizontal) {
     const fracs = [0.2, 0.35, 0.5, 0.65, 0.8];
     const lefts = [];
     const rights = [];
+    const pairs = [];
     for (const frac of fracs) {
       const fixed = Math.round((horizontal ? height : width) * frac);
       const a = borderRun(gray, width, height, sideA, Math.min(fixed, (horizontal ? height : width) - 1));
       const b = borderRun(gray, width, height, sideB, Math.min(fixed, (horizontal ? height : width) - 1));
       if (a != null) lefts.push(a);
       if (b != null) rights.push(b);
+      if (a != null && b != null && a + b > 0) pairs.push({ a, b, pct: (a / (a + b)) * 100 });
     }
     if (lefts.length < 3 || rights.length < 3) return null;
     const leftSpread = Math.max(...lefts) - Math.min(...lefts);
     const rightSpread = Math.max(...rights) - Math.min(...rights);
     // Warp noise is a few pixels. A border that wanders by more than 12 is unreadable.
     if (leftSpread > 12 || rightSpread > 12) return null;
-    const left = median(lefts);
-    const right = median(rights);
+    let chosen = pairs;
+    // After a warp, four of the five lines have to agree within 3 points.
+    // Three lines can agree on a border the other two do not see.
+    if (strict) {
+      if (pairs.length < 4) return null;
+      const sorted = pairs.slice().sort((p, q) => p.pct - q.pct);
+      let best = [];
+      for (let i = 0; i < sorted.length; i++) {
+        const group = [];
+        for (let j = i; j < sorted.length; j++) {
+          if (sorted[j].pct - sorted[i].pct <= 3) group.push(sorted[j]);
+          else break;
+        }
+        if (group.length > best.length) best = group;
+      }
+      if (best.length < 4) return null;
+      chosen = best;
+    }
+    const left = median(strict ? chosen.map((pair) => pair.a) : lefts);
+    const right = median(strict ? chosen.map((pair) => pair.b) : rights);
     if (left == null || right == null || left < 3 || right < 3) return null;
     const sum = left + right;
     return [(left / sum) * 100, (right / sum) * 100];
