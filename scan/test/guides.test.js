@@ -45,6 +45,32 @@ function cardFile() {
   return file;
 }
 
+function lineReachable(selector) {
+  const finder = document.querySelector('#scan-finder').getBoundingClientRect();
+  return [...document.querySelectorAll(`${selector} .scan-guide-line`)].map((line) => {
+    const box = line.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    const guide = hit && hit.closest('.scan-guide');
+    return {
+      label: line.closest('.scan-guide').getAttribute('aria-label'),
+      inside: box.top >= finder.top && box.bottom <= finder.bottom && box.left >= finder.left && box.right <= finder.right,
+      hit: !!(guide && guide.contains(line)),
+      at: hit ? `${hit.className} ${hit.getAttribute('aria-label') || ''}` : 'none',
+      x: Math.round(x),
+      y: Math.round(y),
+      stage: (() => {
+        const stage = document.querySelector('#scan-stage');
+        const canvas = stage && stage.querySelector('canvas');
+        const sr = stage.getBoundingClientRect();
+        const cr = canvas.getBoundingClientRect();
+        return `${Math.round(sr.width)}x${Math.round(sr.height)} canvas ${Math.round(cr.width)}x${Math.round(cr.height)}`;
+      })(),
+    };
+  });
+}
+
 async function touchDrag(page, box, dx) {
   const session = await page.context().newCDPSession(page);
   const x = box.x + box.width / 2;
@@ -97,6 +123,12 @@ test('a loaded photo keeps eight border guides on the front and the back', async
       assert.ok(guide.label && guide.label.includes('border'), guide.label);
       assert.ok(guide.w >= 44 || guide.h >= 44, `${guide.label} ${guide.w}x${guide.h}`);
     }
+    const frontReach = await page.evaluate(lineReachable, '#scan-front-guides');
+    assert.equal(frontReach.length, 8);
+    for (const line of frontReach) {
+      assert.equal(line.inside, true, `${line.label} is outside the finder`);
+      assert.equal(line.hit, true, `${line.label} cannot be tapped at ${line.x},${line.y} (${line.at}) ${line.stage}`);
+    }
     assert.match(await page.locator('#scan-auto-center').innerText(), /Measure centering yourself/);
     assert.match(await page.locator('.scan-manual-note').first().innerText(), /move the guides/);
     assert.doesNotMatch(await page.locator('.scan-manual-note').first().innerText(), /\d+\.\d+\/\d+\.\d+/);
@@ -123,6 +155,12 @@ test('a loaded photo keeps eight border guides on the front and the back', async
     assert.ok(Math.min(...backValues) >= 22, `back guides collapsed to ${backValues.join(',')}`);
     for (const guide of back) {
       assert.ok(guide.w >= 44 || guide.h >= 44, `${guide.label} ${guide.w}x${guide.h}`);
+    }
+    const backReach = await page.evaluate(lineReachable, '#scan-back-guides');
+    assert.equal(backReach.length, 8);
+    for (const line of backReach) {
+      assert.equal(line.inside, true, `${line.label} is outside the finder`);
+      assert.equal(line.hit, true, `${line.label} cannot be tapped at ${line.x},${line.y} (${line.at}) ${line.stage}`);
     }
     assert.match(await page.locator('#scan-back-auto').innerText(), /Measure centering yourself/);
     const backBox = await page.locator('#scan-back-guides .scan-guide[aria-label="Inner right border"]').boundingBox();

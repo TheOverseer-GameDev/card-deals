@@ -120,7 +120,7 @@ function offFromFlat(file, flat) {
 
 function chipCount(flat) {
   if (!flat.flattened) return 0;
-  return inspectSide(flat.rgba, 500, 700, 'front').crops
+  return inspectSide(flat.rgba, 500, 700, 'front', { edgesOk: flat.edgesOk !== false }).crops
     .filter((crop) => crop.flag === 'ding' || crop.flag === 'whitening' || crop.flag === 'chip').length;
 }
 
@@ -183,6 +183,27 @@ test('native-size scans are judged on the 500 by 700 working picture', { skip },
   assert.deepEqual(chipped.bleed, [], `full-bleed chips: ${chipped.bleed.join('; ')}`);
   assert.ok(chipped.phone.length <= 2, `phone-size chips: ${chipped.phone.join('; ')}`);
   assert.ok(chipped.pad.length <= 16, `padded chips ${chipped.pad.length}: ${chipped.pad.slice(0, 8).join('; ')}`);
+});
+
+test('stretch, pad, and small rotates do not invent edge chips', { skip }, () => {
+  const files = images();
+  const recipes = [
+    ['1000x1000 stretch', 'scale=1000:1000', 1000, 1000],
+    ['2-degree gray pad', 'rotate=0.0349066:c=0x808080:ow=900:oh=1200', 900, 1200],
+    ['3-degree black pad', 'rotate=0.0523599:c=black:ow=900:oh=1200', 900, 1200],
+    ['8% gray margin', 'scale=994:1325,pad=1080:1440:(ow-iw)/2:(oh-ih)/2:0x808080', 1080, 1440],
+    ['8% gray margin 1 degree', 'scale=994:1325,pad=1080:1440:(ow-iw)/2:(oh-ih)/2:0x808080,rotate=0.0174533:c=0x808080:ow=1080:oh=1440', 1080, 1440],
+    ['8% gray margin 2 degree', 'scale=994:1325,pad=1080:1440:(ow-iw)/2:(oh-ih)/2:0x808080,rotate=0.0349066:c=0x808080:ow=1080:oh=1440', 1080, 1440],
+  ];
+  const failed = [];
+  for (const file of files) {
+    for (const [label, filter, width, height] of recipes) {
+      const photo = decodeFilter(file, filter, width, height);
+      const flat = straighten(photo.rgba, photo.width, photo.height);
+      if (chipCount(flat)) failed.push(`${path.basename(file)} ${label}`);
+    }
+  }
+  assert.deepEqual(failed, [], `invented edge chips: ${failed.slice(0, 12).join('; ')}`);
 });
 
 test('centering of official cards is readable and the left and right borders stay within 3 points', { skip }, () => {
@@ -559,6 +580,10 @@ test('a synthetic crease with no remaining step is not invented', { skip: synthS
     const flat = straighten(image.rgba, image.width, image.height);
     if (!flat.flattened) continue;
     const note = gradeSide(grayOf(flat.rgba), 500, 700, '', true).surface.note;
-    assert.equal(note.startsWith('Possible crease'), false, `${row.name} ${note}`);
+    const flagged = note.startsWith('Possible crease');
+    // The label is a crease. A blurry photo has no step left to see.
+    // A lined-up photo of that same crease is the one that must be flagged.
+    if (row.mode === 'blur') assert.equal(flagged, false, `${row.name} ${note}`);
+    if (row.mode === 'lined-up') assert.equal(flagged, true, `${row.name} ${note}`);
   }
 });

@@ -56,6 +56,33 @@ function regionStats(gray, width, height, quad) {
   return { mean: n ? sum / n : 0, clipped: n ? clip / n : 0, count: n };
 }
 
+function strideFocus(rgba, width, height) {
+  const step = Math.max(2, Math.floor(Math.max(width, height) / 160));
+  const cols = Math.floor((width - 1) / step);
+  const rows = Math.floor((height - 1) / step);
+  if (cols < 4 || rows < 4) return 0;
+  const at = (x, y) => {
+    const i = (y * width + x) * 4;
+    return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+  };
+  let sum = 0;
+  let sum2 = 0;
+  let n = 0;
+  for (let y = 1; y < rows - 1; y += 2) {
+    for (let x = 1; x < cols - 1; x += 2) {
+      const px = x * step;
+      const py = y * step;
+      const v = at(px, py - step) + at(px - step, py) + at(px + step, py) + at(px, py + step) - 4 * at(px, py);
+      sum += v;
+      sum2 += v * v;
+      n += 1;
+    }
+  }
+  if (!n) return 0;
+  const mean = sum / n;
+  return sum2 / n - mean * mean;
+}
+
 function cornerAngle(a, b, c) {
   const v1x = a.x - b.x;
   const v1y = a.y - b.y;
@@ -107,8 +134,7 @@ export function judgePreview(rgba, width, height) {
   // small live sample off the check it already passed.
   let blurred = focus < 12;
   if (!blurred && Math.max(width, height) > 360) {
-    const detail = findQuad(rgba, width, height, 480, 0.04, 0.02);
-    blurred = laplacianVariance(detail.gray, detail.width, detail.height) < 30;
+    blurred = strideFocus(rgba, width, height) < 2200;
   }
   if (blurred) return result('blurry', 'Blurry. Hold still.', shared);
   if (skew > 20 || portrait < 0.56 || portrait > 0.9) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);

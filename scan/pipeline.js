@@ -313,17 +313,6 @@ function lineFit(pts) {
   return { x: mx, y: my, ang };
 }
 
-function intersect(lineA, lineB) {
-  const dxa = Math.cos(lineA.ang);
-  const dya = Math.sin(lineA.ang);
-  const dxb = Math.cos(lineB.ang);
-  const dyb = Math.sin(lineB.ang);
-  const det = dxa * dyb - dya * dxb;
-  if (Math.abs(det) < 1e-6) return null;
-  const t = ((lineB.x - lineA.x) * dyb - (lineB.y - lineA.y) * dxb) / det;
-  return { x: lineA.x + dxa * t, y: lineA.y + dya * t };
-}
-
 function fittedQuad(points) {
   const ring = points.length > 4 ? hull(points) : points.slice();
   if (ring.length < 4) return null;
@@ -357,11 +346,9 @@ function fittedQuad(points) {
   }
   if (sides.some((side) => side.length < 2)) return { tilt: null, corners: seeds };
   const lines = sides.map((side) => lineFit(side));
-  const corners = [0, 1, 2, 3].map((i) => intersect(lines[i], lines[(i + 1) % 4]));
-  if (corners.some((p) => !p)) return { tilt: null, corners: seeds };
   const axes = lines.map((line) => axisDelta(line.ang * 180 / Math.PI)).sort((a, b) => a - b);
-  // The lines give the angle. The extreme pixels stay the corners so a rounded
-  // or nicked corner is still inside the straightened picture.
+  // The tilt comes from the fitted sides. The corners stay the extreme pixels:
+  // replacing them with the line crossings fixed one warp and broke another.
   return { tilt: (axes[1] + axes[2]) / 2, corners: seeds };
 }
 
@@ -549,11 +536,13 @@ function outerQuad(gray, width, height, scale) {
   }
   if (pts.length < 16) return null;
   const fitted = fittedQuad(pts);
-  const tl = pts.reduce((a, p) => (p.x + p.y < a.x + a.y ? p : a));
-  const tr = pts.reduce((a, p) => (p.x - p.y > a.x - a.y ? p : a));
-  const br = pts.reduce((a, p) => (p.x + p.y > a.x + a.y ? p : a));
-  const bl = pts.reduce((a, p) => (p.x - p.y < a.x - a.y ? p : a));
-  let ordered = [tl, tr, br, bl];
+  const extreme = [
+    pts.reduce((a, p) => (p.x + p.y < a.x + a.y ? p : a)),
+    pts.reduce((a, p) => (p.x - p.y > a.x - a.y ? p : a)),
+    pts.reduce((a, p) => (p.x + p.y > a.x + a.y ? p : a)),
+    pts.reduce((a, p) => (p.x - p.y < a.x - a.y ? p : a)),
+  ];
+  let ordered = extreme;
   const edgeLen = (a, b) => Math.hypot(ordered[a].x - ordered[b].x, ordered[a].y - ordered[b].y);
   const top = edgeLen(1, 0);
   const right = edgeLen(2, 1);
@@ -627,54 +616,43 @@ export function straighten(rgba, width, height) {
   // A photo with a margin, or a landscape frame, is not this case: the card is
   // warped out of the picture instead. Centering still has to pass the same
   // pose checks as a warp. Scaling the picture does not make it flat.
-  if (frameReachesEdges(rgba, width, height)) {
-    const pose = quad ? quadPose(quad) : null;
-    if (pose && Number.isFinite(tiltHint)) pose.tilt = tiltHint;
-    // A one-degree rotate can still be read under the 0.75° warp cutoff.
-    // Scaling that picture as if it were flat produced a wrong number.
-    const centeringOk = Boolean(pose) && pose.tilt <= 0.4 && centeringAllowed(pose);
-    return {
-      flattened: true,
-      width: 500,
-      height: 700,
-      rgba: scaleToSize(rgba, width, height, 500, 700),
-      paper: !!paper,
-      quad,
-      pose,
-      centeringOk,
-      reason: centeringOk ? '' : 'rotated',
-    };
+  const outline = quad ? quadPose(quad) : null;
+  if (outline && Number.isFinite(tiltHint)) outline.tilt = tiltHint;
+  const bowed = borderBows(rgba, width, height);
+  const marginBox = contentBounds(rgba, width, height);
+  if (frameFilled(rgba, width, height)) {
+    const pose = outline;
+    let centeringOk = Boolean(pose) && pose.tilt <= 0.4 && centeringAllowed(pose) && !bowed;
+    // A square or 3:4 frame is the card already. Stretching it to 500 by 700
+    // bends the border into chips. Fit it and repeat the edge color instead.
+    // Portrait scans stay on the plain scale. Letterboxing those hid planted
+    // corner defects. A square or landscape frame is fitted so the border is
+    // not stretched into a chip.
+    const picture = maskRim(width >= height
+      ? fitCard(rgba, width, height)
+      : scaleToSize(rgba, width, height, 500, 700));
+    return commitFlat(picture, pose, centeringOk, { paper: !!paper, quad, edgesOk: edgesReliable(pose, picture) });
   }
-  // A flat card in an even margin is cropped out of that margin. Warping the
-  // printed frame instead invents edge chips. A tilted or distant card keeps
-  // the warp, so a nick on its border is not cropped away.
-  const bounds = !(located.tilt > 1.5) && located.areaFrac >= 0.45 && located.areaFrac <= 0.93
-    ? contentBounds(rgba, width, height)
+  // Gate on the chosen outline, not the first quad. On a Yu-Gi-Oh scan that
+  // first quad is the inner print, a couple of degrees off and too small.
+  const bounds = marginBox && outline && outline.tilt <= 1.5 && outline.parallel
+    ? marginBox
     : null;
   if (bounds) {
     const bw = bounds.maxX - bounds.minX + 1;
     const bh = bounds.maxY - bounds.minY + 1;
     const ratio = Math.min(bw, bh) / Math.max(bw, bh);
     const pose = {
-      tilt: Number.isFinite(located.tilt) ? located.tilt : 0,
-      minTilt: Number.isFinite(located.tilt) ? located.tilt : 0,
-      parallelDelta: 0,
-      parallel: true,
+      tilt: outline.tilt,
+      minTilt: outline.minTilt,
+      parallelDelta: outline.parallelDelta,
+      parallel: outline.parallel,
       ratio,
-      aspectOk: Math.abs(ratio - 63 / 88) <= 0.08,
+      aspectOk: Math.abs(ratio - 63 / 88) <= 0.08 && outline.aspectOk,
     };
-    const centeringOk = pose.tilt <= 0.4 && centeringAllowed(pose);
-    return {
-      flattened: true,
-      width: 500,
-      height: 700,
-      rgba: scaleToSize(cropRect(rgba, width, height, bounds), bw, bh, 500, 700),
-      paper: false,
-      quad,
-      pose,
-      centeringOk,
-      reason: centeringOk ? '' : 'rotated',
-    };
+    const centeringOk = pose.tilt <= 0.4 && centeringAllowed(pose) && !bowed;
+    const picture = maskRim(scaleToSize(cropRect(rgba, width, height, bounds), bw, bh, 500, 700));
+    return commitFlat(picture, pose, centeringOk, { paper: false, quad, edgesOk: edgesReliable(pose, picture) });
   }
   if (!quad) return { flattened: false, reason: located.reason || 'no card edge' };
   const pose = quadPose(quad);
@@ -684,21 +662,186 @@ export function straighten(rgba, width, height) {
   // Corners, edges, and surface still use this straightened picture.
   // A centering number is refused when the card is rotated, the sides are not
   // parallel, or the outline's aspect is not the card's.
-  const centeringOk = centeringAllowed(pose);
-  // A warped picture has to earn a number: the pose must be a card, and four
-  // of the five border lines have to agree. A flat scan does not come through here.
-  rememberPose(grayOf(warped.rgba, 500, 700), pose);
+  const centeringOk = centeringAllowed(pose) && !bowed;
+  let picture = maskRim(warped.rgba);
+  const trimmed = contentBounds(picture, 500, 700);
+  if (trimmed) {
+    const tw = trimmed.maxX - trimmed.minX + 1;
+    const th = trimmed.maxY - trimmed.minY + 1;
+    picture = scaleToSize(cropRect(picture, 500, 700, trimmed), tw, th, 500, 700);
+  }
+  return commitFlat(picture, pose, centeringOk, {
+    paper: !!paper,
+    quad,
+    edgesOk: edgesReliable(pose, picture),
+  });
+}
+
+function edgesReliable(pose, picture) {
+  // A resampled border grows a wedge that reads as a chip. Parallel sides can
+  // still be a degree off, and that is enough to invent the wedge.
+  if (pose && pose.parallel === false) return false;
+  if (pose && pose.tilt > 1.2) return false;
+  return !borderSlant(picture);
+}
+
+function borderSlant(rgba) {
+  const grayAt = (x, y) => {
+    const i = (y * 500 + x) * 4;
+    return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+  };
+  function hit(edge, at) {
+    const vertical = edge === 'left' || edge === 'right';
+    const span = vertical ? 700 : 500;
+    const t = Math.min(span - 2, Math.max(1, Math.round(span * at)));
+    const edgeGray = vertical ? grayAt(edge === 'left' ? 1 : 498, t) : grayAt(t, edge === 'top' ? 1 : 698);
+    for (let d = 2; d < 36; d++) {
+      const x = edge === 'left' ? d : edge === 'right' ? 499 - d : t;
+      const y = edge === 'top' ? d : edge === 'bottom' ? 699 - d : t;
+      if (Math.abs(grayAt(x, y) - edgeGray) > 28) return d;
+    }
+    return 36;
+  }
+  return ['top', 'bottom', 'left', 'right'].some((edge) => Math.abs(hit(edge, 0.2) - hit(edge, 0.8)) > 6);
+}
+
+function refusingPose(pose) {
+  return {
+    tilt: 90,
+    minTilt: 90,
+    parallelDelta: 90,
+    parallel: false,
+    ratio: pose && Number.isFinite(pose.ratio) ? pose.ratio : 0,
+    aspectOk: false,
+  };
+}
+
+function commitFlat(rgba, pose, centeringOk, extra) {
+  rememberPose(grayOf(rgba, 500, 700), centeringOk ? pose : refusingPose(pose));
   return {
     flattened: true,
     width: 500,
     height: 700,
-    rgba: warped.rgba,
-    paper: !!paper,
-    quad,
+    rgba,
     pose,
     centeringOk,
     reason: centeringOk ? '' : 'rotated',
+    ...extra,
   };
+}
+
+// A barrel bend bows the middle of an edge away from the straight line
+// through its ends. Four corners can still look flat. That bend is refused.
+function borderBows(rgba, width, height) {
+  const grayAt = (x, y) => {
+    const i = (y * width + x) * 4;
+    return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+  };
+  function bow(edge) {
+    const vertical = edge === 'left' || edge === 'right';
+    const span = vertical ? height : width;
+    const depth = vertical ? width : height;
+    const samples = [];
+    for (let f = 0.12; f <= 0.88; f += 0.08) {
+      const t = Math.min(span - 2, Math.max(1, Math.round(span * f)));
+      const ex = edge === 'left' ? 1 : edge === 'right' ? width - 2 : t;
+      const ey = edge === 'top' ? 1 : edge === 'bottom' ? height - 2 : t;
+      const edgeGray = vertical ? grayAt(ex, t) : grayAt(t, ey);
+      let hit = Math.max(4, Math.round(depth * 0.12));
+      for (let d = 2; d < hit; d++) {
+        const x = edge === 'left' ? d : edge === 'right' ? width - 1 - d : t;
+        const y = edge === 'top' ? d : edge === 'bottom' ? height - 1 - d : t;
+        if (Math.abs(grayAt(x, y) - edgeGray) > 22) {
+          hit = d;
+          break;
+        }
+      }
+      samples.push(hit);
+    }
+    if (samples.length < 5) return 0;
+    const first = samples[0];
+    const last = samples[samples.length - 1];
+    let max = 0;
+    for (let i = 1; i < samples.length - 1; i++) {
+      const expected = first + (last - first) * (i / (samples.length - 1));
+      max = Math.max(max, Math.abs(samples[i] - expected));
+    }
+    return max / depth;
+  }
+  return ['left', 'right', 'top', 'bottom'].some((edge) => bow(edge) > 0.012);
+}
+
+function maskRim(rgba) {
+  const width = 500;
+  const height = 700;
+  const rim = 3;
+  const out = new Uint8ClampedArray(rgba);
+  const gray = (x, y) => {
+    const i = (y * width + x) * 4;
+    return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+  };
+  const median = (values) => {
+    const sorted = values.slice().sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  };
+  const copyRow = (y, sy) => {
+    for (let x = 0; x < width; x++) {
+      const di = (y * width + x) * 4;
+      const si = (sy * width + x) * 4;
+      out[di] = rgba[si];
+      out[di + 1] = rgba[si + 1];
+      out[di + 2] = rgba[si + 2];
+      out[di + 3] = rgba[si + 3];
+    }
+  };
+  const copyCol = (x, sx) => {
+    for (let y = 0; y < height; y++) {
+      const di = (y * width + x) * 4;
+      const si = (y * width + sx) * 4;
+      out[di] = rgba[si];
+      out[di + 1] = rgba[si + 1];
+      out[di + 2] = rgba[si + 2];
+      out[di + 3] = rgba[si + 3];
+    }
+  };
+  // A scanner rim is dark along the whole side. A chip or white corner is not.
+  for (let y = 0; y < rim; y++) {
+    const edge = [];
+    const inner = [];
+    for (let x = 0; x < width; x += 4) {
+      edge.push(gray(x, y));
+      inner.push(gray(x, rim));
+    }
+    if (median(edge) < median(inner) - 28) copyRow(y, rim);
+  }
+  for (let y = height - rim; y < height; y++) {
+    const edge = [];
+    const inner = [];
+    for (let x = 0; x < width; x += 4) {
+      edge.push(gray(x, y));
+      inner.push(gray(x, height - 1 - rim));
+    }
+    if (median(edge) < median(inner) - 28) copyRow(y, height - 1 - rim);
+  }
+  for (let x = 0; x < rim; x++) {
+    const edge = [];
+    const inner = [];
+    for (let y = 0; y < height; y += 4) {
+      edge.push(gray(x, y));
+      inner.push(gray(rim, y));
+    }
+    if (median(edge) < median(inner) - 28) copyCol(x, rim);
+  }
+  for (let x = width - rim; x < width; x++) {
+    const edge = [];
+    const inner = [];
+    for (let y = 0; y < height; y += 4) {
+      edge.push(gray(x, y));
+      inner.push(gray(width - 1 - rim, y));
+    }
+    if (median(edge) < median(inner) - 28) copyCol(x, width - 1 - rim);
+  }
+  return out;
 }
 
 // How far the middle of one side stays the edge color, as a fraction of that
@@ -736,13 +879,40 @@ function sideInset(rgba, width, height, edge) {
   return hits[Math.floor(hits.length / 2)];
 }
 
-function frameReachesEdges(rgba, width, height) {
-  if (!(height > width) || width < 40) return false;
+function frameFilled(rgba, width, height) {
+  if (width < 40 || height < 40) return false;
   const sides = ['left', 'right', 'top', 'bottom'].map((edge) => sideInset(rgba, width, height, edge));
+  if (sides.some((value) => value >= 0.08)) return false;
   const near = sides.filter((value) => value <= 0.045).length;
-  // One thick printed border is still the card. A margin on every side, or
-  // one side that is mostly empty, is a photo of the card and not the card.
-  return near >= 3 && !sides.some((value) => value >= 0.12);
+  // A printed border is a couple of percent. Four percent of padding was still
+  // accepted, and scaling that padding invented edge chips. A real scan can
+  // have one deeper side, so three sides have to be this close. Landscape and
+  // square photos count too: the card is the frame, it is just not portrait.
+  if (height > width) return near >= 3;
+  return near >= 4;
+}
+
+function fitCard(rgba, width, height) {
+  const scale = Math.min(500 / width, 700 / height);
+  const dw = Math.max(1, Math.round(width * scale));
+  const dh = Math.max(1, Math.round(height * scale));
+  const fitted = scaleToSize(rgba, width, height, dw, dh);
+  const out = new Uint8ClampedArray(500 * 700 * 4);
+  const ox = Math.floor((500 - dw) / 2);
+  const oy = Math.floor((700 - dh) / 2);
+  for (let y = 0; y < 700; y++) {
+    const sy = Math.min(dh - 1, Math.max(0, y - oy));
+    for (let x = 0; x < 500; x++) {
+      const sx = Math.min(dw - 1, Math.max(0, x - ox));
+      const di = (y * 500 + x) * 4;
+      const si = (sy * dw + sx) * 4;
+      out[di] = fitted[si];
+      out[di + 1] = fitted[si + 1];
+      out[di + 2] = fitted[si + 2];
+      out[di + 3] = fitted[si + 3];
+    }
+  }
+  return out;
 }
 
 function cropRect(rgba, width, height, box) {
