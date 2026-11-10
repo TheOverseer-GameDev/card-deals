@@ -66,32 +66,36 @@ function lighting(sample) {
 }
 
 function borderGap(rgba, width, height, id) {
-  const positions = [];
   const across = id.includes('top') || id.includes('bottom');
   const fromStart = id.includes('top') || id.includes('left');
   const outer = across ? width : height;
-  const depth = across ? height : width;
+  const depth = Math.min(16, across ? height : width);
+  const line = [];
   for (let i = 0; i < outer; i++) {
-    let pos = 0;
+    const vals = [];
     for (let j = 0; j < depth; j++) {
       const x = across ? i : (fromStart ? j : width - 1 - j);
       const y = across ? (fromStart ? j : height - 1 - j) : i;
-      if (grayAt(rgba, (y * width + x) * 4) > 80) {
-        pos = j;
-        break;
-      }
+      vals.push(grayAt(rgba, (y * width + x) * 4));
     }
-    positions.push(pos);
+    line.push(vals);
   }
-  const mid = positions.slice().sort((a, b) => a - b)[Math.floor(positions.length / 2)] || 0;
+  const flat = line.flat().filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+  if (!flat.length) return 0;
+  const mid = flat[Math.floor(flat.length / 2)];
+  // A nick is a short run of pixels far from the border color. A printed fade is not.
   let dips = 0;
   let run = 0;
-  for (const pos of positions) {
-    if (pos > mid + 3) {
-      run += 1;
-      if (run === 4) dips += 1;
-    } else run = 0;
+  const closeRun = () => {
+    if (run >= 4 && run <= 48) dips += 1;
+    run = 0;
+  };
+  for (const vals of line) {
+    const odd = vals.filter((v) => Math.abs(v - mid) >= 55).length >= Math.ceil(depth * 0.45);
+    if (odd) run += 1;
+    else closeRun();
   }
+  closeRun();
   return dips;
 }
 
@@ -100,34 +104,20 @@ function rounding(rgba, width, height, corner) {
   const isTop = corner.includes('tl') || corner.includes('tr');
   const ox = isLeft ? 0 : width - 1;
   const oy = isTop ? 0 : height - 1;
-  const ix = isLeft ? 1 : -1;
-  const iy = isTop ? 1 : -1;
-  const inset = Math.floor(Math.min(width, height) * 0.45);
-  const refX = Math.max(0, Math.min(width - 1, ox + ix * inset));
-  const refY = Math.max(0, Math.min(height - 1, oy + iy * inset));
-  const border = grayAt(rgba, (refY * width + refX) * 4);
-  const gapFrom = (x, y, dx, dy) => {
-    let gap = 0;
-    const limit = Math.min(width, height);
-    for (let step = 0; step < limit; step++) {
-      const sx = x + dx * step;
-      const sy = y + dy * step;
-      if (sx < 0 || sy < 0 || sx >= width || sy >= height) break;
-      if (Math.abs(grayAt(rgba, (sy * width + sx) * 4) - border) < 35) break;
-      gap = step;
-    }
-    return gap;
-  };
-  const cornerGap = gapFrom(ox, oy, ix, iy);
-  const sideX = isLeft ? Math.floor(width * 0.75) : Math.floor(width * 0.25);
-  const sideGap = gapFrom(sideX, oy, 0, iy);
-  return cornerGap > sideGap + Math.min(width, height) * 0.12;
+  const ax = isLeft ? 1 : -1;
+  const ay = isTop ? 1 : -1;
+  const at = (x, y) => grayAt(rgba, (y * width + x) * 4);
+  const cornerPx = at(ox, oy);
+  const alongX = at(Math.max(0, Math.min(width - 1, ox + ax * 40)), oy);
+  const alongY = at(ox, Math.max(0, Math.min(height - 1, oy + ay * 40)));
+  // A printed inner frame is the same color along the outer edge. A rounded corner is not.
+  return Math.abs(cornerPx - alongX) > 40 && Math.abs(cornerPx - alongY) > 40;
 }
 
 function onCardPaper(box, x, y, cardW, cardH) {
   const cx = box.x + x;
   const cy = box.y + y;
-  const band = 16;
+  const band = 8;
   return cx < band || cy < band || cx >= cardW - band || cy >= cardH - band;
 }
 
@@ -143,10 +133,48 @@ function whitening(rgba, width, height, paper) {
   if (vals.length < 20) return false;
   vals.sort((a, b) => a - b);
   const mid = vals[Math.floor(vals.length / 2)];
-  let hot = 0;
-  for (const v of vals) if (v > mid + 42 && v > 180) hot += 1;
-  const frac = hot / vals.length;
-  return frac > 0.08 && frac < 0.6;
+  const hot = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!paper(x, y)) continue;
+      const v = grayAt(rgba, (y * width + x) * 4);
+      if (v > mid + 42 && v > 180) hot[y * width + x] = 1;
+    }
+  }
+  const seen = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const start = y * width + x;
+      if (!hot[start] || seen[start]) continue;
+      const stack = [start];
+      seen[start] = 1;
+      let count = 0;
+      let minX = x;
+      let maxX = x;
+      let minY = y;
+      let maxY = y;
+      while (stack.length) {
+        const cur = stack.pop();
+        count += 1;
+        const cx = cur % width;
+        const cy = (cur - cx) / width;
+        if (cx < minX) minX = cx;
+        if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy;
+        if (cy > maxY) maxY = cy;
+        for (const n of [cur - 1, cur + 1, cur - width, cur + width]) {
+          if (n < 0 || n >= hot.length || seen[n] || !hot[n]) continue;
+          const nx = n % width;
+          if (Math.abs(nx - cx) > 1) continue;
+          seen[n] = 1;
+          stack.push(n);
+        }
+      }
+      const span = Math.max(maxX - minX, maxY - minY);
+      if (count >= 8 && count <= 70 && span < Math.max(width, height) * 0.45) return true;
+    }
+  }
+  return false;
 }
 
 function chips(rgba, width, height, median, paper) {
@@ -191,7 +219,7 @@ function chips(rgba, width, height, median, paper) {
 
 function findingFor(kind, sample, rgba, width, height, id, paper) {
   const light = lighting(sample);
-  if (!light.trust) {
+  if (light.note.startsWith('Glare')) {
     return { flag: 'unchecked', text: light.note, trusted: false };
   }
   if (kind === 'corner' && rounding(rgba, width, height, id)) {
@@ -205,6 +233,9 @@ function findingFor(kind, sample, rgba, width, height, id, paper) {
   }
   if (whitening(rgba, width, height, paper)) {
     return { flag: 'whitening', text: 'Part of this border is lighter than the rest. Whitening is only a visual note.', trusted: true };
+  }
+  if (!light.trust) {
+    return { flag: 'unchecked', text: light.note, trusted: false };
   }
   return { flag: 'clear', text: 'No whitening, ding, rounding, or chip stood out on this crop.', trusted: true };
 }

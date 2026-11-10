@@ -422,19 +422,30 @@ function median(nums) {
 }
 
 function borderRun(gray, width, height, side, fixed) {
-  const limit = side === 'left' || side === 'right' ? Math.floor(width / 2) : Math.floor(height / 2);
+  const limit = 72;
   const at = (step) => {
     if (side === 'left') return gray[fixed * width + step];
     if (side === 'right') return gray[fixed * width + (width - 1 - step)];
     if (side === 'top') return gray[step * width + fixed];
     return gray[(height - 1 - step) * width + fixed];
   };
-  const ref = at(0);
-  if (!Number.isFinite(ref)) return null;
-  for (let step = 1; step < limit && step < 90; step++) {
+  const samples = [];
+  for (let step = 0; step < limit; step++) {
     const v = at(step);
     if (!Number.isFinite(v)) return null;
-    if (Math.abs(v - ref) > 18) return step;
+    samples.push(v);
+  }
+  const blur = samples.map((_, i) => {
+    const a = samples[Math.max(0, i - 1)];
+    const c = samples[Math.min(samples.length - 1, i + 1)];
+    return (a + samples[i] + c) / 3;
+  });
+  // The outer border fades smoothly. The frame is where that fade reverses or a hard edge starts.
+  for (let step = 4; step < blur.length - 1; step++) {
+    const prev = blur[step - 2] - blur[step - 4];
+    const next = blur[step] - blur[step - 2];
+    if (prev < -8 && next > 12) return step;
+    if (Math.abs(next) > 36) return step;
   }
   return null;
 }
@@ -455,17 +466,21 @@ export function measureCentering(gray, width, height) {
     if (lefts.length < 3 || rights.length < 3) return null;
     const leftSpread = Math.max(...lefts) - Math.min(...lefts);
     const rightSpread = Math.max(...rights) - Math.min(...rights);
-    if (leftSpread > 4 || rightSpread > 4) return null;
+    // Warp noise is a few pixels. A border that wanders by more than 12 is unreadable.
+    if (leftSpread > 12 || rightSpread > 12) return null;
     const left = median(lefts);
     const right = median(rights);
-    if (left == null || right == null || left < 5 || right < 5) return null;
+    if (left == null || right == null || left < 3 || right < 3) return null;
     const sum = left + right;
     return [(left / sum) * 100, (right / sum) * 100];
   }
   const lr = axis('left', 'right', true);
   const tb = axis('top', 'bottom', false);
-  if (!lr || !tb) return null;
-  return `Centering: ${lr[0].toFixed(1)}/${lr[1].toFixed(1)} left/right. ${tb[0].toFixed(1)}/${tb[1].toFixed(1)} top/bottom.`;
+  if (!lr && !tb) return null;
+  const bits = [];
+  if (lr) bits.push(`${lr[0].toFixed(1)}/${lr[1].toFixed(1)} left/right`);
+  if (tb) bits.push(`${tb[0].toFixed(1)}/${tb[1].toFixed(1)} top/bottom`);
+  return `Centering: ${bits.join('. ')}.`;
 }
 
 function offCenter(text, axis) {
@@ -560,14 +575,19 @@ export function gradeSide(gray, width, height, centeringText, flattened, back = 
       lost = name;
     }
   }
+  const cornerValues = Object.values(corners).filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+  const second = cornerValues.length > 1 ? cornerValues[cornerValues.length - 2] : lightest;
+  const standsOut = Number.isFinite(lightest) && lightest - second >= 18;
   const lift = lightest - edgeMed;
   const cornerCuts = [[6, 10], [12, 9], [20, 8], [30, 7], [42, 6]];
-  let cornerScore = 5;
-  for (const [max, score] of cornerCuts) if (lift <= max) { cornerScore = score; break; }
-  const cornersMark = {
-    score: cornerScore,
-    note: lift <= 6 ? 'No corner whitening seen.' : `Whitening on the ${lost} corner.`,
-  };
+  let cornerScore = 10;
+  let cornerNote = 'No corner whitening seen.';
+  if (standsOut) {
+    cornerScore = 5;
+    for (const [max, score] of cornerCuts) if (lift <= max) { cornerScore = score; break; }
+    cornerNote = lift <= 6 ? 'No corner whitening seen.' : `Whitening on the ${lost} corner.`;
+  }
+  const cornersMark = { score: cornerScore, note: cornerNote };
   const band = Math.max(6, Math.round(side * 0.025));
   const skip = Math.round(side * 0.06);
   function edgeStd(name) {
@@ -586,44 +606,37 @@ export function gradeSide(gray, width, height, centeringText, flattened, back = 
     return stddev(vals);
   }
   const edgeNames = ['top', 'bottom', 'left', 'right'];
+  const noises = edgeNames.map((name) => edgeStd(name));
+  const noiseOrder = noises.slice().sort((a, b) => a - b);
+  const noiseMid = noiseOrder[Math.floor(noiseOrder.length / 2)] || 0;
   let noisy = 'top';
   let noise = -1;
-  for (const name of edgeNames) {
-    const v = edgeStd(name);
-    if (v > noise) {
-      noise = v;
-      noisy = name;
+  for (let i = 0; i < edgeNames.length; i++) {
+    if (noises[i] > noise) {
+      noise = noises[i];
+      noisy = edgeNames[i];
     }
   }
   const edgeCuts = [[10, 10], [16, 9], [24, 8], [34, 7], [48, 6]];
-  let edgeScore = 5;
-  for (const [max, score] of edgeCuts) if (noise <= max) { edgeScore = score; break; }
-  const edgesMark = {
-    score: edgeScore,
-    note: noise <= 16 ? 'Edges look clean.' : `Possible whitening on the ${noisy} edge.`,
-  };
-  const x0 = Math.floor(width * 0.18);
-  const x1 = Math.floor(width * 0.82);
-  const y0 = Math.floor(height * 0.18);
-  const y1 = Math.floor(height * 0.82);
-  let crease = null;
+  let edgeScore = 10;
+  let edgeNote = 'Edges look clean.';
+  // A printed border is noisy on every side. Whitening is one side standing out.
+  if (noise - noiseMid >= 14) {
+    edgeScore = 5;
+    for (const [max, score] of edgeCuts) if (noise <= max) { edgeScore = score; break; }
+    edgeNote = `Possible whitening on the ${noisy} edge.`;
+  }
+  const edgesMark = { score: edgeScore, note: edgeNote };
+  const x0 = Math.floor(width * 0.12);
+  const x1 = Math.floor(width * 0.88);
   let hot = 0;
   let inner = 0;
-  for (let y = y0; y < y1; y++) {
-    const row = [];
-    for (let x = x0; x < x1; x++) row.push(gray[y * width + x]);
-    const med = row.slice().sort((a, b) => a - b)[Math.floor(row.length / 2)];
-    let run = 0;
-    for (const v of row) {
-      if (v < med - 28) run++;
-      else run = 0;
-      if (run > row.length * 0.18) {
-        crease = y < height * 0.33 ? 'top of the card' : y > height * 0.66 ? 'bottom of the card' : 'middle of the card';
-      }
-      if (v > 242) hot++;
-      inner++;
-    }
+  for (let y = 0; y < height; y++) {
+    for (let x = x0; x < x1; x++) if (gray[y * width + x] > 242) hot++;
+    inner += x1 - x0;
   }
+  // A straight printed rule and a crease look the same in one photo. Do not call it a crease.
+  const crease = null;
   let surface;
   if (crease) surface = { score: 6, note: `Possible crease on the ${crease}` };
   else if (inner && hot / inner > 0.015) surface = { score: 8, note: 'Glare. Surface is partly hidden.' };
