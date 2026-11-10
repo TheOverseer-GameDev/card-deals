@@ -619,6 +619,7 @@ export function straighten(rgba, width, height) {
   const outline = quad ? quadPose(quad) : null;
   if (outline && Number.isFinite(tiltHint)) outline.tilt = tiltHint;
   const bowed = borderBows(rgba, width, height);
+  const level = borderLevel(rgba, width, height);
   const marginBox = contentBounds(rgba, width, height);
   if (frameFilled(rgba, width, height)) {
     const pose = outline;
@@ -631,7 +632,7 @@ export function straighten(rgba, width, height) {
     const picture = maskRim(width >= height
       ? fitCard(rgba, width, height)
       : scaleToSize(rgba, width, height, 500, 700));
-    return commitFlat(picture, pose, centeringOk, { paper: !!paper, quad, edgesOk: edgesReliable(pose, picture) });
+    return commitFlat(picture, pose, centeringOk, { paper: !!paper, quad, bowed, allowRead: true, level, edgesOk: edgesReliable(pose, picture) });
   }
   // Gate on the chosen outline, not the first quad. On a Yu-Gi-Oh scan that
   // first quad is the inner print, a couple of degrees off and too small.
@@ -652,7 +653,7 @@ export function straighten(rgba, width, height) {
     };
     const centeringOk = pose.tilt <= 0.4 && centeringAllowed(pose) && !bowed;
     const picture = maskRim(scaleToSize(cropRect(rgba, width, height, bounds), bw, bh, 500, 700));
-    return commitFlat(picture, pose, centeringOk, { paper: false, quad, edgesOk: edgesReliable(pose, picture) });
+    return commitFlat(picture, pose, centeringOk, { paper: false, quad, bowed, edgesOk: edgesReliable(pose, picture) });
   }
   if (!quad) return { flattened: false, reason: located.reason || 'no card edge' };
   const pose = quadPose(quad);
@@ -673,6 +674,7 @@ export function straighten(rgba, width, height) {
   return commitFlat(picture, pose, centeringOk, {
     paper: !!paper,
     quad,
+    bowed,
     edgesOk: edgesReliable(pose, picture),
   });
 }
@@ -683,6 +685,33 @@ function edgesReliable(pose, picture) {
   if (pose && pose.parallel === false) return false;
   if (pose && pose.tilt > 1.2) return false;
   return !borderSlant(picture);
+}
+
+function borderLevel(rgba, width, height) {
+  const grayAt = (x, y) => {
+    const i = (y * width + x) * 4;
+    return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+  };
+  function hit(edge, at) {
+    const vertical = edge === 'left' || edge === 'right';
+    const span = vertical ? height : width;
+    const depth = vertical ? width : height;
+    const t = Math.min(span - 2, Math.max(1, Math.round(span * at)));
+    const edgeGray = vertical
+      ? grayAt(edge === 'left' ? 1 : width - 2, t)
+      : grayAt(t, edge === 'top' ? 1 : height - 2);
+    const limit = Math.min(40, Math.max(6, Math.round(depth * 0.15)));
+    for (let d = 2; d < limit; d++) {
+      const x = edge === 'left' ? d : edge === 'right' ? width - 1 - d : t;
+      const y = edge === 'top' ? d : edge === 'bottom' ? height - 1 - d : t;
+      if (Math.abs(grayAt(x, y) - edgeGray) > 28) return d;
+    }
+    return limit;
+  }
+  for (const edge of ['top', 'bottom', 'left', 'right']) {
+    if (Math.abs(hit(edge, 0.25) - hit(edge, 0.75)) > 6) return false;
+  }
+  return true;
 }
 
 function borderSlant(rgba) {
@@ -717,7 +746,22 @@ function refusingPose(pose) {
 }
 
 function commitFlat(rgba, pose, centeringOk, extra) {
-  rememberPose(grayOf(rgba, 500, 700), centeringOk ? pose : refusingPose(pose));
+  // A bowed border is refused even when the corners look flat. A pose that
+  // passes the shared checks is stored so a straight scan can still be read.
+  // The stricter centeringOk flag stays off until automatic numbers are proven.
+  const gray = grayOf(rgba, 500, 700);
+  const key = printOf(gray);
+  const calm = extra && !(extra.bowed) && (extra.level || (pose && pose.parallel && pose.tilt <= 0.5));
+  if (extra && extra.allowRead && calm) {
+    // A scan that already fills the frame and is under a degree is not a warp.
+    // Leaving no pose keeps the loose border read. A tilted full-bleed photo
+    // stores a refusing pose so it cannot invent a ratio.
+    poseByPrint.delete(key);
+  } else if ((extra && extra.bowed) || !(pose && centeringAllowed(pose))) {
+    poseByPrint.set(key, refusingPose(pose));
+  } else {
+    poseByPrint.set(key, pose);
+  }
   return {
     flattened: true,
     width: 500,
@@ -768,7 +812,7 @@ function borderBows(rgba, width, height) {
     }
     return max / depth;
   }
-  return ['left', 'right', 'top', 'bottom'].some((edge) => bow(edge) > 0.012);
+  return ['left', 'right', 'top', 'bottom'].some((edge) => bow(edge) > 0.08);
 }
 
 function maskRim(rgba) {
