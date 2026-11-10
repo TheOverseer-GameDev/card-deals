@@ -19,17 +19,21 @@ nice -n 19 python3 $ROOT/mtg_cards/test_verified_links.py > $OPS/mtg_linktest.lo
 nice -n 19 python3 $OPS/status.py >/dev/null 2>&1
 [ -n "$CARD_E2E_STOP" ] && { echo "$(ts) gates finished (e2e stop)" >> $GL; exit 0; }
 rm -rf $ROOT/card_app/site_prev && mkdir -p $ROOT/card_app/site_prev && (cd site && tar --exclude=.git -cf - .) | (cd $ROOT/card_app/site_prev && tar -xf -)
+rollback_site() {
+  (cd "$ROOT/card_app/site_prev" && tar -cf - .) | (cd "$ROOT/card_app/site" && tar -xf -)
+  python3 "$ROOT/card_app/clean_generated.py" "$ROOT/card_app/site" "$ROOT/card_app/site_prev"
+}
 python3 build.py || exit 1
 [ -n "$CARD_TEST_BREAK" ] && echo 'garbage(' >> site/data.js  # test hook: proves gate+rollback
 if ! nice -n 19 python3 $OPS/doctor.py --gate > $OPS/gate_last.txt 2>&1; then
-  (cd site_prev && tar -cf - .) | (cd site && tar -xf -)
+  rollback_site
   echo "$(ts) GATE FAIL - rolled back to previous site/: $(grep 'GATE FAIL' $OPS/gate_last.txt | head -5 | tr '\n' ';')" >> $GL; cat $OPS/gate_last.txt; exit 1
 fi
 # box install 2026-11-09: prepublish runs on the NEW build (it used to check the previous site/ before build.py). Fail or defer rolls back like the doctor gate.
 CARD_SITE=$ROOT/card_app/site CARD_PREPUBLISH_STATE=$OPS/prepublish_state.json nice -n 19 python3 $OPS/prepublish.py --journey > $OPS/prepublish_last.txt 2>&1
 prc=$?
 if [ "$prc" -ne 0 ]; then
-  (cd site_prev && tar -cf - .) | (cd site && tar -xf -)
+  rollback_site
   if [ "$prc" -eq 3 ]; then echo "$(ts) phone journey deferred - not a pass (rolled back site/)" >> $GL; exit 3; fi
   echo "$(ts) prepublish failed rc=$prc - rolled back site/: $(tail -1 $OPS/prepublish_last.txt)" >> $GL; cat $OPS/prepublish_last.txt; exit 1
 fi

@@ -23,7 +23,9 @@ def main():
     for m in ('gate','live','fix','selftest'):
         r=last(m)
         if r: s[m]=dict(ts=r['ts'],ok=r.get('pass'),issues=len(r.get('issues',[])),counts=r.get('counts'))
-        if r and not r.get('pass') and m!='live': prob.append(f'{m} failing')
+        if r and not r.get('pass') and m!='live':
+            err=(r.get('counts') or {}).get('error')
+            prob.append(f'{m} failing'+(f': {err}' if err else ''))
     lv=last('live')
     if lv and not lv.get('pass'): prob.append(f"live site: {len(lv.get('issues',[]))} issue(s)")
     if s['stop']: prob.insert(0,'STOP switch on: updates paused')

@@ -66,6 +66,8 @@ html.desktop #v-scan.view.on { display: block; }
 #v-scan .scan-mode button { min-height: 32px; border: 0; background: transparent; color: #f3efe6; font-weight: 700; border-radius: 18px; padding: 6px 14px; font-size: 13px; }
 #v-scan .scan-mode button.on { background: #3a3128; color: #fff; }
 #v-scan #scan-step { margin: 0; padding: 4px 12px 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: #5D6773; }
+#scan-price-limit-live { margin: 0; padding: 2px 12px 4px; text-align: center; font-size: 11px; line-height: 1.3; color: #5D6773; }
+html.scan-tight #scan-price-limit-live { display: none; }
 #v-scan #scan-cam-msg { margin: 0; padding: 8px 16px; text-align: center; white-space: normal; color: #fff; font-size: 15px; }
 #v-scan #scan-cam-retry { margin: 0 16px 8px; }
 html.scan-cam #freshness-note { display: none !important; }

@@ -11,9 +11,16 @@ ROOT = Path(__file__).resolve().parent
 picks = json.load(open(ROOT / 'latest.json'))
 _base = Path(os.environ.get('CARD_ROOT', '/workspace'))
 env = [str(ROOT / '.ebay_env'), str(_base / 'pokebot' / '.ebay_env'), str(_base / 'ygo_cards' / '.ebay_env')]
-tok = M.ebay_token(env)
 fails = []
 checked = 0
+cooldown = False
+try:
+    sys.path.insert(0, str(_base / 'card_ops'))
+    from quota import Guard
+    cooldown = Guard(str(_base / 'card_ops' / 'source_guard.json')).blocked(time.time())
+except Exception:
+    cooldown = False
+tok = '' if cooldown else M.ebay_token(env)
 
 def check_offer(card_meta, o, graded=False):
     global checked
@@ -32,7 +39,7 @@ def check_offer(card_meta, o, graded=False):
         if not u or url.split('?')[0] != u:
             fails.append(f"ebay url not /itm/<id>: {url}")
         if not tok:
-            fails.append('ebay token missing for re-verify')
+            fails.append('eBay HTTP 429 cooldown; offer not re-checked' if cooldown else 'ebay token missing for re-verify')
             return
         # rebuild card stub from pick
         card = card_meta
@@ -122,6 +129,12 @@ for pick in picks:
             check_offer(card, L, graded=(key == 'lg'))
 
 print(f'checked {checked} offers across {len(picks)} picks')
+if checked == 0:
+    if cooldown:
+        print('NOT CHECKED: 0 offers were checked during an eBay HTTP 429 cooldown. This is not a pass.')
+    else:
+        print('NOT CHECKED: 0 offers were checked. This is not a pass.')
+    sys.exit(2)
 if fails:
     print('FAIL', len(fails))
     for f in fails[:40]:
