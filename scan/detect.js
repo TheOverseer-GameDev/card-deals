@@ -105,9 +105,9 @@ export function judgePreview(rgba, width, height) {
   if (focus < 12) return result('blurry', 'Blurry. Hold still.', shared);
   if (skew > 20 || portrait < 0.56 || portrait > 0.9) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
   if (located.areaFrac < 0.18) return result('too-far', 'Too far. Move closer.', shared);
-  if (located.areaFrac > 0.72 || nearEdge) return result('too-close', 'Too close. Move back so the whole card is in frame.', shared);
+  if (located.areaFrac > 0.72 || nearEdge) return result('too-close', 'Too close. Show all four edges.', shared);
   if (!located.found) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
-  return result('lined-up', 'Lined up. Hold steady.', shared);
+  return result('lined-up', 'Lined up. Hold still.', shared);
 }
 
 export function quadShift(a, b) {
