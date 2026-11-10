@@ -80,6 +80,14 @@ export function mountRing(parent) {
   };
 }
 
+export function mountEdge(finder) {
+  const canvas = document.createElement('canvas');
+  canvas.id = 'scan-live-edge';
+  canvas.className = 'scan-live-edge';
+  finder.append(canvas);
+  return canvas;
+}
+
 export function coverPoint(videoW, videoH, viewW, viewH, x, y) {
   const scale = Math.max(viewW / videoW, viewH / videoH);
   const ox = (viewW - videoW * scale) / 2;

@@ -97,3 +97,63 @@ test('a dark fake camera shows the capture ring and does not fire the shutter', 
   await browser.close();
   server.close();
 });
+
+function cardFeed(file) {
+  const width = 320;
+  const height = 240;
+  const ySize = width * height;
+  const cSize = (width / 2) * (height / 2);
+  const parts = [Buffer.from(`YUV4MPEG2 W${width} H${height} F30:1 Ip A1:1 C420jpeg\n`)];
+  for (let frame = 0; frame < 10; frame++) {
+    const y = Buffer.alloc(ySize, 20);
+    for (let yy = 20; yy < 220; yy++) {
+      for (let xx = 90; xx < 230; xx++) y[yy * width + xx] = 190;
+    }
+    parts.push(Buffer.from('FRAME\n'), y, Buffer.alloc(cSize, 128), Buffer.alloc(cSize, 128));
+  }
+  fs.writeFileSync(file, Buffer.concat(parts));
+  return file;
+}
+
+test('a card-shaped fake camera draws a live outline without a console error', async () => {
+  const feed = cardFeed('/tmp/scan-phase1/card.y4m');
+  const browser = await chromium.launch({
+    executablePath: chrome,
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      '--use-fake-device-for-media-stream',
+      '--use-fake-ui-for-media-stream',
+      `--use-file-for-fake-video-capture=${feed}`,
+    ],
+  });
+  const server = await startServer();
+  const page = await (await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    serviceWorkers: 'block',
+  })).newPage();
+  const errors = [];
+  page.on('pageerror', (err) => errors.push(err.message));
+  await page.context().grantPermissions(['camera']);
+  await page.goto(`http://127.0.0.1:${server.address().port}/`);
+  await page.locator('nav button[data-v="scan"]').click();
+  await page.locator('#scan-front-cam').click();
+  await page.waitForFunction(() => {
+    const canvas = document.getElementById('scan-live-edge');
+    if (!canvas || canvas.width < 2) return false;
+    const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    let ink = 0;
+    for (let i = 3; i < data.length; i += 4) if (data[i] > 20) ink += 1;
+    return ink > 20;
+  }, null, { timeout: 8000 });
+  const hint = await page.locator('#scan-align').innerText();
+  assert.match(hint, /Lined up|Too far|Too close|Tilted|Blurry|Too dark|glare|No card/);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
+  assert.equal(overflow, true);
+  assert.deepEqual(errors, []);
+  await browser.close();
+  server.close();
+});

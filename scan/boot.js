@@ -28,7 +28,7 @@ import { createPriceBook, emptyMarket } from './prices.js';
 import { formatGuide, gradePhoto, gradeSide, straighten } from './pipeline.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
-import { mountRing, startLive } from './live.js';
+import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
@@ -703,6 +703,7 @@ function boot() {
       onFrame(view) {
         if (ui.align) ui.align.textContent = view.hint;
         if (ui.setCaptureProgress) ui.setCaptureProgress(view.progress);
+        drawLiveQuad(ui.liveEdge, ui.video, view.quad, view.code);
       },
       onCapture() {
         useFrame().catch(() => {
@@ -720,6 +721,7 @@ function boot() {
     }
     if (ui.setCaptureProgress) ui.setCaptureProgress(0);
     if (ui.align) ui.align.textContent = 'Align the card in the frame.';
+    drawLiveQuad(ui.liveEdge, null, null, '');
     if (ui.stream) {
       for (const track of ui.stream.getTracks()) track.stop();
       ui.stream = null;
@@ -1361,6 +1363,7 @@ function build(section, missingList) {
   outline.className = 'scan-outline';
   outline.id = 'scan-outline';
   finder.append(video, viewport, backView, outline);
+  const liveEdge = mountEdge(finder);
 
   const gallery = button('', 'scan-gallery', true);
   gallery.setAttribute('aria-label', 'Gallery');
@@ -1808,6 +1811,7 @@ function build(section, missingList) {
     camRetry,
     video,
     align,
+    liveEdge,
     setCaptureProgress: captureRing.set,
     stopLive: null,
     camStop,
