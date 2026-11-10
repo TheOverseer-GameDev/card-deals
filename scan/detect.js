@@ -3,7 +3,7 @@
  * A lined-up card is only a framing check, not a grade.
  */
 import { clippedFraction, laplacianVariance } from './engine.js';
-import { findQuad } from './pipeline.js';
+import { findQuad, quadPose } from './pipeline.js';
 
 const HOLD_MS = 700;
 
@@ -106,7 +106,12 @@ export function judgePreview(rgba, width, height) {
   if (skew > 20 || portrait < 0.56 || portrait > 0.9) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
   if (located.areaFrac < 0.18) return result('too-far', 'Too far. Move closer.', shared);
   if (located.areaFrac > 0.72 || nearEdge) return result('too-close', 'Too close. Show all four edges.', shared);
-  if (!located.found) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
+  const pose = quadPose(quad);
+  // Same bar as a stored centering number: worst edge past 2°, sides that are
+  // not parallel, or a quad that is not a card shape. Auto-capture waits.
+  if (!located.found || pose.tilt > 2 || !pose.parallel || !pose.aspectOk) {
+    return result('tilted', 'Hold flat. Tilted. Keep the phone parallel to the card.', shared);
+  }
   return result('lined-up', 'Lined up. Hold still.', shared);
 }
 

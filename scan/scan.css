@@ -80,7 +80,8 @@ html.scan-cam #v-scan .scan-layout, html.desktop.scan-cam #v-scan .scan-layout {
 html.scan-cam #v-scan .scan-capture { display: flex; flex-direction: column; width: 100%; flex: 1; min-height: 0; overflow: hidden; }
 html.scan-cam #v-scan .scan-finder { flex: 1 1 auto; min-height: 0 !important; height: auto; border-radius: 0; }
 html.scan-tight #v-scan .scan-finder { padding: 0 !important; flex: 1 1 0 !important; }
-html.scan-tight #scan-outline, html.scan-tight #v-scan .scan-mode, html.scan-tight #scan-step { display: none !important; }
+html.scan-tight #v-scan .scan-mode, html.scan-tight #scan-step { display: none !important; }
+html.scan-tight #scan-finder #scan-outline { display: block !important; }
 html.scan-tight #scan-tight-note { display: block; }
 html.scan-tight #v-scan .scan-top { height: 36px; }
 html.scan-tight #v-scan .scan-top button { min-height: 36px; min-width: 36px; }

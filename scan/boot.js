@@ -383,6 +383,7 @@ function boot() {
         releaseCanvas(state.canvas);
         state.canvas = next;
         state.flat = { rgba: flat.rgba, width: 500, height: 700 };
+        if (flat.centeringOk === false) note.textContent += ' Centering is unreadable until the card is held flat. Corners, edges, and surface are still checked.';
       } else if (slot === 'front') {
         note.textContent += ' Front is tilted.';
       }
@@ -715,6 +716,7 @@ function boot() {
     ui.stopLive = startLive(ui.video, {
       onFrame(view) {
         if (ui.align) ui.align.textContent = view.hint;
+        if (ui.tightNote) ui.tightNote.textContent = view.hint;
         if (ui.setCaptureProgress) ui.setCaptureProgress(view.progress);
         drawLiveQuad(ui.liveEdge, ui.video, view.quad, view.code);
       },
@@ -2021,6 +2023,7 @@ function build(section, missingList) {
     camRetry,
     video,
     align,
+    tightNote,
     liveEdge,
     setCaptureProgress: captureRing.set,
     stopLive: null,

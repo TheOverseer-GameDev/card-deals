@@ -245,8 +245,9 @@ test('lined-up synthetic photos agree on centering within 3 points', { skip: syn
     if ((lr != null || tb != null) && (lr == null || lr <= 3) && (tb == null || tb <= 3)) presentWithin += 1;
     if (lr != null && tb != null && lr <= 3 && tb <= 3) bothAxes += 1;
   }
-  // A missing axis is unreadable. An outline more than 3° off the frame is unreadable too.
-  assert.ok(presentWithin >= 3, `present axes within 3 points ${presentWithin}/6`);
+  // A missing axis is unreadable. An outline whose worst edge is past 2° is
+  // unreadable too: that same tilt still produced a wrong number on official cards.
+  assert.ok(presentWithin >= 2, `present axes within 3 points ${presentWithin}/6`);
   assert.ok(bothAxes >= 2, `both axes within 3 points ${bothAxes}/6`);
 });
 
@@ -272,10 +273,27 @@ function rotateRaw(file, deg) {
   };
 }
 
-function perspectiveRaw(file) {
+function scaledRotateRaw(file, deg) {
+  const rad = deg * Math.PI / 180;
+  const ow = Math.round(Math.abs(500 * Math.cos(rad)) + Math.abs(700 * Math.sin(rad)));
+  const oh = Math.round(Math.abs(500 * Math.sin(rad)) + Math.abs(700 * Math.cos(rad)));
   const proc = spawnSync('ffmpeg', [
     '-v', 'error', '-i', file,
-    '-vf', 'scale=500:700,pad=800:1100:150:200:0x202018,perspective=x0=80:y0=40:x1=740:y1=20:x2=760:y2=1040:x3=40:y3=1000:sense=source',
+    '-vf', `scale=500:700,rotate=${rad.toFixed(6)}:c=black:ow=${ow}:oh=${oh}`,
+    '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1',
+  ], { maxBuffer: 80_000_000 });
+  if (proc.status !== 0 || proc.stdout.length !== ow * oh * 4) throw new Error('scaled rotate failed');
+  return {
+    rgba: new Uint8ClampedArray(proc.stdout.buffer, proc.stdout.byteOffset, proc.stdout.byteLength),
+    width: ow,
+    height: oh,
+  };
+}
+
+function perspectiveRaw(file, spec) {
+  const proc = spawnSync('ffmpeg', [
+    '-v', 'error', '-i', file,
+    '-vf', spec,
     '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1',
   ], { maxBuffer: 80_000_000 });
   if (proc.status !== 0 || proc.stdout.length !== 800 * 1100 * 4) throw new Error('perspective failed');
@@ -286,10 +304,16 @@ function perspectiveRaw(file) {
   };
 }
 
+const PERSPECTIVES = [
+  'scale=500:700,pad=800:1100:150:200:0x202018,perspective=x0=80:y0=40:x1=740:y1=20:x2=760:y2=1040:x3=40:y3=1000:sense=source',
+  'scale=500:700,pad=800:1100:150:200:0x202018,perspective=x0=40:y0=80:x1=760:y1=40:x2=720:y2=1060:x3=80:y3=980:sense=source',
+  'scale=500:700,pad=800:1100:150:200:black,perspective=x0=120:y0=20:x1=700:y1=80:x2=780:y2=1000:x3=20:y3=1080:sense=source',
+];
+
 test('rotated and perspective official cards are unreadable or within 3 points', { skip }, () => {
   const files = images();
   assert.ok(files.length >= 50, `official images found ${files.length}`);
-  const angles = [5, 10, 15, 20, 30];
+  const angles = [1, 2, 3, 5, 7, 10, 15, 20, 25, 30];
   let confidentWrong = 0;
   let checked = 0;
   for (const file of files) {
@@ -298,22 +322,30 @@ test('rotated and perspective official cards are unreadable or within 3 points',
     const flatTb = flatText.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) top\/bottom/);
     const scenes = [
       ...angles.map((deg) => rotateRaw(file, deg)),
-      perspectiveRaw(file),
+      ...angles.map((deg) => scaledRotateRaw(file, deg)),
+      ...PERSPECTIVES.map((spec) => perspectiveRaw(file, spec)),
     ];
     for (const photo of scenes) {
       checked += 1;
       const warped = straighten(photo.rgba, photo.width, photo.height);
-      const text = warped.flattened ? (measureCentering(grayOf(warped.rgba), 500, 700) || '') : '';
+      const gray = warped.flattened ? grayOf(warped.rgba, 500, 700) : null;
+      const text = gray ? (measureCentering(gray, 500, 700) || '') : '';
       const lr = axisErr(text, 'lr', flatLr ? Number(flatLr[1]) : NaN);
       const tb = axisErr(text, 'tb', flatTb ? Number(flatTb[1]) : NaN);
       if (lr != null && !(lr <= 3)) confidentWrong += 1;
       if (tb != null && !(tb <= 3)) confidentWrong += 1;
       assert.ok(lr == null || lr <= 3, `${path.basename(file)} left/right ${text}`);
       assert.ok(tb == null || tb <= 3, `${path.basename(file)} top/bottom ${text}`);
+      if (gray) {
+        const marks = gradeSide(gray, 500, 700, text, true);
+        assert.equal(/Tilted\. Not checked/.test(marks.corners.note), false);
+        assert.equal(/Tilted\. Not checked/.test(marks.edges.note), false);
+        assert.equal(/Tilted\. Not checked/.test(marks.surface.note), false);
+      }
     }
   }
   assert.equal(confidentWrong, 0, `confident wrong ${confidentWrong}/${checked}`);
-  assert.ok(checked >= files.length * 6, `checked ${checked}`);
+  assert.ok(checked >= files.length * 23, `checked ${checked}`);
 });
 
 test('Yu-Gi-Oh full-bleed top and bottom is a note, not a number', { skip }, () => {
@@ -347,6 +379,45 @@ test('a lowlight white corner is unchecked and a glare white corner is still cau
   assert.equal(glareFlat.flattened, true, 'the glare photo did not straighten');
   const glareFlags = inspectSide(glareFlat.rgba, 500, 700, 'front').crops.map((crop) => crop.flag);
   assert.ok(glareFlags.includes('whitening') || glareFlags.includes('chip'), glareFlags.join(','));
+});
+
+const wikiRoot = process.env.CARD_WIKI_DIR
+  || (fs.existsSync('/tmp/card-wiki/data/wikimedia') ? '/tmp/card-wiki/data/wikimedia' : '');
+const wikiSkip = !wikiRoot
+  ? 'Wikimedia handheld photos are not on this machine. Set CARD_WIKI_DIR. This is not a pass.'
+  : !ffmpeg
+    ? 'ffmpeg is not available, so the Wikimedia photos were not decoded. This is not a pass.'
+    : false;
+
+test('handheld Wikimedia photos do not get a centering number unless the card is flat', { skip: wikiSkip }, () => {
+  const files = fs.readdirSync(wikiRoot).filter((name) => /\.(jpg|jpeg|png)$/i.test(name));
+  assert.ok(files.length >= 10, `Wikimedia photos found ${files.length}. This is not a pass.`);
+  let readable = 0;
+  for (const name of files) {
+    const file = path.join(wikiRoot, name);
+    const probe = spawnSync('ffprobe', [
+      '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file,
+    ], { encoding: 'utf8' });
+    if (probe.status !== 0) throw new Error(probe.stderr.toString());
+    const [iw, ih] = probe.stdout.trim().split(',').map(Number);
+    const proc = spawnSync('ffmpeg', [
+      '-v', 'error', '-i', file, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1',
+    ], { maxBuffer: 80_000_000 });
+    if (proc.status !== 0 || proc.stdout.length !== iw * ih * 4) throw new Error(`decode ${name}`);
+    const rgba = new Uint8ClampedArray(proc.stdout.buffer, proc.stdout.byteOffset, proc.stdout.byteLength);
+    const flat = straighten(rgba, iw, ih);
+    const text = flat.flattened ? (measureCentering(grayOf(flat.rgba), 500, 700) || '') : '';
+    const number = /(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) (?:left\/right|top\/bottom)/.test(text);
+    if (number) {
+      readable += 1;
+      assert.equal(flat.centeringOk, true, `${name} reported a number from a tilted quad: ${text}`);
+    }
+    if (flat.flattened) {
+      const marks = gradeSide(grayOf(flat.rgba), 500, 700, text, true);
+      assert.equal(/Tilted\. Not checked/.test(`${marks.corners.note} ${marks.edges.note} ${marks.surface.note}`), false, name);
+    }
+  }
+  assert.ok(readable >= 0, `readable ${readable}/${files.length}`);
 });
 
 test('a synthetic crease with no remaining step is not invented', { skip: synthSkip }, () => {
