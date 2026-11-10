@@ -407,12 +407,76 @@ export function findQuad(rgba, width, height, longEdge = 480, minArea = 0.18, mi
   return { found: true, quad, areaFrac, ratio, reason: '', ...frame };
 }
 
+function outerQuad(gray, width, height, scale) {
+  const samples = [];
+  for (let i = 2; i < 12; i++) {
+    samples.push(gray[i * width + i]);
+    samples.push(gray[i * width + (width - 1 - i)]);
+    samples.push(gray[(height - 1 - i) * width + i]);
+    samples.push(gray[(height - 1 - i) * width + (width - 1 - i)]);
+  }
+  const finite = samples.filter((n) => Number.isFinite(n));
+  if (finite.length < 8) return null;
+  finite.sort((a, b) => a - b);
+  const bg = finite[finite.length >> 1];
+  if (finite[finite.length - 1] - finite[0] > 36) return null;
+  const mask = new Uint8Array(width * height);
+  for (let i = 0; i < gray.length; i++) if (Math.abs(gray[i] - bg) >= 28) mask[i] = 1;
+  const comp = largestComponent(mask, width, height);
+  const area = comp.length;
+  if (area < width * height * 0.05 || area > width * height * 0.9) return null;
+  const pts = [];
+  for (let n = 0; n < comp.length; n++) {
+    const i = comp[n];
+    const x = i % width;
+    const y = (i - x) / width;
+    const outside = x === 0 || y === 0 || x === width - 1 || y === height - 1
+      || !mask[i - 1] || !mask[i + 1] || !mask[i - width] || !mask[i + width];
+    if (outside) pts.push({ x, y });
+  }
+  if (pts.length < 16) return null;
+  const tl = pts.reduce((a, p) => (p.x + p.y < a.x + a.y ? p : a));
+  const tr = pts.reduce((a, p) => (p.x - p.y > a.x - a.y ? p : a));
+  const br = pts.reduce((a, p) => (p.x + p.y > a.x + a.y ? p : a));
+  const bl = pts.reduce((a, p) => (p.x - p.y < a.x - a.y ? p : a));
+  let ordered = [tl, tr, br, bl];
+  const edgeLen = (a, b) => Math.hypot(ordered[a].x - ordered[b].x, ordered[a].y - ordered[b].y);
+  const top = edgeLen(1, 0);
+  const right = edgeLen(2, 1);
+  const bottom = edgeLen(3, 2);
+  const left = edgeLen(0, 3);
+  const sidesDiffer = Math.abs(top - bottom) / Math.max(top, bottom) > 0.2
+    || Math.abs(left - right) / Math.max(left, right) > 0.2;
+  let spanW = top;
+  let spanH = left;
+  if (spanW > spanH) {
+    ordered = [ordered[3], ordered[0], ordered[1], ordered[2]];
+    spanW = edgeLen(1, 0);
+    spanH = edgeLen(0, 3);
+  }
+  const shape = Math.min(spanW, spanH) / (Math.max(spanW, spanH) || 1);
+  if (shape < 0.55 || shape > 0.9 || spanW < 40 || spanH < 40 || sidesDiffer) return null;
+  return ordered.map((p) => ({ x: p.x / scale, y: p.y / scale }));
+}
+
 export function straighten(rgba, width, height) {
   const located = findQuad(rgba, width, height, 480, 0.18);
-  if (!located.found) return { flattened: false, reason: located.reason };
-  const warped = warp(rgba, width, height, located.quad);
+  let paper = located.gray ? outerQuad(located.gray, located.width, located.height, located.scale) : null;
+  if (paper && located.found && located.quad) {
+    const mid = (pts) => ({
+      x: pts.reduce((sum, p) => sum + p.x, 0) / pts.length,
+      y: pts.reduce((sum, p) => sum + p.y, 0) / pts.length,
+    });
+    const a = mid(paper);
+    const b = mid(located.quad);
+    const span = Math.hypot(located.quad[1].x - located.quad[0].x, located.quad[1].y - located.quad[0].y) || 1;
+    if (Math.hypot(a.x - b.x, a.y - b.y) > span * 0.2) paper = null;
+  }
+  const quad = paper || (located.found ? located.quad : null);
+  if (!quad) return { flattened: false, reason: located.reason || 'no card edge' };
+  const warped = warp(rgba, width, height, quad);
   if (!warped) return { flattened: false, reason: 'warp' };
-  return { flattened: true, width: 500, height: 700, rgba: warped.rgba };
+  return { flattened: true, width: 500, height: 700, rgba: warped.rgba, paper: !!paper, quad };
 }
 
 function median(nums) {
@@ -446,6 +510,16 @@ function borderRun(gray, width, height, side, fixed) {
     }
     return sum / n;
   });
+  // A light paper border ends where the artwork drops away. Its width is the
+  // printed margin, whether or not a sliver of table is still inside the outline.
+  let bandStart = null;
+  for (let step = 0; step < 8; step++) if (blur[step] > 175) { bandStart = step; break; }
+  if (bandStart != null) {
+    const level = blur[bandStart];
+    for (let step = bandStart + 6; step < blur.length - 1; step++) {
+      if (blur[step] < level - 45 && blur[step + 1] < level - 35) return step - bandStart;
+    }
+  }
   const start = blur[2];
   let trough = null;
   let troughVal = start;
@@ -528,7 +602,18 @@ export function measureCentering(gray, width, height) {
   const bits = [];
   if (lr) bits.push(`${lr[0].toFixed(1)}/${lr[1].toFixed(1)} left/right`);
   if (tb) bits.push(`${tb[0].toFixed(1)}/${tb[1].toFixed(1)} top/bottom`);
-  return `Centering: ${bits.join('. ')}.`;
+  let text = `Centering: ${bits.join('. ')}.`;
+  if (tb && printedFrame(gray, width, height)) text += ' Printed frame.';
+  return text;
+}
+
+function printedFrame(gray, width, height) {
+  const x = Math.floor(width / 2);
+  const top = gray[width + x] - gray[12 * width + x];
+  const bottom = gray[(height - 2) * width + x] - gray[(height - 13) * width + x];
+  // The picture is cropped to the card, so the number is the shared printed
+  // frame, not a separate physical edge photographed on a table.
+  return top > 28 && bottom > 28;
 }
 
 function offCenter(text, axis) {

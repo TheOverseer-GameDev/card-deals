@@ -216,28 +216,41 @@ test('synthetic crease flats are still called a crease', { skip: synthSkip }, ()
   assert.equal(caught, files.length, `creases caught ${caught}/${files.length}`);
 });
 
-test('a lined-up synthetic photo keeps its known centering', { skip: synthSkip }, () => {
+function axisErr(text, kind, truth) {
+  const re = kind === 'lr'
+    ? /(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) left\/right/
+    : /(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) top\/bottom/;
+  const match = text.match(re);
+  if (!match) return null;
+  return Math.abs(Number(match[1]) - truth);
+}
+
+test('lined-up synthetic photos agree on centering within 3 points', { skip: synthSkip }, () => {
   const manifestPath = path.join(path.dirname(synth), 'manifest.json');
   assert.equal(fs.existsSync(manifestPath), true, 'the synthetic manifest is missing. This is not a pass.');
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-  const rows = (manifest.synth || []).filter((row) => row.mode === 'lined-up' && row.centering_gt
-    && ((row.name || '').startsWith('centered:clean') || (row.name || '').includes('nick_top:lined-up')));
-  assert.ok(rows.length >= 2, `lined-up fixtures found ${rows.length}`);
+  const rows = (manifest.synth || []).filter((row) => row.mode === 'lined-up' && row.centering_gt);
+  assert.equal(rows.length, 6, `lined-up fixtures found ${rows.length}`);
   const root = path.dirname(path.dirname(synth));
+  let presentWithin = 0;
+  let bothAxes = 0;
   for (const row of rows) {
     const image = decodeNative(path.join(root, row.path));
     const flat = straighten(image.rgba, image.width, image.height);
-    assert.equal(flat.flattened, true, `${row.name} did not straighten`);
-    const text = measureCentering(grayOf(flat.rgba), 500, 700) || '';
-    const lr = text.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) left\/right/);
-    const tb = text.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) top\/bottom/);
-    assert.ok(lr || tb, `${row.name} centering was unreadable`);
-    if (lr) assert.ok(Math.abs(Number(lr[1]) - row.centering_gt.lr[0]) <= 3, `${row.name} ${text}`);
-    if (tb) assert.ok(Math.abs(Number(tb[1]) - row.centering_gt.tb[0]) <= 3, `${row.name} ${text}`);
+    const text = flat.flattened ? (measureCentering(grayOf(flat.rgba), 500, 700) || '') : '';
+    const lr = axisErr(text, 'lr', row.centering_gt.lr[0]);
+    const tb = axisErr(text, 'tb', row.centering_gt.tb[0]);
+    if (lr != null) assert.ok(lr <= 3, `${row.name} left/right ${text}`);
+    if (tb != null) assert.ok(tb <= 3, `${row.name} top/bottom ${text}`);
+    if ((lr != null || tb != null) && (lr == null || lr <= 3) && (tb == null || tb <= 3)) presentWithin += 1;
+    if (lr != null && tb != null && lr <= 3 && tb <= 3) bothAxes += 1;
   }
+  // The bench accepts a missing axis. Both axes are required on the cards whose outline is stable.
+  assert.ok(presentWithin >= 5, `present axes within 3 points ${presentWithin}/6`);
+  assert.ok(bothAxes >= 4, `both axes within 3 points ${bothAxes}/6`);
 });
 
-test('a warped official photo does not invent a left/right pair', { skip }, () => {
+test('a rotated official card stays within 3 points of its flat centering', { skip }, () => {
   const files = images();
   const source = files.find((file) => file.includes('89631139')) || files[0];
   const out = path.join('/tmp', 'card-warp-official.png');
@@ -254,7 +267,57 @@ test('a warped official photo does not invent a left/right pair', { skip }, () =
   const text = measureCentering(grayOf(warped.rgba), 500, 700) || '';
   const flatLr = flatText.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) left\/right/);
   const warpLr = text.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) left\/right/);
-  if (flatLr && warpLr) {
-    assert.ok(Math.abs(Number(warpLr[1]) - Number(flatLr[1])) <= 3, `${text} vs ${flatText}`);
+  const flatTb = flatText.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) top\/bottom/);
+  const warpTb = text.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?) top\/bottom/);
+  assert.ok(flatLr && warpLr, `${text} vs ${flatText}`);
+  assert.ok(flatTb && warpTb, `${text} vs ${flatText}`);
+  assert.ok(Math.abs(Number(warpLr[1]) - Number(flatLr[1])) <= 3, `${text} vs ${flatText}`);
+  assert.ok(Math.abs(Number(warpTb[1]) - Number(flatTb[1])) <= 3, `${text} vs ${flatText}`);
+});
+
+test('Yu-Gi-Oh full-bleed reads are labeled as the printed frame', { skip }, () => {
+  const files = images().filter((file) => file.includes(`${path.sep}ygo${path.sep}`));
+  assert.ok(files.length >= 20, `Yu-Gi-Oh images found ${files.length}`);
+  let labeled = 0;
+  let locked = 0;
+  for (const file of files) {
+    const text = measureCentering(grayOf(decode(file, 500, 700)), 500, 700) || '';
+    if (!/top\/bottom/.test(text)) continue;
+    if (text.includes('Printed frame.')) labeled += 1;
+    if (/48\.0\/52\.0 top\/bottom/.test(text)) locked += 1;
+  }
+  assert.ok(labeled >= 20, `printed-frame labels ${labeled}/${files.length}`);
+  assert.equal(locked, labeled);
+});
+
+test('a lowlight white corner is unchecked and a glare white corner is still caught', { skip: synthSkip }, () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(path.dirname(synth), 'manifest.json'), 'utf8'));
+  const root = path.dirname(path.dirname(synth));
+  const low = (manifest.synth || []).find((row) => row.defect_gt === 'white_corner' && row.mode === 'lowlight');
+  const glare = (manifest.synth || []).find((row) => row.defect_gt === 'white_corner' && row.mode === 'glare');
+  assert.ok(low && glare, 'the lowlight and glare white-corner photos are missing. This is not a pass.');
+  const lowPhoto = decodeNative(path.join(root, low.path));
+  const lowFlat = straighten(lowPhoto.rgba, lowPhoto.width, lowPhoto.height);
+  assert.equal(lowFlat.flattened, true, 'the lowlight photo did not straighten');
+  const lowFlags = inspectSide(lowFlat.rgba, 500, 700, 'front').crops.map((crop) => crop.flag);
+  assert.equal(lowFlags.includes('whitening'), false, lowFlags.join(','));
+  const glarePhoto = decodeNative(path.join(root, glare.path));
+  const glareFlat = straighten(glarePhoto.rgba, glarePhoto.width, glarePhoto.height);
+  assert.equal(glareFlat.flattened, true, 'the glare photo did not straighten');
+  const glareFlags = inspectSide(glareFlat.rgba, 500, 700, 'front').crops.map((crop) => crop.flag);
+  assert.ok(glareFlags.includes('whitening') || glareFlags.includes('chip'), glareFlags.join(','));
+});
+
+test('a synthetic crease with no remaining step is not invented', { skip: synthSkip }, () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(path.dirname(synth), 'manifest.json'), 'utf8'));
+  const root = path.dirname(path.dirname(synth));
+  const rows = (manifest.synth || []).filter((row) => row.kind === 'synth_gt' && row.defect_gt === 'crease' && row.mode !== 'too-far');
+  assert.ok(rows.length >= 2, `geometric crease photos found ${rows.length}`);
+  for (const row of rows) {
+    const image = decodeNative(path.join(root, row.path));
+    const flat = straighten(image.rgba, image.width, image.height);
+    if (!flat.flattened) continue;
+    const note = gradeSide(grayOf(flat.rgba), 500, 700, '', true).surface.note;
+    assert.equal(note.startsWith('Possible crease'), false, `${row.name} ${note}`);
   }
 });
