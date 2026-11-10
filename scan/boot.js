@@ -28,6 +28,7 @@ import { createPriceBook, emptyMarket } from './prices.js';
 import { formatGuide, gradePhoto, gradeSide, straighten } from './pipeline.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
+import { mountRing, startLive } from './live.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
@@ -697,9 +698,28 @@ function boot() {
     try { ui.video.srcObject = stream; } catch { /* A test double is not a real stream. The preview element is already on screen. */ }
     try { await ui.video.play(); } catch { /* The shutter still works after the video is ready. */ }
     await fillCameraList();
+    if (my !== camToken || !ui.stream) return;
+    ui.stopLive = startLive(ui.video, {
+      onFrame(view) {
+        if (ui.align) ui.align.textContent = view.hint;
+        if (ui.setCaptureProgress) ui.setCaptureProgress(view.progress);
+      },
+      onCapture() {
+        useFrame().catch(() => {
+          ui.camMsg.textContent = 'The frame could not be copied. You can still use the shutter.';
+          ui.blocked.hidden = false;
+        });
+      },
+    });
   }
 
   function releaseStream() {
+    if (ui.stopLive) {
+      ui.stopLive();
+      ui.stopLive = null;
+    }
+    if (ui.setCaptureProgress) ui.setCaptureProgress(0);
+    if (ui.align) ui.align.textContent = 'Align the card in the frame.';
     if (ui.stream) {
       for (const track of ui.stream.getTracks()) track.stop();
       ui.stream = null;
@@ -1373,6 +1393,7 @@ function build(section, missingList) {
   camRight.append(gallery, next);
   const camBar = document.createElement('div');
   camBar.className = 'scan-cam-bar';
+  const captureRing = mountRing(camBar);
   camBar.append(camLeft, camRight, frontCam);
   const camMsg = document.createElement('p');
   camMsg.id = 'scan-cam-msg';
@@ -1786,6 +1807,9 @@ function build(section, missingList) {
     camMsg,
     camRetry,
     video,
+    align,
+    setCaptureProgress: captureRing.set,
+    stopLive: null,
     camStop,
     stream: null,
     camSlot: 'front',

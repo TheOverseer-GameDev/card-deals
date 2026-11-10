@@ -349,14 +349,15 @@ function warp(rgba, width, height, quad) {
   return { width: dw, height: dh, rgba: out };
 }
 
-export function straighten(rgba, width, height) {
-  const scaled = scaleToLong(rgba, width, height, 480);
+export function findQuad(rgba, width, height, longEdge = 480, minArea = 0.18, minBox = 0.12) {
+  const scaled = scaleToLong(rgba, width, height, longEdge);
   const gray = blur5(grayOf(scaled.rgba, scaled.width, scaled.height), scaled.width, scaled.height);
+  const frame = { gray, width: scaled.width, height: scaled.height, scale: scaled.scale };
   const { mag, max } = sobelMag(gray, scaled.width, scaled.height);
-  if (max <= 0) return { flattened: false, reason: 'max' };
+  if (max <= 0) return { found: false, reason: 'max', ...frame };
   const mask = edgeMask(mag, scaled.width, scaled.height, max);
   const comp = largestComponent(mask, scaled.width, scaled.height);
-  if (comp.length < 80) return { flattened: false, reason: 'comp '+comp.length+' max '+max };
+  if (comp.length < 80) return { found: false, reason: 'comp '+comp.length+' max '+max, ...frame };
   let minX = scaled.width;
   let minY = scaled.height;
   let maxX = 0;
@@ -373,7 +374,7 @@ export function straighten(rgba, width, height) {
     if (y > maxY) maxY = y;
   }
   const box = (maxX - minX + 1) * (maxY - minY + 1);
-  if (box < 0.12 * scaled.width * scaled.height) return { flattened: false, reason: 'box' };
+  if (box < minBox * scaled.width * scaled.height) return { found: false, reason: 'box', ...frame };
   const ring = hull(pts);
   let poly = ring;
   let epsilon = 2;
@@ -381,7 +382,7 @@ export function straighten(rgba, width, height) {
     poly = dp(ring, epsilon);
     epsilon *= 1.55;
   }
-  if (poly.length !== 4) return { flattened: false, reason: 'poly '+poly.length };
+  if (poly.length !== 4) return { found: false, reason: 'poly '+poly.length, ...frame };
   const ordered = orderQuad(poly);
   const area = Math.abs(
     ordered.reduce((sum, p, i) => {
@@ -392,9 +393,18 @@ export function straighten(rgba, width, height) {
   const spanW = Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y);
   const spanH = Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y);
   const ratio = spanW / (spanH || 1);
-  if (area < 0.18 * scaled.width * scaled.height || ratio < 0.5 || ratio > 0.95) return { flattened: false, reason: 'geom '+area+' '+ratio };
-  const full = ordered.map((p) => ({ x: p.x / scaled.scale, y: p.y / scaled.scale }));
-  const warped = warp(rgba, width, height, full);
+  const quad = ordered.map((p) => ({ x: p.x / scaled.scale, y: p.y / scaled.scale }));
+  const areaFrac = area / (scaled.width * scaled.height);
+  if (area < minArea * scaled.width * scaled.height || ratio < 0.5 || ratio > 0.95) {
+    return { found: false, reason: 'geom '+area+' '+ratio, candidate: quad, areaFrac, ratio, ...frame };
+  }
+  return { found: true, quad, areaFrac, ratio, reason: '', ...frame };
+}
+
+export function straighten(rgba, width, height) {
+  const located = findQuad(rgba, width, height, 480, 0.18);
+  if (!located.found) return { flattened: false, reason: located.reason };
+  const warped = warp(rgba, width, height, located.quad);
   if (!warped) return { flattened: false, reason: 'warp' };
   return { flattened: true, width: 500, height: 700, rgba: warped.rgba };
 }
