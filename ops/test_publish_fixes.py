@@ -137,6 +137,83 @@ class PublishOrderTests(unittest.TestCase):
         self.assertNotIn('example.invalid', text)
 
 
+def load_cleaner():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        'clean_generated', DEPLOY / 'card_app' / 'clean_generated.py')
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class CleanGeneratedSymlinkTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.site = self.root / 'site'
+        self.prev = self.root / 'site_prev'
+        self.victim = self.root / 'victim'
+        self.site.mkdir()
+        self.prev.mkdir()
+        self.victim.mkdir()
+        (self.victim / 'precious.json').write_text('keep')
+        (self.victim / 'other.txt').write_text('keep')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def clean(self, site=None):
+        return load_cleaner().clean(str(site or self.site), str(self.prev))
+
+    def test_a_symlinked_generated_directory_is_not_followed(self):
+        (self.site / 'h').symlink_to(self.victim, target_is_directory=True)
+        market = self.root / 'market-victim'
+        market.mkdir()
+        (market / 'shard.json').write_text('outside')
+        (self.site / 'scan').mkdir()
+        (self.site / 'scan' / 'market').symlink_to(market, target_is_directory=True)
+        self.clean()
+        self.assertEqual((self.victim / 'precious.json').read_text(), 'keep')
+        self.assertEqual((self.victim / 'other.txt').read_text(), 'keep')
+        self.assertEqual((market / 'shard.json').read_text(), 'outside')
+        self.assertTrue((self.site / 'h').is_symlink())
+        self.assertTrue((self.site / 'scan' / 'market').is_symlink())
+
+    def test_a_symlinked_file_does_not_delete_its_target(self):
+        folder = self.site / 'h' / 'ygo'
+        folder.mkdir(parents=True)
+        (folder / 'link.json').symlink_to(self.victim / 'precious.json')
+        self.clean()
+        self.assertEqual((self.victim / 'precious.json').read_text(), 'keep')
+        self.assertTrue((folder / 'link.json').is_symlink())
+
+    def test_a_symlinked_site_root_cleans_only_the_real_tree(self):
+        real = self.root / 'real-site'
+        (real / 'h' / 'ygo').mkdir(parents=True)
+        (real / 'h' / 'ygo' / 'stray.json').write_text('{}')
+        (real / 'keep.txt').write_text('user')
+        (real / 'h' / 'outside').symlink_to(self.victim, target_is_directory=True)
+        linked = self.root / 'linked-site'
+        linked.symlink_to(real, target_is_directory=True)
+        self.clean(linked)
+        self.assertFalse((real / 'h' / 'ygo' / 'stray.json').exists())
+        self.assertEqual((real / 'keep.txt').read_text(), 'user')
+        self.assertEqual((self.victim / 'precious.json').read_text(), 'keep')
+        self.assertTrue((real / 'h' / 'outside').is_symlink())
+
+    def test_an_empty_directory_symlink_does_not_abort_cleanup(self):
+        empty = self.root / 'empty'
+        empty.mkdir()
+        (self.site / 'h').mkdir()
+        (self.site / 'h' / 'emptylink').symlink_to(empty, target_is_directory=True)
+        (self.site / 'h' / 'stray.json').write_text('{}')
+        removed = self.clean()
+        self.assertIn('h/stray.json', removed)
+        self.assertFalse((self.site / 'h' / 'stray.json').exists())
+        self.assertTrue((self.site / 'h' / 'emptylink').is_symlink())
+        self.assertTrue(empty.is_dir())
+
+
 class GateMessageTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
