@@ -34,7 +34,7 @@ function phrase(distanceValue, part) {
 }
 
 export function compareReference(photo, reference) {
-  if (!photo || !photo.rgba || !reference || !reference.rgba) {
+  if (!photo || !photo.rgba || photo.rgba.length < photo.width * photo.height * 4 || !reference || !reference.rgba) {
     return { note: 'No reference image was available, so font, color, and border were not compared.' };
   }
   const borderPhoto = sample(photo.rgba, photo.width, photo.height, 0, 0, photo.width, Math.max(2, Math.round(photo.height * 0.04)));

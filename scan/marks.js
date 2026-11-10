@@ -27,6 +27,9 @@ function compactMark(rgba, width, height) {
 }
 
 export function readMarks(rgba, width, height, text) {
+  if (rgba && rgba.length < width * height * 4) {
+    return { note: 'The photo is too small to check for stamps. No edition stamp or rarity word was read. A missing read is not a missing stamp.' };
+  }
   const words = String(text || '');
   const notes = [];
   if (/1st\s*edition/i.test(words)) notes.push('The read text includes “1st Edition”.');

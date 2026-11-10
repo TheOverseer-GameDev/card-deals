@@ -25,6 +25,16 @@ function paint(width, height, pixel) {
   return rgba;
 }
 
+test('short buffers are unchecked instead of read past the end', () => {
+  const tiny = new Uint8ClampedArray(8);
+  assert.equal(findStains(tiny, 40, 40).status, 'unchecked');
+  assert.equal(findCreases(tiny, 40, 40).status, 'unchecked');
+  assert.equal(findFoilWear(tiny, 40, 40).status, 'unchecked');
+  assert.match(readMarks(tiny, 40, 40, '').note, /too small|not a missing stamp/);
+  assert.match(compareReference({ rgba: tiny, width: 40, height: 40 }, { rgba: tiny, width: 40, height: 40 }).note, /not compared|too small|consistent|inconsistent/);
+  assert.match(printQuality(tiny, 40, 40, null).note, /too small/);
+});
+
 test('a dark patch is a possible stain and a flat photo is not', () => {
   const clean = paint(96, 128, () => [180, 180, 180]);
   const clear = findStains(clean, 96, 128);

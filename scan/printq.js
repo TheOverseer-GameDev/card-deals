@@ -67,7 +67,7 @@ function meanColor(rgba) {
 }
 
 export function printQuality(rgba, width, height, reference) {
-  if (!rgba || width < 16 || height < 16) {
+  if (!rgba || rgba.length < width * height * 4 || width < 16 || height < 16) {
     return { poor: true, note: 'The photo is too small to judge print quality.' };
   }
   const sharp = sharpness(rgba, width, height);

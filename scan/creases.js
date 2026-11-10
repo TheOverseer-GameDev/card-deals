@@ -8,28 +8,23 @@ function gray(rgba, width, x, y) {
   return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
 }
 
-function columnDelta(rgba, width, height, x) {
-  const y0 = Math.round(height * 0.15);
-  const y1 = Math.round(height * 0.85);
-  let strong = 0;
-  let seen = 0;
-  let sign = 0;
+function groove(rgba, width, height, x) {
+  const y0 = Math.round(height * 0.2);
+  const y1 = Math.round(height * 0.8);
+  let rows = 0;
+  let hit = 0;
   for (let y = y0; y < y1; y += 2) {
-    const left = gray(rgba, width, x - 8, y);
-    const right = gray(rgba, width, x + 8, y);
-    const delta = left - right;
-    seen += 1;
-    if (Math.abs(delta) > 35) {
-      strong += 1;
-      sign += Math.sign(delta);
-    }
+    const left = gray(rgba, width, x - 10, y);
+    const mid = gray(rgba, width, x, y);
+    const right = gray(rgba, width, x + 10, y);
+    rows += 1;
+    if (mid < left - 30 && mid < right - 30 && Math.abs(left - right) < 25) hit += 1;
   }
-  const aligned = strong > 0 && Math.abs(sign) > strong * 0.8;
-  return { strong: seen ? strong / seen : 0, aligned };
+  return rows ? hit / rows : 0;
 }
 
 export function findCreases(rgba, width, height) {
-  if (!rgba || width < 40 || height < 40) {
+  if (!rgba || rgba.length < width * height * 4 || width < 40 || height < 40) {
     return { status: 'unchecked', findings: [], note: 'The photo is too small to check shading.' };
   }
   let leftSum = 0;
@@ -57,8 +52,8 @@ export function findCreases(rgba, width, height) {
   }
   let best = null;
   for (let x = 16; x < width - 16; x += 4) {
-    const hit = columnDelta(rgba, width, height, x);
-    if (hit.aligned && hit.strong > 0.45 && (!best || hit.strong > best.strong)) best = { x, ...hit };
+    const strong = groove(rgba, width, height, x);
+    if (strong > 0.62 && (!best || strong > best.strong)) best = { x, strong };
   }
   if (!best) {
     return {

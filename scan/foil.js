@@ -10,9 +10,34 @@ function sat(rgba, i) {
   return Math.max(r, g, b) - Math.min(r, g, b);
 }
 
-export function findFoilWear(rgba, width, height) {
-  if (!rgba || width < 20 || height < 20) {
+function reflectiveShare(rgba, width, height) {
+  let shiny = 0;
+  let total = 0;
+  const x0 = Math.round(width * 0.2);
+  const y0 = Math.round(height * 0.2);
+  const x1 = Math.round(width * 0.8);
+  const y1 = Math.round(height * 0.7);
+  for (let y = y0; y < y1; y += 2) {
+    for (let x = x0; x < x1; x += 2) {
+      total += 1;
+      if (sat(rgba, (y * width + x) * 4) > 80) shiny += 1;
+    }
+  }
+  return total ? shiny / total : 0;
+}
+
+export function findFoilWear(rgba, width, height, reference) {
+  if (!rgba || rgba.length < width * height * 4 || width < 20 || height < 20) {
     return { status: 'unchecked', findings: [], note: 'The photo is too small to check foil.' };
+  }
+  const known = reference && reference.holo === true;
+  const shinyField = reflectiveShare(reference && reference.rgba ? reference.rgba : rgba, reference && reference.width ? reference.width : width, reference && reference.height ? reference.height : height);
+  if (!known && shinyField < 0.55) {
+    return {
+      status: 'clear',
+      findings: [],
+      note: 'No reflective finish was confirmed, so foil wear was not checked. That does not mean the card has no foil.',
+    };
   }
   const x0 = Math.round(width * 0.15);
   const y0 = Math.round(height * 0.15);
@@ -51,7 +76,7 @@ export function findFoilWear(rgba, width, height) {
     }
   }
   const box = Math.max(1, (maxX - minX + 1) * (maxY - minY + 1));
-  if (dull / box < 0.08) {
+  if (dull / box < 0.08 || dull / box > 0.22) {
     return {
       status: 'clear',
       findings: [],

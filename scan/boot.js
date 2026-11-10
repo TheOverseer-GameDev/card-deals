@@ -15,7 +15,6 @@ import {
   REGION_GEOM,
   REGION_LABEL,
   retakePrompts,
-  measureCentering,
   psaEstimate,
   safeHttpUrl,
   searchCatalog,
@@ -30,7 +29,7 @@ import { inspectSide } from './edges.js';
 import { compareTilt } from './tilt.js';
 import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
-import { formatGuide, gradePhoto, gradeSide, grayOf, straighten } from './pipeline.js';
+import { formatGuide, gradePhoto, gradeSide, grayOf, measureCentering, straighten } from './pipeline.js';
 import { findStains } from './stains.js';
 import { findCreases } from './creases.js';
 import { findFoilWear } from './foil.js';
@@ -915,10 +914,7 @@ function boot() {
     const photo = printQuality(rgba, width, height, reference);
     if (!flat) photo.poor = true;
     const gray = grayOf(rgba, width, height);
-    const measured = measureCentering(gray, width, height);
-    const centeringText = measured && measured.state === 'measured'
-      ? `Centering: ${measured.leftPct.toFixed(1)}/${measured.rightPct.toFixed(1)} left/right. ${measured.topPct.toFixed(1)}/${measured.bottomPct.toFixed(1)} top/bottom.`
-      : '';
+    const centeringText = width === 500 && height === 700 ? (measureCentering(gray, width, height) || '') : '';
     const side = gradeSide(gray, width, height, centeringText, Boolean(flat));
     const photoGrade = gradePhoto({ front: { flattened: true, marks: side }, back: null, frontBack: false });
     const range = estimateRange(photoGrade, photo);
