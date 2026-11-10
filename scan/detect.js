@@ -107,9 +107,10 @@ export function judgePreview(rgba, width, height) {
   if (located.areaFrac < 0.18) return result('too-far', 'Too far. Move closer.', shared);
   if (located.areaFrac > 0.72 || nearEdge) return result('too-close', 'Too close. Show all four edges.', shared);
   const pose = quadPose(quad);
-  // Same bar as a stored centering number: worst edge past 2°, sides that are
-  // not parallel, or a quad that is not a card shape. Auto-capture waits.
-  if (!located.found || pose.tilt > 2 || !pose.parallel || !pose.aspectOk) {
+  // The viewfinder uses the same edge fit as a saved photo. A card that is
+  // clearly rotated waits. A fraction of a degree is still "lined up" here;
+  // the centering number uses a tighter bar of its own.
+  if (!located.found || pose.tilt > 3 || !pose.parallel) {
     return result('tilted', 'Hold flat. Tilted. Keep the phone parallel to the card.', shared);
   }
   return result('lined-up', 'Lined up. Hold still.', shared);

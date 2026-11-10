@@ -58,10 +58,12 @@ test('clean official cards are not called nicked, whitened, or creased', { skip 
   let crease = 0;
   for (const file of files) {
     const rgba = decode(file, 500, 700);
-    const bad = inspectSide(rgba, 500, 700, 'front').crops
+    const flat = straighten(rgba, 500, 700);
+    const pixels = flat.flattened ? flat.rgba : rgba;
+    const bad = inspectSide(pixels, 500, 700, 'front').crops
       .filter((crop) => crop.flag === 'ding' || crop.flag === 'whitening' || crop.flag === 'chip');
     if (bad.length) damage += 1;
-    const note = gradeSide(grayOf(rgba), 500, 700, '', true).surface.note;
+    const note = gradeSide(grayOf(pixels), 500, 700, '', true).surface.note;
     if (note.startsWith('Possible crease')) crease += 1;
   }
   assert.equal(damage, 0, `${damage}/${files.length} clean official cards were marked ding, whitening, or chip`);
@@ -74,8 +76,10 @@ test('centering of official cards is readable and the left and right borders sta
   let leftAxes = 0;
   let leftWithin = 0;
   for (const file of files) {
-    const flat = decode(file, 500, 700);
-    const text = measureCentering(grayOf(flat), 500, 700);
+    const decoded = decode(file, 500, 700);
+    const flat = straighten(decoded, 500, 700);
+    const pixels = flat.flattened ? flat.rgba : decoded;
+    const text = measureCentering(grayOf(pixels), 500, 700);
     if (!text) continue;
     readable += 1;
     const left = text.match(/(\d+\.\d+)\/(\d+\.\d+) left\/right/);

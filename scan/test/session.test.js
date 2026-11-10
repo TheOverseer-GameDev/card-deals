@@ -36,6 +36,8 @@ test('csv export quotes fields and a target is not compared without a price', ()
     ['\uFF1Dcmd', '"\'=cmd"'],
     ['\uFF0B1', '"\'+1"'],
     ['\uFEFF-2', '"\'-2"'],
+    ['\u200B=1', '"\'=1"'],
+    ['\u200B\u200B+2', '"\'+2"'],
   ];
   for (const [raw, expected] of tricks) assert.equal(csvCell(raw), expected, raw);
   assert.match(targetNote('', 10), /Set a CAD target/);

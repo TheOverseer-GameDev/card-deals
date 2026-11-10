@@ -29,7 +29,8 @@ import { inspectSide } from './edges.js';
 import { compareTilt } from './tilt.js';
 import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
-import { formatGuide, gradePhoto, gradeSide, straighten } from './pipeline.js';
+import { estimateBorders, formatGuide, gradePhoto, gradeSide, grayOf, measureCentering, straighten } from './pipeline.js';
+import { mountGuides } from './manual.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
 import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
@@ -383,7 +384,17 @@ function boot() {
         releaseCanvas(state.canvas);
         state.canvas = next;
         state.flat = { rgba: flat.rgba, width: 500, height: 700 };
-        if (flat.centeringOk === false) note.textContent += ' Centering is unreadable until the card is held flat. Corners, edges, and surface are still checked.';
+        const gray = grayOf(flat.rgba, 500, 700);
+        const autoText = flat.centeringOk ? (measureCentering(gray, 500, 700) || '') : '';
+        const autoLine = /\d+\.\d+\/\d+\.\d+/.test(autoText) ? autoText : 'Auto centering unavailable, measure it yourself.';
+        const autoHost = slot === 'back' ? ui.backAuto : ui.autoCenter;
+        const guides = slot === 'back' ? ui.backManual : ui.frontManual;
+        if (autoHost) autoHost.textContent = autoLine;
+        if (guides) {
+          guides.setBack(slot === 'back');
+          guides.setImage(500, 700, estimateBorders(gray, 500, 700));
+        }
+        if (flat.centeringOk === false) note.textContent += ' Auto centering unavailable, measure it yourself. Corners, edges, and surface are still checked.';
       } else if (slot === 'front') {
         note.textContent += ' Front is tilted.';
       }
@@ -880,6 +891,24 @@ function boot() {
     ui.camStop.hidden = true;
     showActive();
   }
+
+  let resumeCamera = false;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      resumeCamera = Boolean(ui.stream);
+      releaseStream();
+      if (ui.video) ui.video.hidden = true;
+      return;
+    }
+    if (resumeCamera) {
+      resumeCamera = false;
+      openCamera(ui.camSlot || 'front');
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    resumeCamera = false;
+    releaseStream();
+  });
 
   async function useFrame() {
     const box = captureSize(ui.video.videoWidth, ui.video.videoHeight);
@@ -1496,6 +1525,9 @@ function build(section, missingList) {
   const defectLayer = document.createElement('div');
   defectLayer.id = 'scan-defect-map';
   stage.append(defectLayer);
+  const frontGuideHost = document.createElement('div');
+  stage.append(frontGuideHost);
+  const frontManual = mountGuides(frontGuideHost);
   viewport.append(stage);
   const backView = document.createElement('div');
   backView.className = 'scan-viewport';
@@ -1510,6 +1542,9 @@ function build(section, missingList) {
   backMap.style.width = '100%';
   backMap.style.height = '100%';
   backStage.append(backMap);
+  const backGuideHost = document.createElement('div');
+  backStage.append(backGuideHost);
+  const backManual = mountGuides(backGuideHost);
   backView.append(backStage);
   const outline = document.createElement('div');
   outline.className = 'scan-outline';
@@ -1591,6 +1626,14 @@ function build(section, missingList) {
   const frontNote = document.createElement('p');
   frontNote.className = 'note';
   frontNote.id = 'scan-front-note';
+  const autoCenter = document.createElement('p');
+  autoCenter.id = 'scan-auto-center';
+  autoCenter.className = 'note';
+  autoCenter.textContent = 'Auto centering unavailable, measure it yourself.';
+  const backAuto = document.createElement('p');
+  backAuto.id = 'scan-back-auto';
+  backAuto.className = 'note';
+  backAuto.textContent = 'Auto centering unavailable, measure it yourself.';
   const backNote = document.createElement('p');
   backNote.className = 'note';
   backNote.id = 'scan-back-note';
@@ -1805,7 +1848,7 @@ function build(section, missingList) {
   panel.className = 'scan-panel';
   panel.append(
     fresh,
-    frontNote, backNote, retakes, backQualityBtn, backQuality,
+    frontNote, autoCenter, frontManual.note, backNote, backAuto, backManual.note, retakes, backQualityBtn, backQuality,
     controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost, tiltHost, artHost, defectHost,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
@@ -2019,6 +2062,10 @@ function build(section, missingList) {
     step,
     frontNote,
     backNote,
+    autoCenter,
+    backAuto,
+    frontManual,
+    backManual,
     camMsg,
     camRetry,
     video,
