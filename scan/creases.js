@@ -24,7 +24,7 @@ function groove(rgba, width, height, x) {
 }
 
 export function findCreases(rgba, width, height) {
-  if (!rgba || rgba.length < width * height * 4 || width < 40 || height < 40) {
+  if (!rgba || !Number.isFinite(width) || !Number.isFinite(height) || rgba.length < width * height * 4 || width < 40 || height < 40) {
     return { status: 'unchecked', findings: [], note: 'The photo is too small to check shading.' };
   }
   let leftSum = 0;
