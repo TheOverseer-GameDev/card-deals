@@ -696,6 +696,10 @@ function stdev(nums) {
   return Math.sqrt(nums.reduce((s, v) => s + (v - m) * (v - m), 0) / nums.length);
 }
 
+// Automatic centering numbers are off. The manual guides are the measurement.
+// Turn this on only after confident-wrong is 0 on the reviewer's warp harness.
+export const AUTO_CENTERING = false;
+
 export function measureCentering(gray, width, height) {
   const fail = { state: 'not-assessable' };
   if (!gray || width < 40 || height < 40) return fail;
@@ -946,7 +950,7 @@ export function assessPhoto({ gray, width, height, originalWidth, originalHeight
   let glareState = 'not-assessable';
   if (fraction < 0.005) glareState = 'no-large-clipped-highlight';
   else if (fraction <= 0.2) glareState = 'possible-glare';
-  const centering = measureCentering(gray, width, height);
+  const centering = AUTO_CENTERING ? measureCentering(gray, width, height) : { state: 'not-measured' };
   const regions = {};
   if (gray && width > 0 && height > 0) {
     for (const [id, geom] of Object.entries(REGION_GEOM)) {
@@ -1078,7 +1082,7 @@ function centeringCap(report, sideLabel, basis) {
   const centering = report && report.centering;
   const side = sideLabel === 'Back' ? 'back' : 'front';
   if (!centering || centering.state !== 'measured') {
-    basis.push(`${sideLabel} centering: unknown — ceiling reduced`);
+    basis.push(`${sideLabel} centering is not measured.`);
     return 8;
   }
   const cap = centeringCeiling(centering, side);

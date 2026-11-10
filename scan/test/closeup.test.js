@@ -51,6 +51,7 @@ test('a straightened photo shows eight front close-ups at 320px', async () => {
   const page = await (await browser.newContext({ viewport: { width: 320, height: 640 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' })).newPage();
   const errors = [];
   page.on('pageerror', (err) => errors.push(err.message));
+  try {
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('nav button[data-v="scan"]').click();
   await page.locator('#scan-mode-front').evaluate((node) => node.click());
@@ -76,6 +77,8 @@ test('a straightened photo shows eight front close-ups at 320px', async () => {
   await (await again).setFiles({ name: 'flat-2.png', mimeType: 'image/png', buffer: cardPNG() });
   await page.waitForFunction(() => /same angle/.test(document.getElementById('scan-tilt-note').textContent));
   assert.deepEqual(errors, []);
-  await browser.close();
-  server.close();
+  } finally {
+    await browser.close();
+    server.close();
+  }
 });

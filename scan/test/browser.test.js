@@ -146,7 +146,8 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await page.waitForFunction(() => document.querySelector('#scan-front-quality')?.textContent?.includes('Resolution:'));
     const quality = await page.locator('#scan-front-quality').innerText();
     assert.match(quality, /Blur was not flagged/);
-    assert.match(quality, /Centering:/);
+    assert.match(quality, /Measure centering yourself/);
+    assert.match(quality, /Centering is not measured/);
     assert.match(await page.locator('#scan-suggest-note').innerText(), /No tighter crop/);
     await page.locator('#scan-zoom').evaluate((el) => {
       el.value = '2';

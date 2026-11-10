@@ -43,7 +43,7 @@ function decode(file, width, height) {
   const proc = spawnSync('ffmpeg', [
     '-v', 'error', '-i', file, '-vf', `scale=${width}:${height}`,
     '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1',
-  ], { maxBuffer: 20_000_000 });
+  ], { maxBuffer: 80_000_000 });
   if (proc.status !== 0) throw new Error(proc.stderr.toString());
   return new Uint8ClampedArray(proc.stdout.buffer, proc.stdout.byteOffset, proc.stdout.byteLength);
 }
@@ -73,6 +73,54 @@ test('clean official cards are not called nicked, whitened, or creased', { skip 
   }
   assert.equal(damage, 0, `${damage}/${files.length} clean official cards were marked ding, whitening, or chip`);
   assert.equal(crease, 0, `${crease}/${files.length} clean official cards were marked with a crease`);
+});
+
+function decodeNative(file) {
+  const probe = spawnSync('ffprobe', [
+    '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file,
+  ], { encoding: 'utf8' });
+  if (probe.status !== 0) throw new Error(probe.stderr.toString());
+  const [width, height] = probe.stdout.trim().split(',').map(Number);
+  const proc = spawnSync('ffmpeg', [
+    '-v', 'error', '-i', file, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1',
+  ], { maxBuffer: 80_000_000 });
+  if (proc.status !== 0 || proc.stdout.length !== width * height * 4) throw new Error(`decode ${file}`);
+  return {
+    rgba: new Uint8ClampedArray(proc.stdout.buffer, proc.stdout.byteOffset, proc.stdout.byteLength),
+    width,
+    height,
+  };
+}
+
+test('native-size scans are judged on the 500 by 700 working picture', { skip }, () => {
+  const files = images();
+  assert.ok(files.length >= 30, `official images found ${files.length}`);
+  const sizes = [[813, 1185], [1080, 1440], [3024, 4032]];
+  let damage = 0;
+  let checked = 0;
+  for (const file of files) {
+    const photo = decodeNative(file);
+    const flat = straighten(photo.rgba, photo.width, photo.height);
+    assert.equal(flat.flattened, true, `${path.basename(file)} ${photo.width}x${photo.height} did not straighten`);
+    assert.equal(flat.width, 500);
+    assert.equal(flat.height, 700);
+    const bad = inspectSide(flat.rgba, 500, 700, 'front').crops
+      .filter((crop) => crop.flag === 'ding' || crop.flag === 'whitening' || crop.flag === 'chip');
+    if (bad.length) damage += 1;
+    checked += 1;
+  }
+  const sample = files[0];
+  for (const [width, height] of sizes) {
+    const rgba = decode(sample, width, height);
+    const flat = straighten(rgba, width, height);
+    assert.equal(flat.width, 500, `${width}x${height}`);
+    assert.equal(flat.height, 700);
+    const bad = inspectSide(flat.rgba, 500, 700, 'front').crops
+      .filter((crop) => crop.flag === 'ding' || crop.flag === 'whitening' || crop.flag === 'chip');
+    if (bad.length) damage += 1;
+    checked += 1;
+  }
+  assert.equal(damage, 0, `${damage}/${checked} native or phone-sized pictures were marked ding, whitening, or chip`);
 });
 
 test('centering of official cards is readable and the left and right borders stay within 3 points', { skip }, () => {
@@ -168,23 +216,6 @@ const synthSkip = !synth
   : !ffmpeg
     ? 'ffmpeg is not available, so the synthetic fixtures were not decoded. This is not a pass.'
     : false;
-
-function decodeNative(file) {
-  const probe = spawnSync('ffprobe', [
-    '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file,
-  ], { encoding: 'utf8' });
-  if (probe.status !== 0) throw new Error(probe.stderr.toString());
-  const [width, height] = probe.stdout.trim().split(',').map(Number);
-  const proc = spawnSync('ffmpeg', [
-    '-v', 'error', '-i', file, '-f', 'rawvideo', '-pix_fmt', 'rgba', 'pipe:1',
-  ], { maxBuffer: 40_000_000 });
-  if (proc.status !== 0) throw new Error(proc.stderr.toString());
-  return {
-    rgba: new Uint8ClampedArray(proc.stdout.buffer, proc.stdout.byteOffset, proc.stdout.byteLength),
-    width,
-    height,
-  };
-}
 
 function sheet(paint) {
   const rgba = new Uint8ClampedArray(500 * 700 * 4);
