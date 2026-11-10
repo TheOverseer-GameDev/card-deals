@@ -110,8 +110,46 @@ function rounding(rgba, width, height, corner) {
   const cornerPx = at(ox, oy);
   const alongX = at(Math.max(0, Math.min(width - 1, ox + ax * 40)), oy);
   const alongY = at(ox, Math.max(0, Math.min(height - 1, oy + ay * 40)));
-  // A printed inner frame is the same color along the outer edge. A rounded corner is not.
-  return Math.abs(cornerPx - alongX) > 40 && Math.abs(cornerPx - alongY) > 40;
+  const diag = at(
+    Math.max(0, Math.min(width - 1, ox + ax * 14)),
+    Math.max(0, Math.min(height - 1, oy + ay * 14)),
+  );
+  const backX = at(Math.max(0, Math.min(width - 1, ox + ax * 36)), oy);
+  const backY = at(ox, Math.max(0, Math.min(height - 1, oy + ay * 36)));
+  // Missing paper stays gone along the diagonal, while both edges have recovered
+  // to the border color. A soft printed corner pixel does not do both.
+  const missing = Math.abs(cornerPx - alongX) > 40 && Math.abs(cornerPx - alongY) > 40;
+  const stillGone = Math.abs(diag - cornerPx) < 32;
+  const edgesBack = Math.abs(backX - alongX) < 36 && Math.abs(backY - alongY) < 36;
+  return missing && stillGone && edgesBack;
+}
+
+function cornerScuff(rgba, width, height, corner) {
+  const isLeft = corner.endsWith('l');
+  const isTop = corner.includes('tl') || corner.includes('tr');
+  const ox = isLeft ? 0 : width - 1;
+  const oy = isTop ? 0 : height - 1;
+  const ax = isLeft ? 1 : -1;
+  const ay = isTop ? 1 : -1;
+  const at = (x, y) => grayAt(rgba, (y * width + x) * 4);
+  const start = at(ox, oy);
+  if (start < 200) return false;
+  function reach(dx, dy) {
+    let run = 0;
+    const limit = Math.min(86, dx ? width - 1 : height - 1);
+    for (let step = 1; step <= limit; step++) {
+      const x = ox + dx * step;
+      const y = oy + dy * step;
+      if (x < 0 || y < 0 || x >= width || y >= height) break;
+      if (start - at(x, y) < 18) run = step;
+      else break;
+    }
+    return run;
+  }
+  const near = Math.min(reach(ax, 0), reach(0, ay));
+  // A corner scuff is lighter than the border beside it. A highlight of a few
+  // pixels, and a border that stays light across the whole crop, are not.
+  return near >= 24 && near <= 80;
 }
 
 function onCardPaper(box, x, y, cardW, cardH) {
@@ -177,17 +215,17 @@ function whitening(rgba, width, height, paper) {
   return false;
 }
 
-function chips(rgba, width, height, median, paper) {
+function chips(rgba, width, height, median, paper, tip) {
   let blobs = 0;
   const seen = new Uint8Array(width * height);
   const lightBorder = median > 140;
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       const i = y * width + x;
-      if (seen[i] || (paper && !paper(x, y))) continue;
+      if (seen[i] || (paper && !paper(x, y)) || (tip && tip(x, y))) continue;
       const v = grayAt(rgba, i * 4);
       if (!Number.isFinite(v)) continue;
-      const chip = lightBorder ? v < median - 50 : v > median + 50 && v > 170;
+      const chip = lightBorder ? v < median - 50 : v > median + 50 && v > 170 && !(tip && tip(x, y));
       if (!chip) continue;
       const stack = [i];
       seen[i] = 1;
@@ -204,6 +242,7 @@ function chips(rgba, width, height, median, paper) {
           const ny = (n - nx) / width;
           if (Math.abs(nx - cx) + Math.abs(ny - cy) !== 1) continue;
           if (paper && !paper(nx, ny)) continue;
+          if (tip && tip(nx, ny)) continue;
           const nv = grayAt(rgba, n * 4);
           const same = lightBorder ? nv < median - 50 : nv > median + 50 && nv > 170;
           if (!same) continue;
@@ -225,13 +264,21 @@ function findingFor(kind, sample, rgba, width, height, id, paper) {
   if (kind === 'corner' && rounding(rgba, width, height, id)) {
     return { flag: 'rounding', text: 'The corner looks rounded in this photo. This is not a grade.', trusted: true };
   }
+  if (kind === 'corner' && cornerScuff(rgba, width, height, id)) {
+    return { flag: 'whitening', text: 'This corner is lighter than the border beside it. Whitening is only a visual note.', trusted: true };
+  }
   if (kind === 'edge' && borderGap(rgba, width, height, id) > 0) {
     return { flag: 'ding', text: 'A nick breaks the edge line in this photo. This is not a grade.', trusted: true };
   }
-  if (chips(rgba, width, height, sample.median, paper) > 0) {
+  const isLeft = id.endsWith('l');
+  const isTop = id.includes('tl') || id.includes('tr');
+  const tip = kind === 'corner'
+    ? (x, y) => (isLeft ? x < 12 : x >= width - 12) && (isTop ? y < 12 : y >= height - 12)
+    : null;
+  if (chips(rgba, width, height, sample.median, paper, tip) > 0) {
     return { flag: 'chip', text: 'A small chip is visible on this crop. This is not a grade.', trusted: true };
   }
-  if (whitening(rgba, width, height, paper)) {
+  if (kind !== 'corner' && whitening(rgba, width, height, paper)) {
     return { flag: 'whitening', text: 'Part of this border is lighter than the rest. Whitening is only a visual note.', trusted: true };
   }
   if (!light.trust) {
@@ -271,6 +318,15 @@ export function inspectSide(rgba, width, height, side) {
       text: found.text,
       trusted: found.trusted,
     });
+  }
+  const cornerCrops = crops.filter((crop) => crop.kind === 'corner');
+  // The same small bright speck on every corner is the printed corner, not four chips.
+  if (cornerCrops.length === 4 && cornerCrops.every((crop) => crop.flag === 'chip')) {
+    for (const crop of cornerCrops) {
+      crop.flag = 'clear';
+      crop.text = 'No whitening, ding, rounding, or chip stood out on this crop.';
+      crop.trusted = true;
+    }
   }
   const unchecked = crops.filter((crop) => !crop.trusted).length;
   return {

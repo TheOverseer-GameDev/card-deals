@@ -422,7 +422,7 @@ function median(nums) {
 }
 
 function borderRun(gray, width, height, side, fixed) {
-  const limit = 72;
+  const limit = 64;
   const at = (step) => {
     if (side === 'left') return gray[fixed * width + step];
     if (side === 'right') return gray[fixed * width + (width - 1 - step)];
@@ -436,18 +436,66 @@ function borderRun(gray, width, height, side, fixed) {
     samples.push(v);
   }
   const blur = samples.map((_, i) => {
-    const a = samples[Math.max(0, i - 1)];
-    const c = samples[Math.min(samples.length - 1, i + 1)];
-    return (a + samples[i] + c) / 3;
+    let sum = 0;
+    let n = 0;
+    for (let k = -2; k <= 2; k++) {
+      const j = i + k;
+      if (j < 0 || j >= samples.length) continue;
+      sum += samples[j];
+      n += 1;
+    }
+    return sum / n;
   });
-  // The outer border fades smoothly. The frame is where that fade reverses or a hard edge starts.
-  for (let step = 4; step < blur.length - 1; step++) {
-    const prev = blur[step - 2] - blur[step - 4];
-    const next = blur[step] - blur[step - 2];
-    if (prev < -8 && next > 12) return step;
-    if (Math.abs(next) > 36) return step;
+  const start = blur[2];
+  let trough = null;
+  let troughVal = start;
+  for (let step = 6; step < 34; step++) {
+    if (blur[step] < troughVal) {
+      troughVal = blur[step];
+      trough = step;
+    }
   }
-  return null;
+  const rose = trough != null && blur[Math.min(blur.length - 1, trough + 5)] - troughVal >= 20;
+  const head = blur.slice(0, 8);
+  const flatTable = Math.max(...head) - Math.min(...head) < 28 && start < 150;
+  // A table photo is flat and darker than the card, then a light paper band, then the art.
+  // The printed border is the band. A scanned card fades instead, and its trough is the edge.
+  if (flatTable) {
+    let bandStart = null;
+    for (let step = 4; step < 24; step++) if (blur[step] > 170) { bandStart = step; break; }
+    if (bandStart != null) {
+      let bandEnd = null;
+      for (let step = bandStart + 8; step < blur.length - 1; step++) {
+        if (blur[step] < 90 && blur[Math.min(blur.length - 1, step + 2)] < 70) { bandEnd = step; break; }
+      }
+      if (bandEnd != null && bandEnd - bandStart >= 10 && bandEnd - bandStart <= 56) return bandEnd - bandStart;
+    }
+  }
+  if (trough != null && trough >= 8 && start - troughVal >= 30 && rose) return trough;
+  const jumps = [];
+  for (let step = 5; step < blur.length - 4; step++) {
+    const before = blur[step - 3];
+    const after = blur[step + 2];
+    const delta = after - before;
+    if (Math.abs(delta) < 26) continue;
+    if (Math.abs(blur[step + 4] - after) > 16) continue;
+    if (jumps.length && step < jumps[jumps.length - 1] + 6) continue;
+    jumps.push(step);
+    if (jumps.length === 2) break;
+  }
+  const first = jumps[0];
+  const second = jumps[1];
+  if (first != null && second != null && second - first >= 10 && second - first <= 56) {
+    const mid = blur[(first + second) >> 1];
+    const before = blur[Math.max(0, first - 3)];
+    const after = blur[Math.min(blur.length - 1, second + 3)];
+    // Table, then a light paper band, then the art. Report the band, which is the
+    // printed border. A fade into the card does not look like this.
+    if (mid > 160 && mid > before + 25 && mid > after + 25 && Math.abs(start - before) < 22) {
+      return second - first;
+    }
+  }
+  return first ?? null;
 }
 
 export function measureCentering(gray, width, height) {
@@ -627,21 +675,116 @@ export function gradeSide(gray, width, height, centeringText, flattened, back = 
     edgeNote = `Possible whitening on the ${noisy} edge.`;
   }
   const edgesMark = { score: edgeScore, note: edgeNote };
-  const x0 = Math.floor(width * 0.12);
-  const x1 = Math.floor(width * 0.88);
-  let hot = 0;
-  let inner = 0;
-  for (let y = 0; y < height; y++) {
-    for (let x = x0; x < x1; x++) if (gray[y * width + x] > 242) hot++;
-    inner += x1 - x0;
-  }
-  // A straight printed rule and a crease look the same in one photo. Do not call it a crease.
-  const crease = null;
+  const crease = thinCrease(gray, width, height);
   let surface;
   if (crease) surface = { score: 6, note: `Possible crease on the ${crease}` };
-  else if (inner && hot / inner > 0.015) surface = { score: 8, note: 'Glare. Surface is partly hidden.' };
-  else surface = { score: 10, note: 'No crease or glare. Fine scratches can be missed.' };
+  else if (specularGlare(gray, width, height)) surface = { score: 8, note: 'Glare. Surface is partly hidden.' };
+  else surface = { score: 10, note: 'Surface looks clear. Fine scratches can be missed.' };
   return { centering, corners: cornersMark, edges: edgesMark, surface };
+}
+
+function thinCrease(gray, width, height) {
+  const x0 = Math.floor(width * 0.08);
+  const x1 = Math.floor(width * 0.92);
+  const y0 = Math.floor(height * 0.18);
+  const y1 = Math.floor(height * 0.45);
+  if (x1 - x0 < 40 || y1 <= y0 + 8) return null;
+  for (let y = y0; y < y1; y++) {
+    let run = 0;
+    let best = 0;
+    let start = 0;
+    let bestStart = 0;
+    for (let x = x0; x < x1; x++) {
+      if (gray[y * width + x] < 32) {
+        if (!run) start = x;
+        run += 1;
+        if (run > best) {
+          best = run;
+          bestStart = start;
+        }
+      } else run = 0;
+    }
+    // A crease is a long thin bar that stops before the card edge. A printed
+    // frame line runs into the border, so it has no lighter margin on both sides.
+    if (best < width * 0.4 || best > width * 0.72) continue;
+    const left = gray[y * width + Math.max(0, bestStart - 6)];
+    const right = gray[y * width + Math.min(width - 1, bestStart + best + 6)];
+    if (left < 48 || right < 48) continue;
+    const cx = bestStart + (best >> 1);
+    const mid = gray[y * width + cx];
+    const up = gray[(y - 6) * width + cx];
+    const down = gray[(y + 6) * width + cx];
+    // One side of a thin bar is the picture. Both sides of a dark picture are dark.
+    if (Math.max(up, down) - mid < 8) continue;
+    return 'middle';
+  }
+  return null;
+}
+
+function specularGlare(gray, width, height) {
+  const x0 = Math.floor(width * 0.12);
+  const x1 = Math.floor(width * 0.88);
+  const y0 = Math.floor(height * 0.12);
+  const y1 = Math.floor(height * 0.88);
+  const hot = new Uint8Array(width * height);
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) if (gray[y * width + x] > 242) hot[y * width + x] = 1;
+  }
+  const seen = new Uint8Array(hot.length);
+  const minCount = Math.floor(width * height * 0.02);
+  const maxCount = Math.floor(width * height * 0.22);
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const start = y * width + x;
+      if (!hot[start] || seen[start]) continue;
+      const stack = [start];
+      seen[start] = 1;
+      let count = 0;
+      let bright = 0;
+      let minX = x;
+      let maxX = x;
+      let minY = y;
+      let maxY = y;
+      while (stack.length) {
+        const cur = stack.pop();
+        count += 1;
+        bright += gray[cur];
+        const cx = cur % width;
+        const cy = (cur - cx) / width;
+        if (cx < minX) minX = cx;
+        if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy;
+        if (cy > maxY) maxY = cy;
+        for (const n of [cur - 1, cur + 1, cur - width, cur + width]) {
+          if (n < 0 || n >= hot.length || seen[n] || !hot[n]) continue;
+          const nx = n % width;
+          if (Math.abs(nx - cx) > 1) continue;
+          seen[n] = 1;
+          stack.push(n);
+        }
+      }
+      const boxW = maxX - minX + 1;
+      const boxH = maxY - minY + 1;
+      const fill = count / (boxW * boxH);
+      // Printed art is an irregular bright shape. A glare wash fills its own box.
+      if (count < minCount || count > maxCount || fill < 0.72) continue;
+      let around = 0;
+      let aroundN = 0;
+      const yA = Math.max(0, minY - 8);
+      const yB = Math.min(height - 1, maxY + 8);
+      const xA = Math.max(0, minX - 8);
+      const xB = Math.min(width - 1, maxX + 8);
+      for (let yy = yA; yy <= yB; yy += 2) {
+        for (let xx = xA; xx <= xB; xx += 2) {
+          if (xx >= minX && xx <= maxX && yy >= minY && yy <= maxY) continue;
+          around += gray[yy * width + xx];
+          aroundN += 1;
+        }
+      }
+      if (aroundN && bright / count - around / aroundN > 50) return true;
+    }
+  }
+  return false;
 }
 
 export function gradePhoto({ front, back, frontBack }) {
