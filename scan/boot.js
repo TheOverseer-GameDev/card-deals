@@ -39,6 +39,7 @@ import { printQuality } from './printq.js';
 import { estimateRange } from './range.js';
 import { gradingWorth } from './worth.js';
 import { openScanHistory, saveScan } from './history.js';
+import { addToSession, createSession, cue, sessionTotal, toCsv } from './session.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
 import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
@@ -137,6 +138,18 @@ function boot() {
     }).catch(() => refreshHistory('Saved scans on this phone could not be deleted.'));
   });
   ui.feeInput.addEventListener('input', () => renderPhase2());
+  ui.historyExport.addEventListener('click', () => {
+    openScanHistory().then((store) => store.list()).then((rows) => {
+      ui.historyCsv.hidden = false;
+      ui.historyCsv.value = toCsv((rows || []).map((row) => ({
+        name: row.name,
+        condition: row.summary,
+      })));
+    }).catch(() => {
+      ui.historyCsv.hidden = false;
+      ui.historyCsv.value = 'Saved scans on this phone could not be read.';
+    });
+  });
   refreshHistory();
   if (ui.tiltHost) ui.tiltHost.addEventListener('tilt-report', () => renderDefects());
   section.addEventListener('scan-official', (event) => rememberOfficial(event.detail));
@@ -880,6 +893,7 @@ function boot() {
   let lastGrades = null;
   let confirmedName = '';
   let savedToken = '';
+  const scanSession = createSession();
 
   function showCheck(host, text) {
     if (!host) return;
@@ -928,8 +942,18 @@ function boot() {
     showCheck(ui.consistencyHost, consistency.note);
     showCheck(ui.printHost, photo.note);
     const rangeNotes = flat ? range.notes : ['The card outline was not straightened, so these readings are less reliable.', ...range.notes];
-    showCheck(ui.rangeHost, [range.text, ...rangeNotes].join(' '));
-    showCheck(ui.worthHost, worth.text);
+    const grid = ui.rangeHost.querySelector('.scan-grid') || ui.rangeHost.insertBefore(document.createElement('div'), ui.rangeHost.querySelector('p'));
+    grid.className = 'scan-grid';
+    grid.replaceChildren();
+    for (const [key, label] of [['centering', 'Centering'], ['corners', 'Corners'], ['edges', 'Edges'], ['surface', 'Surface']]) {
+      const cell = document.createElement('div');
+      cell.className = 'scan-cell';
+      const score = side[key] && side[key].score;
+      cell.textContent = `${label}: ${score == null ? 'Unread' : score}`;
+      grid.append(cell);
+    }
+    showCheck(ui.rangeHost, [range.text, range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.', ...rangeNotes].join(' '));
+    showCheck(ui.worthHost, `Estimate, not a PSA grade. ${worth.text}`);
     const token = `${width}x${height}:${rgba[0]}:${rgba[rgba.length - 1]}:${flat ? 'flat' : 'raw'}`;
     if (token === savedToken) return;
     savedToken = token;
@@ -1169,6 +1193,25 @@ function boot() {
       grid.append(k, v);
     }
     ui.identity.append(grid);
+    const foil = document.createElement('label');
+    foil.className = 'note';
+    const foilBox = document.createElement('input');
+    foilBox.type = 'checkbox';
+    foilBox.id = 'scan-foil-toggle';
+    foil.append(foilBox, document.createTextNode(' Foil or etched. This does not change the stored price.'));
+    ui.identity.append(foil);
+    const entry = addToSession(scanSession, {
+      name: row.name,
+      set: row.parsed && row.parsed.setCode,
+      number: row.parsed && row.parsed.collectorNumber,
+      variant: row.parsed && (row.parsed.edition || row.parsed.finish),
+    });
+    foilBox.addEventListener('change', () => {
+      entry.foil = foilBox.checked;
+      renderSession();
+    });
+    renderSession();
+    if (ui.sessionSound && ui.sessionSound.checked) cue(true);
     ui.prices.replaceChildren(text('Loading stored prices…'));
     resetMarket();
     try {
@@ -1185,6 +1228,39 @@ function boot() {
       if (confirmedKey !== row.key) return;
       ui.prices.replaceChildren(text('Stored prices could not be read. Nothing was sent out.'));
     }
+  }
+
+  function renderSession() {
+    if (!ui.sessionList) return;
+    ui.sessionList.replaceChildren();
+    const total = sessionTotal(scanSession);
+    const head = document.createElement('p');
+    head.textContent = total.cad == null
+      ? `${total.count} in this session. Session total: Unavailable until every card has a stored price.`
+      : `${total.count} in this session. Session total: CAD ${total.cad.toFixed(2)}.`;
+    ui.sessionList.append(head);
+    scanSession.items.forEach((item, index) => {
+      const block = document.createElement('div');
+      block.className = 'scan-session';
+      const title = document.createElement('p');
+      title.textContent = item.name;
+      block.append(title);
+      for (const [key, label] of [['qty', 'Quantity'], ['set', 'Set'], ['condition', 'Condition']]) {
+        const labelEl = document.createElement('label');
+        labelEl.textContent = label;
+        const input = document.createElement('input');
+        input.value = item[key];
+        input.addEventListener('input', () => {
+          item[key] = key === 'qty' ? Math.max(1, Math.round(Number(input.value) || 1)) : input.value;
+          if (key === 'qty') head.textContent = sessionTotal(scanSession).cad == null
+            ? `${sessionTotal(scanSession).count} in this session. Session total: Unavailable until every card has a stored price.`
+            : `${sessionTotal(scanSession).count} in this session. Session total: CAD ${sessionTotal(scanSession).cad.toFixed(2)}.`;
+        });
+        labelEl.append(input);
+        block.append(labelEl);
+      }
+      ui.sessionList.append(block);
+    });
   }
 
   function renderPrices(report) {
@@ -1819,7 +1895,25 @@ function build(section, missingList) {
   const historyList = document.createElement('div');
   historyList.id = 'scan-history-list';
   const historyDelete = button('Delete all scans on this phone', 'scan-history-delete', true);
-  historyHost.append(historyTitle, historyNote, historyList, historyDelete);
+  const historyExport = button('Copy scan history as CSV', 'scan-history-csv', true);
+  const historyCsv = document.createElement('textarea');
+  historyCsv.id = 'scan-history-csv';
+  historyCsv.readOnly = true;
+  historyCsv.hidden = true;
+  historyHost.append(historyTitle, historyNote, historyList, historyDelete, historyExport, historyCsv);
+  const sessionHost = document.createElement('div');
+  sessionHost.id = 'scan-session';
+  const sessionTitle = document.createElement('h3');
+  sessionTitle.textContent = 'This session';
+  const sessionSound = document.createElement('input');
+  sessionSound.id = 'scan-session-sound';
+  sessionSound.type = 'checkbox';
+  const sessionSoundLabel = document.createElement('label');
+  sessionSoundLabel.className = 'note';
+  sessionSoundLabel.append(sessionSound, document.createTextNode(' Optional click when a card is confirmed. Off by default. Nothing is uploaded.'));
+  const sessionList = document.createElement('div');
+  sessionList.id = 'scan-session-list';
+  sessionHost.append(sessionTitle, sessionSoundLabel, sessionList);
   const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
@@ -1946,7 +2040,7 @@ function build(section, missingList) {
     fresh,
     frontNote, backNote, retakes, backQualityBtn, backQuality,
     controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost, tiltHost, artHost, defectHost,
-    stainHost, creaseHost, foilHost, markHost, consistencyHost, printHost, rangeHost, worthHost, historyHost,
+    stainHost, creaseHost, foilHost, markHost, consistencyHost, printHost, rangeHost, worthHost, historyHost, sessionHost,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
     identity, psa, sold, asks, prices, chartCard, gauges, condition,
@@ -2201,6 +2295,10 @@ function build(section, missingList) {
     historyNote,
     historyList,
     historyDelete,
+    historyExport,
+    historyCsv,
+    sessionList,
+    sessionSound,
     defectLayer,
     readBtn,
     cancelBtn,
