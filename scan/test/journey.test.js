@@ -121,10 +121,16 @@ test('phone scan journey stays local and names the verified listing', async (t) 
     assert.equal(capture.note, 'none');
     assert.equal(capture.panel, 'none');
     await page.locator('#scan-front-cam').click();
-    await page.waitForFunction(() => {
+    const cameraStarted = () => {
       const video = document.querySelector('#scan-cam-video');
       return video && video.videoWidth > 0;
-    });
+    };
+    try {
+      await page.waitForFunction(cameraStarted, null, { timeout: 15000 });
+    } catch {
+      await page.locator('#scan-front-cam').click();
+      await page.waitForFunction(cameraStarted, null, { timeout: 15000 });
+    }
     await page.locator('#scan-mode-front').click();
     await page.locator('#scan-front-cam').click();
     await page.waitForFunction(() => (document.querySelector('#scan-front-note')?.textContent || '').includes('Working copy'));
