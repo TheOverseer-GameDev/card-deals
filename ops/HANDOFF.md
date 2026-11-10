@@ -29,7 +29,7 @@ The 26 YGO offers already removed by the old verifier (24 HTTP 401, 2 rate limit
 | `ops/deploy/card_app/index.tpl.html` | `/workspace/card_app/index.tpl.html` | `build.py` renders `index.html` from it; must equal the repo `index.html` apart from the version (`ops/test_publish_fixes.py`) |
 | `ops/deploy/card_common/categories.py` | `/workspace/card_common/categories.py` | hidden `listing_state` is not rankable |
 | `ops/deploy/yugioh/keepalive.sh` | `/workspace/yugioh/keepalive.sh` | the existing loop calls `supervisor_periodic.py` once per pass |
-| `ops/deploy/card_ops/capok.sh`, `doctor_cycle.sh`, `status.py` | same names under `/workspace/card_ops/` | `CARD_ROOT` / `card_STOP`; RAM floor unchanged |
+| `ops/deploy/card_ops/capok.sh`, `doctor_cycle.sh`, `status.py` | same names under `/workspace/card_ops/` | `CARD_ROOT` / `card_STOP`; RAM floor unchanged. `status.py` writes `freshness`, `verified_at`, and `last_attempt_ok` from stamp-file text and offer `verified_at` (`freshness.assess_catalog`). File mtime is not a verification time |
 
 `CARD_ROOT` defaults to `/workspace`. Do not overwrite an existing `config.json` on the machine; the staged configs are the allowlisted keys from the audit package. The 26 already-deleted offers are still not recovered.
 
@@ -77,3 +77,20 @@ These match what is installed on the box byte for byte.
 - `publish.sh` runs `prepublish.py --journey` on the new build, after `doctor.py --gate` and before `gate PASS`. A fail (1) or a deferred journey (3) restores `site_prev` like the doctor gate does. Before this, it checked the previous site, so old data blocked every publish.
 - `build.py` keeps `scan/test`, which is tracked in git and needed by the journey. It still drops `scan/bench` and npm files.
 - The bot commit email is `bot@users.noreply.github.com` again.
+
+## Price freshness (2026-11-10)
+
+`build.py` already turns `card_ops/status.json` into `data.js` health through `freshness.health_fields`. That record had no `freshness`, so every prepublish saw `unknown` and failed even after both trackers stamped a finished run. `status.py` now writes the three fields `health_fields` reads.
+
+`freshness` is `current` and `last_attempt_ok` is true only when all of these hold:
+
+- `ygo_cards/.stamp` and `mtg_cards/.stamp` contain today's date. That text is what `commit_stamp` writes after a run that was not stopped for transport. The file's mtime is not read for this decision.
+- Each game's top 20 has a verified buy link, and every one of those `verified_at` values falls inside the existing 36-hour window.
+- `ygo_cards/verify_run.json`, when it exists, did not record transport failures (`verification_unavailable` / `transport=N`).
+
+A missing stamp, a stamp dated another day, a missing or older `verified_at`, or a transport-stopped verify stays `unknown`, `stale`, or `verification_unavailable`. The supervisor freshness rule is unchanged, so prepublish still fails. A pending backup still only degrades. Nothing here changes a threshold, and nothing reads or writes eBay keys.
+
+Install paths this changes on the box:
+
+- `ops/freshness.py` → `/workspace/card_ops/freshness.py`
+- `ops/deploy/card_ops/status.py` → `/workspace/card_ops/status.py`

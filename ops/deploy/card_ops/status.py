@@ -1,10 +1,53 @@
 #!/usr/bin/env python3
-"""Zero-token status line + app health badge source. Writes status.json and status.txt."""
+"""Zero-token status line + app health badge source. Writes status.json and status.txt.
+
+freshness, verified_at, and last_attempt_ok are an honest verification record:
+both tracker stamp files must contain today's date, and top-20 verified buy
+links must carry a recent verified_at. The stamp file's mtime is not that time.
+A verify_run.json with transport failures is not current.
+"""
 import json,os,time,datetime
 O=os.path.dirname(os.path.abspath(__file__))
 def age(p):
     try: return (time.time()-os.path.getmtime(p))/3600
     except Exception: return None
+def _read_stamp(p):
+    """Stamp file text (YYYY-MM-DD). The file mtime is not a verification time."""
+    try: t=open(p).read().strip()
+    except Exception: return None
+    return t if len(t)==10 and t[4]=='-' and t[7]=='-' else None
+def _verified_times(p):
+    try: cards=json.load(open(p))
+    except Exception: return []
+    if isinstance(cards,dict): cards=cards.get('cards') or cards.get('picks') or []
+    if not isinstance(cards,list): return []
+    out=[]
+    for c in cards[:20]:
+        if not isinstance(c,dict): continue
+        hits=[]
+        for k in ('lr','lg'):
+            o=c.get(k) or {}
+            if not isinstance(o,dict) or not o.get('url') or o.get('verified') is not True: continue
+            if o.get('listing_state') not in (None,'','current'): hits.append(''); continue
+            hits.append(o.get('verified_at') or '')
+        if hits: out.extend(hits)
+        elif c.get('verified_at'): out.append(c.get('verified_at'))
+    return out
+def _transport_stopped(root):
+    """ygo verify records this when it logs verification_unavailable transport=N."""
+    try: r=json.load(open(os.path.join(root,'ygo_cards','verify_run.json')))
+    except Exception: return False
+    if not isinstance(r,dict): return False
+    return bool(r.get('transport_failures')) or r.get('ok') is False or r.get('label')=='verification_unavailable'
+def _freshness(root):
+    import sys
+    if O not in sys.path: sys.path.insert(0,O)
+    from freshness import assess_catalog
+    games={}
+    for k,d in (('ygo','ygo_cards'),('mtg','mtg_cards')):
+        base=os.path.join(root,d)
+        games[k]=dict(stamp=_read_stamp(os.path.join(base,'.stamp')),verified_at=_verified_times(os.path.join(base,'latest.json')))
+    return assess_catalog(games,transport_stopped=_transport_stopped(root),today=datetime.date.today().isoformat(),now=time.time())
 def last(mode):
     try:
         for l in reversed(open(O+'/doctor_runs.jsonl').read().splitlines()):
@@ -40,6 +83,7 @@ def main():
     s['links_checked_oldest_top20']=min(vs) if vs else None
     s['level']='ok' if not prob else ('stop' if s['stop'] else 'warn')
     s['problems']=prob
+    s.update(_freshness(root))
     json.dump(s,open(O+'/status.json','w'),indent=1)
     open(O+'/status.txt','w').write(f"{s['ts']} level={s['level']} ygo_age={s.get('ygo_tracker_age_h')}h mtg_age={s.get('mtg_tracker_age_h')}h mem={s['mem_free_gb']}GB stop={s['stop']} | {'; '.join(prob) or 'all good'}\n")
     print(open(O+'/status.txt').read().strip())
