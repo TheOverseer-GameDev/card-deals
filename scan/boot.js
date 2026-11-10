@@ -1030,13 +1030,25 @@ function boot() {
       cell.textContent = `${label}: ${shown}`;
       grid.append(cell);
     }
-    const headline = centeringText ? range.text : ESTIMATE_UNAVAILABLE;
+    let headline = centeringText ? range.text : ESTIMATE_UNAVAILABLE;
+    if (reports.front) {
+      const estimate = psaEstimate({
+        mode,
+        front: reports.front,
+        back: reports.back,
+        notes: { front: readNotes('front'), back: readNotes('back') },
+      });
+      if (!estimate.range) headline = ESTIMATE_UNAVAILABLE;
+    }
     showCheck(ui.rangeHost, [headline, range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.', ...rangeNotes].join(' '));
     showCheck(ui.worthHost, `Estimate, not a PSA grade. ${worth.text}`);
     const token = `${width}x${height}:${rgba[0]}:${rgba[rgba.length - 1]}:${flat ? 'flat' : 'raw'}`;
     if (token === savedToken) return;
     savedToken = token;
-    const summary = `${headline} ${stains.status}. ${creases.status}.`;
+    const summary = [headline]
+      .concat(stains.status && stains.status !== 'clear' ? [stains.note] : [])
+      .concat(creases.status && creases.status !== 'clear' ? [creases.note] : [])
+      .join(' ');
     openScanHistory().then((store) => saveScan(store, {
       at: Date.now(),
       version: HISTORY_VERSION,

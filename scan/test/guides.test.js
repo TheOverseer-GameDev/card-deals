@@ -71,6 +71,21 @@ function lineReachable(selector) {
   });
 }
 
+async function touchDragY(page, box, dy) {
+  const session = await page.context().newCDPSession(page);
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] });
+  for (let step = 1; step <= 4; step++) {
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x, y: y + (dy * step) / 4, id: 1 }],
+    });
+  }
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await session.detach();
+}
+
 async function touchDrag(page, box, dx) {
   const session = await page.context().newCDPSession(page);
   const x = box.x + box.width / 2;
@@ -99,6 +114,41 @@ function guideScript(selector) {
     };
   });
 }
+
+test('a short phone can drag the outer top guide', async () => {
+  const photo = cardFile();
+  const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const server = await startServer();
+  const page = await (await browser.newContext({ viewport: { width: 375, height: 667 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' })).newPage();
+  try {
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.locator('nav button[data-v="scan"]').click();
+    await page.locator('#scan-front-file').setInputFiles(photo);
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector('#scan-stage canvas');
+      return canvas && canvas.getBoundingClientRect().height > 180;
+    });
+    const size = await page.evaluate(() => {
+      const canvas = document.querySelector('#scan-stage canvas').getBoundingClientRect();
+      const step = document.querySelector('#scan-step').getBoundingClientRect();
+      const note = document.querySelector('#scan-price-limit-live');
+      const noteBox = note ? note.getBoundingClientRect() : null;
+      const overlap = noteBox ? !(step.bottom <= noteBox.top || noteBox.bottom <= step.top) : false;
+      return { h: canvas.height, w: canvas.width, overlap };
+    });
+    assert.ok(size.h > 180, `photo is only ${Math.round(size.w)}x${Math.round(size.h)}`);
+    assert.equal(size.overlap, false, 'the step line overlaps the grade note');
+    const start = Number(await page.locator('#scan-front-guides .scan-guide[aria-label="Outer top border"]').getAttribute('aria-valuenow'));
+    const box = await page.locator('#scan-front-guides .scan-guide[aria-label="Outer top border"]').boundingBox();
+    assert.ok(box, 'outer top guide has a box');
+    await touchDragY(page, box, 24);
+    const moved = Number(await page.locator('#scan-front-guides .scan-guide[aria-label="Outer top border"]').getAttribute('aria-valuenow'));
+    assert.notEqual(moved, start, 'outer top guide did not move');
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});
 
 test('a loaded photo keeps eight border guides on the front and the back', async () => {
   const photo = cardFile();

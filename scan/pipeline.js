@@ -632,7 +632,9 @@ export function straighten(rgba, width, height) {
     const picture = maskRim(width >= height
       ? fitCard(rgba, width, height)
       : scaleToSize(rgba, width, height, 500, 700));
-    return commitFlat(picture, pose, centeringOk, { paper: !!paper, quad, bowed, allowRead: true, level, edgesOk: edgesReliable(pose, picture) });
+    // The outline on a full-bleed frame is the inner print, not the card edge.
+    // Trust the edges only when that frame's own border is level and not bowed.
+    return commitFlat(picture, pose, centeringOk, { paper: !!paper, quad, bowed, allowRead: true, level, edgesOk: edgesLevel(picture) });
   }
   // Gate on the chosen outline, not the first quad. On a Yu-Gi-Oh scan that
   // first quad is the inner print, a couple of degrees off and too small.
@@ -653,7 +655,7 @@ export function straighten(rgba, width, height) {
     };
     const centeringOk = pose.tilt <= 0.4 && centeringAllowed(pose) && !bowed;
     const picture = maskRim(scaleToSize(cropRect(rgba, width, height, bounds), bw, bh, 500, 700));
-    return commitFlat(picture, pose, centeringOk, { paper: false, quad, bowed, edgesOk: edgesReliable(pose, picture) });
+    return commitFlat(picture, pose, centeringOk, { paper: false, quad, bowed, edgesOk: !bounds.lowContrast && edgesLevel(picture) });
   }
   if (!quad) return { flattened: false, reason: located.reason || 'no card edge' };
   const pose = quadPose(quad);
@@ -671,11 +673,25 @@ export function straighten(rgba, width, height) {
     const th = trimmed.maxY - trimmed.minY + 1;
     picture = scaleToSize(cropRect(picture, 500, 700, trimmed), tw, th, 500, 700);
   }
+  let ink = 0;
+  let samples = 0;
+  for (let i = 0; i < picture.length; i += 64) {
+    ink += 0.299 * picture[i] + 0.587 * picture[i + 1] + 0.114 * picture[i + 2];
+    samples += 1;
+  }
+  // A bad outline can warp the photo into a black field and hide a crease.
+  // Keep the scaled photo and refuse the ratio instead.
+  if (samples && ink / samples < 40) {
+    picture = scaleToSize(rgba, width, height, 500, 700);
+    pose.tilt = 90;
+    pose.parallel = false;
+    pose.aspectOk = false;
+  }
   return commitFlat(picture, pose, centeringOk, {
     paper: !!paper,
     quad,
     bowed,
-    edgesOk: edgesReliable(pose, picture),
+    edgesOk: edgesLevel(picture),
   });
 }
 
@@ -712,6 +728,42 @@ function borderLevel(rgba, width, height) {
     if (Math.abs(hit(edge, 0.25) - hit(edge, 0.75)) > 6) return false;
   }
   return true;
+}
+
+function edgesLevel(rgba) {
+  const grayAt = (x, y) => {
+    const i = (y * 500 + x) * 4;
+    return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+  };
+  function hit(edge, at) {
+    const vertical = edge === 'left' || edge === 'right';
+    const span = vertical ? 700 : 500;
+    const t = Math.min(span - 2, Math.max(1, Math.round(span * at)));
+    const edgeGray = vertical ? grayAt(edge === 'left' ? 1 : 498, t) : grayAt(t, edge === 'top' ? 1 : 698);
+    for (let d = 2; d < 36; d++) {
+      const x = edge === 'left' ? d : edge === 'right' ? 499 - d : t;
+      const y = edge === 'top' ? d : edge === 'bottom' ? 699 - d : t;
+      if (Math.abs(grayAt(x, y) - edgeGray) > 28) return d;
+    }
+    return 36;
+  }
+  const usual = (edge, at) => {
+    const values = [];
+    for (let k = -6; k <= 6; k++) values.push(hit(edge, Math.min(0.9, Math.max(0.1, at + k * 0.0125))));
+    let best = values[0];
+    let votes = -1;
+    for (const value of values) {
+      const n = values.filter((other) => Math.abs(other - value) <= 1).length;
+      if (n > votes) {
+        votes = n;
+        best = value;
+      }
+    }
+    return best;
+  };
+  const deltas = ['top', 'bottom', 'left', 'right'].map((edge) => Math.abs(usual(edge, 0.25) - usual(edge, 0.75)));
+  // One side can carry the defect or a line of text. Three level sides are enough.
+  return deltas.filter((delta) => delta <= 8).length >= 3;
 }
 
 function borderSlant(rgba) {
@@ -812,6 +864,30 @@ function borderBows(rgba, width, height) {
     }
     return max / depth;
   }
+  // A lens bow bends the long sides by about 2% of the width. The depth test
+  // above only notices a bend of about 8% of the short side, which a lens
+  // never reaches. Printed text makes one sample lie, so this uses medians.
+  function sag(edge) {
+    const samples = [];
+    for (let f = 0.1; f <= 0.9001; f += 0.02) {
+      const t = Math.min(height - 2, Math.round(height * f));
+      const edgeGray = grayAt(edge === 'left' ? 1 : width - 2, t);
+      let hit = Math.max(4, Math.round(width * 0.12));
+      for (let d = 2; d < hit; d++) {
+        const x = edge === 'left' ? d : width - 1 - d;
+        if (Math.abs(grayAt(x, t) - edgeGray) > 22) {
+          hit = d;
+          break;
+        }
+      }
+      samples.push(hit);
+    }
+    const med = (list) => list.slice().sort((a, b) => a - b)[list.length >> 1];
+    const ends = (med(samples.slice(0, 5)) + med(samples.slice(-5))) / 2;
+    const middle = med(samples.slice(18, 23));
+    return Math.abs(middle - ends) / width;
+  }
+  if (height > width && (sag('left') > 0.018 || sag('right') > 0.018)) return true;
   return ['left', 'right', 'top', 'bottom'].some((edge) => bow(edge) > 0.08);
 }
 
@@ -932,7 +1008,9 @@ function frameFilled(rgba, width, height) {
   // accepted, and scaling that padding invented edge chips. A real scan can
   // have one deeper side, so three sides have to be this close. Landscape and
   // square photos count too: the card is the frame, it is just not portrait.
-  if (height > width) return near >= 3;
+  // A textured background can sit 0.5% in from the photo edge and still
+  // look like a card. A real card is portrait and at least 0.62 wide.
+  if (height > width) return near >= 3 && width / height >= 0.62;
   return near >= 4;
 }
 
@@ -977,6 +1055,14 @@ function contentBounds(rgba, width, height) {
   const corners = [grayAt(1, 1), grayAt(width - 2, 1), grayAt(1, height - 2), grayAt(width - 2, height - 2)];
   if (Math.max(...corners) - Math.min(...corners) > 24) return null;
   const bg = corners.slice().sort((a, b) => a - b)[1];
+  // Colour, not only gray: an orange border and a gray pad can share a gray level.
+  const bgPx = (1 * width + 1) * 4;
+  const bgRgb = [rgba[bgPx], rgba[bgPx + 1], rgba[bgPx + 2]];
+  const far = (x, y, limit) => {
+    const i = (y * width + x) * 4;
+    return Math.abs(grayAt(x, y) - bg) >= limit
+      || Math.max(Math.abs(rgba[i] - bgRgb[0]), Math.abs(rgba[i + 1] - bgRgb[1]), Math.abs(rgba[i + 2] - bgRgb[2])) >= limit * 2;
+  };
   let minX = width;
   let minY = height;
   let maxX = 0;
@@ -985,7 +1071,7 @@ function contentBounds(rgba, width, height) {
   const step = Math.max(2, Math.floor(Math.min(width, height) / 100));
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
-      if (Math.abs(grayAt(x, y) - bg) < 18) continue;
+      if (!far(x, y, 18)) continue;
       count += 1;
       if (x < minX) minX = x;
       if (y < minY) minY = y;
@@ -996,10 +1082,79 @@ function contentBounds(rgba, width, height) {
   if (count < 30) return null;
   const bw = maxX - minX + 1;
   const bh = maxY - minY + 1;
-  if (bw < width * 0.45 || bh < height * 0.45) return null;
+  // A card on a 4:3 or square pad has uneven margins and a card-shaped box.
+  const cardShaped = Math.abs(Math.min(bw, bh) / Math.max(bw, bh) - 63 / 88) <= 0.06;
+  const big = (bw >= width * 0.45 && bh >= height * 0.45) || (cardShaped && Math.max(bw / width, bh / height) >= 0.6);
+  if (!big) return null;
   if (minX <= 1 && minY <= 1 && maxX >= width - 2 && maxY >= height - 2) return null;
   const margins = [minX, minY, width - 1 - maxX, height - 1 - maxY];
-  if (Math.max(...margins) - Math.min(...margins) > Math.max(12, 0.03 * Math.min(width, height))) return null;
+  const evenPad = Math.max(...margins) - Math.min(...margins) <= Math.max(12, 0.03 * Math.min(width, height));
+  if (!evenPad && !cardShaped) return null;
+  if (!evenPad) {
+    const lineFill = (vertical, pos, from, to) => {
+      let hit = 0;
+      let total = 0;
+      for (let t = from; t <= to; t += 2) {
+        total += 1;
+        if (vertical ? far(pos, t, 18) : far(t, pos, 18)) hit += 1;
+      }
+      return total ? hit / total : 0;
+    };
+    const snap = (vertical, start, dir, from, to) => {
+      let best = start;
+      const limit = vertical ? width : height;
+      for (let d = -step; d <= step; d++) {
+        const at = start + d * dir;
+        if (at < 0 || at >= limit) continue;
+        if (lineFill(vertical, at, from, to) > 0.9) best = at;
+      }
+      const lineDiff = (pos) => {
+        let sum = 0;
+        let n = 0;
+        for (let t = from; t <= to; t += 3) {
+          const i = (vertical ? t * width + pos : pos * width + t) * 4;
+          sum += Math.max(Math.abs(rgba[i] - bgRgb[0]), Math.abs(rgba[i + 1] - bgRgb[1]), Math.abs(rgba[i + 2] - bgRgb[2]));
+          n += 1;
+        }
+        return n ? sum / n : 0;
+      };
+      for (let k = 0; k < 2; k++) {
+        const inner = best - 3 * dir;
+        if (inner < 0 || inner >= limit) break;
+        if (lineDiff(best) < 0.6 * lineDiff(inner)) best -= dir;
+        else break;
+      }
+      return best;
+    };
+    const y0 = minY + Math.floor(bh * 0.2);
+    const y1 = maxY - Math.floor(bh * 0.2);
+    const x0 = minX + Math.floor(bw * 0.2);
+    const x1 = maxX - Math.floor(bw * 0.2);
+    minX = snap(true, minX, -1, y0, y1);
+    maxX = snap(true, maxX, 1, y0, y1);
+    minY = snap(false, minY, -1, x0, x1);
+    maxY = snap(false, maxY, 1, x0, x1);
+    const innerDiff = (vertical, pos, dir, from, to) => {
+      let sum = 0;
+      let n = 0;
+      for (let t = from; t <= to; t += 3) {
+        for (let d = 1; d <= 3; d++) {
+          const q = pos + d * dir;
+          const i = (vertical ? t * width + q : q * width + t) * 4;
+          sum += Math.max(Math.abs(rgba[i] - bgRgb[0]), Math.abs(rgba[i + 1] - bgRgb[1]), Math.abs(rgba[i + 2] - bgRgb[2]));
+          n += 1;
+        }
+      }
+      return n ? sum / n : 0;
+    };
+    const contrast = Math.min(
+      innerDiff(true, minX, 1, y0, y1),
+      innerDiff(true, maxX, -1, y0, y1),
+      innerDiff(false, minY, 1, x0, x1),
+      innerDiff(false, maxY, -1, x0, x1),
+    );
+    return { minX, minY, maxX, maxY, lowContrast: contrast < 30 };
+  }
   function fill(edge) {
     let hit = 0;
     let total = 0;
@@ -1009,7 +1164,7 @@ function contentBounds(rgba, width, height) {
       const x = edge === 'left' ? minX : edge === 'right' ? maxX : minX + t;
       const y = edge === 'top' ? minY : edge === 'bottom' ? maxY : minY + t;
       total += 1;
-      if (Math.abs(grayAt(Math.min(width - 1, x), Math.min(height - 1, y)) - bg) > 18) hit += 1;
+      if (far(Math.min(width - 1, x), Math.min(height - 1, y), 18)) hit += 1;
     }
     return total ? hit / total : 0;
   }
@@ -1020,7 +1175,7 @@ function contentBounds(rgba, width, height) {
     const growY = Math.min(Math.round(bh * 0.035), Math.max(0, Math.min(minY, height - 1 - maxY) - 2));
     box = { minX: minX - growX, minY: minY - growY, maxX: maxX + growX, maxY: maxY + growY };
   }
-  return box;
+  return { ...box, lowContrast: false };
 }
 
 function scaleToSize(rgba, width, height, dw, dh) {
@@ -1101,7 +1256,7 @@ function borderRun(gray, width, height, side, fixed) {
     if (!Number.isFinite(v)) return null;
     samples.push(v);
   }
-  const blur = samples.map((_, i) => {
+  let blur = samples.map((_, i) => {
     let sum = 0;
     let n = 0;
     for (let k = -2; k <= 2; k++) {
@@ -1112,6 +1267,16 @@ function borderRun(gray, width, height, side, fixed) {
     }
     return sum / n;
   });
+  // A dark scanner rim falls, then jumps into the printed border. The card's
+  // own black border does not make that jump. Start the measure at the jump.
+  for (let i = 3; i < 24 && i < blur.length - 8; i++) {
+    if (blur[i] > blur[i - 1] + 40 && blur[i] > 80 && blur[i - 1] < 80) {
+      const plateau = blur.slice(i, i + 8);
+      const spread = Math.max(...plateau) - Math.min(...plateau);
+      if (spread < 60) blur = blur.slice(i);
+      break;
+    }
+  }
   // A light paper border ends where the artwork drops away. Its width is the
   // printed margin, whether or not a sliver of table is still inside the outline.
   let bandStart = null;
@@ -1219,6 +1384,8 @@ export function measureCentering(gray, width, height) {
     const right = median(strict ? chosen.map((pair) => pair.b) : rights);
     if (left == null || right == null || left < 3 || right < 3) return null;
     const sum = left + right;
+    // One pixel on a thin border is about four points. That is not a reading.
+    if (100 / sum > 3.5) return null;
     return [(left / sum) * 100, (right / sum) * 100];
   }
   const lr = axis('left', 'right', true);

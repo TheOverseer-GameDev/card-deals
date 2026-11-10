@@ -314,7 +314,60 @@ function findingFor(kind, sample, rgba, width, height, id, paper) {
   return { flag: 'clear', text: 'No whitening, ding, rounding, or chip stood out on this crop.', trusted: true };
 }
 
+function peelSoftStrips(rgba, width, height) {
+  // A scan backdrop that is darker by about the same amount along a whole side
+  // is the photo edge, not a chip. A nick changes only part of the side.
+  const out = new Uint8ClampedArray(rgba);
+  const gray = (x, y) => {
+    const i = (y * width + x) * 4;
+    return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+  };
+  const mid = (values) => values.slice().sort((a, b) => a - b)[values.length >> 1];
+  function peel(edge) {
+    const vertical = edge === 'left' || edge === 'right';
+    const span = vertical ? height : width;
+    const diffs = [];
+    for (let t = 2; t < span - 2; t += 4) {
+      let outer = 0;
+      let inner = 0;
+      for (let d = 1; d <= 6; d++) {
+        const ox = edge === 'left' ? d : edge === 'right' ? width - 1 - d : t;
+        const oy = edge === 'top' ? d : edge === 'bottom' ? height - 1 - d : t;
+        const ix = edge === 'left' ? 18 : edge === 'right' ? width - 1 - 18 : t;
+        const iy = edge === 'top' ? 18 : edge === 'bottom' ? height - 1 - 18 : t;
+        outer += vertical ? gray(ox, t) : gray(t, oy);
+        inner += vertical ? gray(ix, t) : gray(t, iy);
+      }
+      diffs.push(inner / 6 - outer / 6);
+    }
+    if (diffs.length < 8) return;
+    const center = mid(diffs);
+    const scatter = mid(diffs.map((value) => Math.abs(value - center)));
+    if (center < 14 || scatter > 9) return;
+    const band = 12;
+    for (let t = 0; t < span; t++) {
+      for (let d = 0; d < band; d++) {
+        const x = edge === 'left' ? d : edge === 'right' ? width - 1 - d : t;
+        const y = edge === 'top' ? d : edge === 'bottom' ? height - 1 - d : t;
+        const sx = edge === 'left' ? band : edge === 'right' ? width - 1 - band : t;
+        const sy = edge === 'top' ? band : edge === 'bottom' ? height - 1 - band : t;
+        const di = (y * width + x) * 4;
+        const si = (sy * width + sx) * 4;
+        out[di] = rgba[si];
+        out[di + 1] = rgba[si + 1];
+        out[di + 2] = rgba[si + 2];
+        out[di + 3] = rgba[si + 3];
+      }
+    }
+  }
+  for (const edge of ['left', 'right', 'top', 'bottom']) peel(edge);
+  return out;
+}
+
 export function inspectSide(rgba, width, height, side, options) {
+  if (width === 500 && height === 700 && rgba && rgba.length >= width * height * 4) {
+    rgba = peelSoftStrips(rgba, width, height);
+  }
   if (width !== 500 || height !== 700 || !rgba || rgba.length < width * height * 4) {
     return {
       side,
@@ -329,9 +382,12 @@ export function inspectSide(rgba, width, height, side, options) {
     const sample = stats(pixels);
     const paper = (x, y) => onCardPaper(box, x, y, width, height);
     const found = findingFor(box.kind, sample, pixels, box.w, box.h, box.id, paper);
-    if (options && options.edgesOk === false && (found.flag === 'chip' || found.flag === 'ding' || found.flag === 'whitening')) {
-      found.flag = 'clear';
-      found.text = 'No whitening, ding, rounding, or chip stood out on this crop.';
+    if (options && options.edgesOk === false && found.flag !== 'rounding') {
+      // The border is not straight, so this crop was not checked.
+      // Calling it clear would hide that.
+      found.flag = 'unchecked';
+      found.text = 'Edges not checked. The card border is not straight in this photo.';
+      found.trusted = false;
     }
     crops.push({
       id: `${side}-${box.id}`,
@@ -360,12 +416,15 @@ export function inspectSide(rgba, width, height, side, options) {
     }
   }
   const unchecked = crops.filter((crop) => !crop.trusted).length;
+  const edgesOff = options && options.edgesOk === false;
   return {
     side,
-    trusted: unchecked < crops.length,
-    note: unchecked === crops.length
-      ? 'Lighting is too poor to trust the corner and edge check.'
-      : 'Close-ups show only what is visible. A photo cannot guarantee a grade or that the card is genuine.',
+    trusted: !edgesOff && unchecked < crops.length,
+    note: edgesOff
+      ? 'Edges not checked. The card border is not straight in this photo.'
+      : unchecked === crops.length
+        ? 'Lighting is too poor to trust the corner and edge check.'
+        : 'Close-ups show only what is visible. A photo cannot guarantee a grade or that the card is genuine.',
     crops,
   };
 }
