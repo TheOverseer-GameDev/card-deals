@@ -157,3 +157,51 @@ test('a card-shaped fake camera draws a live outline without a console error', a
   await browser.close();
   server.close();
 });
+
+test('hiding the page stops the camera and coming back starts it again', async () => {
+  const feed = cardFeed('/tmp/scan-phase1/hide.y4m');
+  const browser = await chromium.launch({
+    executablePath: chrome,
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      '--use-fake-device-for-media-stream',
+      '--use-fake-ui-for-media-stream',
+      `--use-file-for-fake-video-capture=${feed}`,
+    ],
+  });
+  const server = await startServer();
+  const page = await (await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    serviceWorkers: 'block',
+  })).newPage();
+  await page.context().grantPermissions(['camera']);
+  await page.goto(`http://127.0.0.1:${server.address().port}/`);
+  await page.locator('nav button[data-v="scan"]').click();
+  await page.locator('#scan-front-cam').click();
+  await page.waitForFunction(() => {
+    const video = document.querySelector('#scan-cam-video');
+    return video && video.srcObject && video.videoWidth > 2;
+  });
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForFunction(() => {
+    const video = document.querySelector('#scan-cam-video');
+    return video && video.hidden && !video.srcObject;
+  });
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForFunction(() => {
+    const video = document.querySelector('#scan-cam-video');
+    return video && !video.hidden && video.srcObject;
+  });
+  await browser.close();
+  server.close();
+});

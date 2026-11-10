@@ -257,6 +257,114 @@ function dp(points, epsilon) {
   return left.concat(right.slice(1, -1));
 }
 
+function axisDelta(deg) {
+  let d = Math.abs(deg % 180);
+  if (d > 90) d = 180 - d;
+  return Math.min(d, 90 - d);
+}
+
+// The simplified four-point outline can replace a card corner with a nick.
+// The long sides of the convex hull are the card edges. Their angle is the tilt.
+export function tiltFromPoints(points) {
+  if (!points || points.length < 2) return null;
+  const ring = points.length > 4 ? hull(points) : points;
+  if (ring.length < 2) return null;
+  const edges = [];
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i];
+    const b = ring[(i + 1) % ring.length];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (len < 1) continue;
+    edges.push({ len, axis: axisDelta(Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI) });
+  }
+  if (!edges.length) return null;
+  const longest = Math.max(...edges.map((edge) => edge.len));
+  const kept = edges.filter((edge) => edge.len >= longest * 0.35);
+  const use = (kept.length ? kept : edges).slice().sort((a, b) => a.axis - b.axis);
+  let seen = 0;
+  const total = use.reduce((sum, edge) => sum + edge.len, 0);
+  for (const edge of use) {
+    seen += edge.len;
+    if (seen >= total / 2) return edge.axis;
+  }
+  return use[0].axis;
+}
+
+function lineFit(pts) {
+  const n = pts.length;
+  let sx = 0;
+  let sy = 0;
+  let sxx = 0;
+  let syy = 0;
+  let sxy = 0;
+  for (const p of pts) {
+    sx += p.x;
+    sy += p.y;
+    sxx += p.x * p.x;
+    syy += p.y * p.y;
+    sxy += p.x * p.y;
+  }
+  const mx = sx / n;
+  const my = sy / n;
+  const vx = sxx / n - mx * mx;
+  const vy = syy / n - my * my;
+  const vxy = sxy / n - mx * my;
+  const ang = 0.5 * Math.atan2(2 * vxy, vx - vy);
+  return { x: mx, y: my, ang };
+}
+
+function intersect(lineA, lineB) {
+  const dxa = Math.cos(lineA.ang);
+  const dya = Math.sin(lineA.ang);
+  const dxb = Math.cos(lineB.ang);
+  const dyb = Math.sin(lineB.ang);
+  const det = dxa * dyb - dya * dxb;
+  if (Math.abs(det) < 1e-6) return null;
+  const t = ((lineB.x - lineA.x) * dyb - (lineB.y - lineA.y) * dxb) / det;
+  return { x: lineA.x + dxa * t, y: lineA.y + dya * t };
+}
+
+function fittedQuad(points) {
+  const ring = points.length > 4 ? hull(points) : points.slice();
+  if (ring.length < 4) return null;
+  const seeds = [
+    ring.reduce((a, p) => (p.x + p.y < a.x + a.y ? p : a)),
+    ring.reduce((a, p) => (p.x - p.y > a.x - a.y ? p : a)),
+    ring.reduce((a, p) => (p.x + p.y > a.x + a.y ? p : a)),
+    ring.reduce((a, p) => (p.x - p.y < a.x - a.y ? p : a)),
+  ];
+  if (new Set(seeds.map((p) => `${p.x},${p.y}`)).size < 4) return null;
+  const sides = [[], [], [], []];
+  for (let i = 0; i < 4; i++) sides[i].push(seeds[i], seeds[(i + 1) % 4]);
+  for (const p of ring) {
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < 4; i++) {
+      const a = seeds[i];
+      const b = seeds[(i + 1) % 4];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const den = dx * dx + dy * dy || 1;
+      let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / den;
+      t = Math.max(0, Math.min(1, t));
+      const dist = Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i;
+      }
+    }
+    sides[best].push(p);
+  }
+  if (sides.some((side) => side.length < 2)) return { tilt: null, corners: seeds };
+  const lines = sides.map((side) => lineFit(side));
+  const corners = [0, 1, 2, 3].map((i) => intersect(lines[i], lines[(i + 1) % 4]));
+  if (corners.some((p) => !p)) return { tilt: null, corners: seeds };
+  const axes = lines.map((line) => axisDelta(line.ang * 180 / Math.PI)).sort((a, b) => a - b);
+  // The lines give the angle. The extreme pixels stay the corners so a rounded
+  // or nicked corner is still inside the straightened picture.
+  return { tilt: (axes[1] + axes[2]) / 2, corners: seeds };
+}
+
 function orderQuad(pts) {
   const tl = pts.slice().sort((a, b) => a.x + a.y - (b.x + b.y))[0];
   const br = pts.slice().sort((a, b) => b.x + b.y - (a.x + a.y))[0];
@@ -376,11 +484,15 @@ export function findQuad(rgba, width, height, longEdge = 480, minArea = 0.18, mi
   const box = (maxX - minX + 1) * (maxY - minY + 1);
   if (box < minBox * scaled.width * scaled.height) return { found: false, reason: 'box', ...frame };
   const ring = hull(pts);
-  let poly = ring;
-  let epsilon = 2;
-  for (let attempt = 0; attempt < 10 && poly.length !== 4; attempt++) {
-    poly = dp(ring, epsilon);
-    epsilon *= 1.55;
+  const fitted = fittedQuad(ring);
+  let poly = fitted ? fitted.corners : ring;
+  if (!fitted) {
+    poly = ring;
+    let epsilon = 2;
+    for (let attempt = 0; attempt < 10 && poly.length !== 4; attempt++) {
+      poly = dp(ring, epsilon);
+      epsilon *= 1.55;
+    }
   }
   if (poly.length !== 4) return { found: false, reason: 'poly '+poly.length, ...frame };
   let ordered = orderQuad(poly);
@@ -401,10 +513,11 @@ export function findQuad(rgba, width, height, longEdge = 480, minArea = 0.18, mi
   const ratio = spanW / (spanH || 1);
   const quad = ordered.map((p) => ({ x: p.x / scaled.scale, y: p.y / scaled.scale }));
   const areaFrac = area / (scaled.width * scaled.height);
+  const tilt = fitted ? fitted.tilt : null;
   if (area < minArea * scaled.width * scaled.height || shape < 0.5 || shape > 0.95) {
-    return { found: false, reason: 'geom '+area+' '+shape, candidate: quad, areaFrac, ratio, ...frame };
+    return { found: false, reason: 'geom '+area+' '+shape, candidate: quad, areaFrac, ratio, tilt, ...frame };
   }
-  return { found: true, quad, areaFrac, ratio, reason: '', ...frame };
+  return { found: true, quad, areaFrac, ratio, tilt, reason: '', ...frame };
 }
 
 function outerQuad(gray, width, height, scale) {
@@ -435,6 +548,7 @@ function outerQuad(gray, width, height, scale) {
     if (outside) pts.push({ x, y });
   }
   if (pts.length < 16) return null;
+  const fitted = fittedQuad(pts);
   const tl = pts.reduce((a, p) => (p.x + p.y < a.x + a.y ? p : a));
   const tr = pts.reduce((a, p) => (p.x - p.y > a.x - a.y ? p : a));
   const br = pts.reduce((a, p) => (p.x + p.y > a.x + a.y ? p : a));
@@ -456,7 +570,10 @@ function outerQuad(gray, width, height, scale) {
   }
   const shape = Math.min(spanW, spanH) / (Math.max(spanW, spanH) || 1);
   if (shape < 0.55 || shape > 0.9 || spanW < 40 || spanH < 40 || sidesDiffer) return null;
-  return ordered.map((p) => ({ x: p.x / scale, y: p.y / scale }));
+  return {
+    quad: ordered.map((p) => ({ x: p.x / scale, y: p.y / scale })),
+    tilt: fitted && Number.isFinite(fitted.tilt) ? fitted.tilt : null,
+  };
 }
 
 export function quadPose(quad) {
@@ -476,12 +593,13 @@ export function quadPose(quad) {
   const width = (len(0) + len(2)) / 2;
   const height = (len(1) + len(3)) / 2;
   const ratio = Math.min(width, height) / (Math.max(width, height) || 1);
-  const tilts = edges.map(toAxis);
+  const tilts = edges.map(toAxis).slice().sort((a, b) => a - b);
   const opposite = Math.max(parallelDelta(edges[0], edges[2]), parallelDelta(edges[1], edges[3]));
   return {
-    // The worst edge, not the straightest. One aligned side used to hide a 5–30° card.
-    tilt: Math.max(...tilts),
-    minTilt: Math.min(...tilts),
+    // The middle of the four edge angles. The straightest edge hides a real
+    // rotation, and the worst edge is often a nicked corner, not the card.
+    tilt: (tilts[1] + tilts[2]) / 2,
+    minTilt: tilts[0],
     parallelDelta: opposite,
     parallel: opposite <= 3,
     ratio,
@@ -497,23 +615,47 @@ export function straighten(rgba, width, height) {
       x: pts.reduce((sum, p) => sum + p.x, 0) / pts.length,
       y: pts.reduce((sum, p) => sum + p.y, 0) / pts.length,
     });
-    const a = mid(paper);
+    const a = mid(paper.quad);
     const b = mid(located.quad);
     const span = Math.hypot(located.quad[1].x - located.quad[0].x, located.quad[1].y - located.quad[0].y) || 1;
     if (Math.hypot(a.x - b.x, a.y - b.y) > span * 0.2) paper = null;
   }
-  const quad = paper || (located.found ? located.quad : null);
+  const quad = paper ? paper.quad : (located.found ? located.quad : null);
+  const tiltHint = paper && paper.tilt != null ? paper.tilt : located.tilt;
+  const imageRatio = Math.min(width, height) / Math.max(width, height);
+  // A picture that already fills a card-shaped frame is the card. The printed
+  // frame inside it is not a second outline, and stretching that line invents
+  // nicks. A rotated card on a flat pad also looks card-shaped, but most of
+  // the outer edge is that one pad color, so it is not this case.
+  if (Math.abs(imageRatio - 63 / 88) <= 0.004 && !flatPadAround(rgba, width, height)) {
+    const pose = quad ? quadPose(quad) : { tilt: 0, minTilt: 0, parallelDelta: 0, parallel: true, ratio: imageRatio, aspectOk: true };
+    pose.tilt = 0;
+    pose.parallel = true;
+    pose.aspectOk = true;
+    pose.ratio = imageRatio;
+    return {
+      flattened: true,
+      width: 500,
+      height: 700,
+      rgba: scaleToSize(rgba, width, height, 500, 700),
+      paper: !!paper,
+      quad,
+      pose,
+      centeringOk: true,
+      reason: '',
+    };
+  }
   if (!quad) return { flattened: false, reason: located.reason || 'no card edge' };
   const pose = quadPose(quad);
+  if (Number.isFinite(tiltHint)) pose.tilt = tiltHint;
   const warped = warp(rgba, width, height, quad);
   if (!warped) return { flattened: false, reason: 'warp', pose };
   // Corners, edges, and surface still use this straightened picture.
-  // A centering number is refused when the worst edge is past 2°, the
-  // opposite edges are not parallel, or the quad is not a card shape.
+  // A centering number is refused when the card is rotated, the sides are not
+  // parallel, or the outline's aspect is not the card's.
   const centeringOk = centeringAllowed(pose);
-  // The gray fingerprint lets a later centering read refuse this same picture
-  // when the quad was tilted or not a card-shaped parallelogram. Defect checks
-  // still use the straightened pixels.
+  // A warped picture has to earn a number: the pose must be a card, and four
+  // of the five border lines have to agree. A flat scan does not come through here.
   rememberPose(grayOf(warped.rgba, 500, 700), pose);
   return {
     flattened: true,
@@ -528,13 +670,58 @@ export function straighten(rgba, width, height) {
   };
 }
 
+function flatPadAround(rgba, width, height) {
+  const origin = (1 * width + 1) * 4;
+  const corner = 0.299 * rgba[origin] + 0.587 * rgba[origin + 1] + 0.114 * rgba[origin + 2];
+  let count = 0;
+  let same = 0;
+  for (let x = 0; x < width; x += 3) {
+    const i = (width + x) * 4;
+    const gray = 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+    count += 1;
+    if (Math.abs(gray - corner) < 12) same += 1;
+  }
+  const fraction = count ? same / count : 0;
+  return fraction > 0.6 && fraction < 0.98;
+}
+
+function scaleToSize(rgba, width, height, dw, dh) {
+  if (width === dw && height === dh) return rgba;
+  const out = new Uint8ClampedArray(dw * dh * 4);
+  for (let y = 0; y < dh; y++) {
+    const sy = Math.min(height - 1, (y + 0.5) * height / dh - 0.5);
+    const y0 = Math.max(0, Math.floor(sy));
+    const y1 = Math.min(height - 1, y0 + 1);
+    const fy = sy - y0;
+    for (let x = 0; x < dw; x++) {
+      const sx = Math.min(width - 1, (x + 0.5) * width / dw - 0.5);
+      const x0 = Math.max(0, Math.floor(sx));
+      const x1 = Math.min(width - 1, x0 + 1);
+      const fx = sx - x0;
+      const i = (y * dw + x) * 4;
+      for (let c = 0; c < 4; c++) {
+        const a = rgba[(y0 * width + x0) * 4 + c];
+        const b = rgba[(y0 * width + x1) * 4 + c];
+        const d = rgba[(y1 * width + x0) * 4 + c];
+        const e = rgba[(y1 * width + x1) * 4 + c];
+        out[i + c] = a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + d * (1 - fx) * fy + e * fx * fy;
+      }
+    }
+  }
+  return out;
+}
+
 // A 2° quad on an official card still invented a top/bottom number the flat
 // read did not have. Anything steeper stays unreadable. Opposite edges that
 // diverge by more than 3°, or a quad whose shape is not a trading card, are
 // the same kind of bad outline.
 function centeringAllowed(pose) {
   if (!pose) return false;
-  return pose.tilt <= 2 && pose.parallel && pose.aspectOk;
+  // At 0.8° an official card still grew a top/bottom number the flat scan did
+  // not have. A perspective warp that changes the outline's aspect does the
+  // same thing, so that shape is not forced into a card rectangle.
+  const aspectChanged = Math.abs(pose.ratio - 63 / 88) > 0.04;
+  return pose.tilt <= 0.75 && pose.parallel && pose.aspectOk && !aspectChanged;
 }
 
 const poseByPrint = new Map();
@@ -707,6 +894,27 @@ export function measureCentering(gray, width, height) {
   const note = frame ? ' Top/bottom is the printed frame in this picture, so it is not measured.' : '';
   if (!bits.length) return `Centering:${note}`;
   return `Centering: ${bits.join('. ')}.${note}`;
+}
+
+export function estimateBorders(gray, width, height) {
+  if (!gray || width < 40 || height < 40 || gray.length < width * height) return null;
+  function side(name, horizontal) {
+    const span = horizontal ? height : width;
+    const vals = [];
+    for (const frac of [0.2, 0.35, 0.5, 0.65, 0.8]) {
+      const found = borderRun(gray, width, height, name, Math.min(span - 1, Math.round(span * frac)));
+      if (found != null) vals.push(found);
+    }
+    if (vals.length < 3) return null;
+    if (Math.max(...vals) - Math.min(...vals) > 12) return null;
+    return median(vals);
+  }
+  const left = side('left', true);
+  const right = side('right', true);
+  const top = side('top', false);
+  const bottom = side('bottom', false);
+  if (left == null || right == null || top == null || bottom == null) return null;
+  return { left, right, top, bottom };
 }
 
 function printedFrame(gray, width, height) {

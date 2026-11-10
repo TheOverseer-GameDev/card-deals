@@ -54,7 +54,8 @@ export function sessionTotal(session) {
 
 export function csvCell(value) {
   let text = value == null ? '' : String(value).normalize('NFKC');
-  text = text.replace(/^(?:[\s\u0000-\u001F\u007F-\u009F]|\uFEFF)+/u, '');
+  text = text.replace(/\p{Cf}/gu, '');
+  text = text.replace(/^(?:\p{Z}|\p{Cc})+/u, '');
   if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }

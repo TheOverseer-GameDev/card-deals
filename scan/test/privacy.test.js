@@ -4,7 +4,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'url';
 
 const root = new URL('..', import.meta.url);
-const files = ['boot.js', 'engine.js', 'lookup.js', 'ocr.js', 'image.js', 'prices.js', 'charts.js', 'gauges.js', 'scan.css', 'detect.js', 'edges.js', 'tilt.js', 'artmatch.js', 'defects.js', 'pipeline.js', 'live.js', 'stains.js', 'creases.js', 'foil.js', 'marks.js', 'consistency.js', 'printq.js', 'range.js', 'worth.js', 'history.js', 'session.js'];
+const files = ['boot.js', 'engine.js', 'lookup.js', 'ocr.js', 'image.js', 'prices.js', 'charts.js', 'gauges.js', 'scan.css', 'detect.js', 'edges.js', 'tilt.js', 'artmatch.js', 'defects.js', 'pipeline.js', 'live.js', 'stains.js', 'creases.js', 'foil.js', 'marks.js', 'consistency.js', 'printq.js', 'range.js', 'worth.js', 'history.js', 'session.js', 'manual.js'];
 
 function source(name) {
   return fs.readFileSync(new URL(name, root), 'utf8');
