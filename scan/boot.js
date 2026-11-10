@@ -402,6 +402,7 @@ function boot() {
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
     state.flat = null;
+    state.manual = null;
     if (slot === 'front' && ui.tiltHost && ui.tiltHost.reset) ui.tiltHost.reset();
     try {
       const shot = state.canvas.getContext('2d').getImageData(0, 0, state.canvas.width, state.canvas.height);
@@ -501,6 +502,7 @@ function boot() {
     if (host) renderQuality(host, report);
     if (slot === 'front' && ui.centering) ui.centering.textContent = centeringLine(report.centering);
     renderPsa();
+    if (slot === 'front') renderPhase2();
   }
 
   function runQuality(slot) {
@@ -973,8 +975,18 @@ function boot() {
     const photo = printQuality(rgba, width, height, reference);
     if (!flat) photo.poor = true;
     const gray = grayOf(rgba, width, height);
-    const centeringText = width === 500 && height === 700 ? (measureCentering(gray, width, height) || '') : '';
+    const manual = slots.front.manual;
+    let centeringText = '';
+    if (AUTO_CENTERING && width === 500 && height === 700) {
+      centeringText = measureCentering(gray, width, height) || '';
+    } else if (manual && Number.isFinite(manual.leftPct) && Number.isFinite(manual.topPct)) {
+      centeringText = `Centering: ${manual.leftPct.toFixed(1)}/${manual.rightPct.toFixed(1)} left/right. ${manual.topPct.toFixed(1)}/${manual.bottomPct.toFixed(1)} top/bottom.`;
+    }
     const side = gradeSide(gray, width, height, centeringText, Boolean(flat));
+    if (!centeringText && side.centering) {
+      side.centering.score = null;
+      side.centering.note = 'Centering is not measured.';
+    }
     const photoGrade = gradePhoto({ front: { flattened: true, marks: side }, back: null, frontBack: false });
     const range = estimateRange(photoGrade, photo);
     const fee = ui.feeInput ? ui.feeInput.value : '';
@@ -988,6 +1000,16 @@ function boot() {
     showCheck(ui.printHost, photo.note);
     const rangeNotes = flat ? range.notes : ['The card outline was not straightened, so these readings are less reliable.', ...range.notes];
     if (!slots.back || !slots.back.canvas) rangeNotes.push('No back photo. Back centering is not checked.');
+    if (!centeringText) {
+      let said = false;
+      for (let i = 0; i < rangeNotes.length; i++) {
+        if (rangeNotes[i] === 'This is a range from the photo scores for centering, corners, edges, and surface. It is not a PSA grade and not a single promised grade.') {
+          rangeNotes[i] = 'This is a range from the photo scores for corners, edges, and surface. Centering is not measured. It is not a PSA grade and not a single promised grade.';
+          said = true;
+        }
+      }
+      if (!said) rangeNotes.push('Centering is not measured.');
+    }
     const grid = ui.rangeHost.querySelector('.scan-grid') || ui.rangeHost.insertBefore(document.createElement('div'), ui.rangeHost.querySelector('p'));
     grid.className = 'scan-grid';
     grid.replaceChildren();
@@ -995,7 +1017,8 @@ function boot() {
       const cell = document.createElement('div');
       cell.className = 'scan-cell';
       const score = side[key] && side[key].score;
-      cell.textContent = `${label}: ${score == null ? 'Unread' : score}`;
+      const shown = key === 'centering' && !centeringText ? 'not measured' : (score == null ? 'Unread' : score);
+      cell.textContent = `${label}: ${shown}`;
       grid.append(cell);
     }
     showCheck(ui.rangeHost, [range.text, range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.', ...rangeNotes].join(' '));
@@ -2165,7 +2188,7 @@ function build(section, missingList) {
   const gray = new Float32Array(500 * 700);
   gray.fill(140);
   const sampleGrade = gradePhoto({
-    front: { flattened: true, marks: gradeSide(gray, 500, 700, 'Centering: 55.0/45.0 left/right. 50.0/50.0 top/bottom.', true) },
+    front: { flattened: true, marks: gradeSide(gray, 500, 700, '', true) },
     back: null,
     frontBack: true,
   });
