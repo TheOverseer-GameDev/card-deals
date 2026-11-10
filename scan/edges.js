@@ -65,15 +65,6 @@ function lighting(sample) {
   return { trust: true, note: '' };
 }
 
-function whitening(sample) {
-  let hot = 0;
-  for (let i = 0; i < sample.values.length; i++) {
-    if (sample.values[i] > sample.median + 42 && sample.values[i] > 180) hot += 1;
-  }
-  const frac = sample.values.length ? hot / sample.values.length : 0;
-  return frac > 0.08 && frac < 0.6;
-}
-
 function borderGap(rgba, width, height, id) {
   const positions = [];
   const across = id.includes('top') || id.includes('bottom');
@@ -105,31 +96,69 @@ function borderGap(rgba, width, height, id) {
 }
 
 function rounding(rgba, width, height, corner) {
-  const outward = corner.includes('tl') ? [0, 0] : corner.includes('tr') ? [width - 1, 0] : corner.includes('br') ? [width - 1, height - 1] : [0, height - 1];
-  const inward = corner.includes('tl') ? [1, 1] : corner.includes('tr') ? [-1, 1] : corner.includes('br') ? [-1, -1] : [1, -1];
+  const isLeft = corner.endsWith('l');
+  const isTop = corner.includes('tl') || corner.includes('tr');
+  const ox = isLeft ? 0 : width - 1;
+  const oy = isTop ? 0 : height - 1;
+  const ix = isLeft ? 1 : -1;
+  const iy = isTop ? 1 : -1;
   const inset = Math.floor(Math.min(width, height) * 0.45);
-  const ix = Math.max(0, Math.min(width - 1, outward[0] + inward[0] * inset));
-  const iy = Math.max(0, Math.min(height - 1, outward[1] + inward[1] * inset));
-  const border = grayAt(rgba, (iy * width + ix) * 4);
-  let gap = 0;
-  for (let step = 0; step < Math.min(width, height); step++) {
-    const x = outward[0] + inward[0] * step;
-    const y = outward[1] + inward[1] * step;
-    if (Math.abs(grayAt(rgba, (y * width + x) * 4) - border) < 35) break;
-    gap = step;
-  }
-  return gap > Math.min(width, height) * 0.16;
+  const refX = Math.max(0, Math.min(width - 1, ox + ix * inset));
+  const refY = Math.max(0, Math.min(height - 1, oy + iy * inset));
+  const border = grayAt(rgba, (refY * width + refX) * 4);
+  const gapFrom = (x, y, dx, dy) => {
+    let gap = 0;
+    const limit = Math.min(width, height);
+    for (let step = 0; step < limit; step++) {
+      const sx = x + dx * step;
+      const sy = y + dy * step;
+      if (sx < 0 || sy < 0 || sx >= width || sy >= height) break;
+      if (Math.abs(grayAt(rgba, (sy * width + sx) * 4) - border) < 35) break;
+      gap = step;
+    }
+    return gap;
+  };
+  const cornerGap = gapFrom(ox, oy, ix, iy);
+  const sideX = isLeft ? Math.floor(width * 0.75) : Math.floor(width * 0.25);
+  const sideGap = gapFrom(sideX, oy, 0, iy);
+  return cornerGap > sideGap + Math.min(width, height) * 0.12;
 }
 
-function chips(rgba, width, height, median) {
+function onCardPaper(box, x, y, cardW, cardH) {
+  const cx = box.x + x;
+  const cy = box.y + y;
+  const band = 16;
+  return cx < band || cy < band || cx >= cardW - band || cy >= cardH - band;
+}
+
+function whitening(rgba, width, height, paper) {
+  const vals = [];
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!paper(x, y)) continue;
+      const v = grayAt(rgba, (y * width + x) * 4);
+      if (Number.isFinite(v)) vals.push(v);
+    }
+  }
+  if (vals.length < 20) return false;
+  vals.sort((a, b) => a - b);
+  const mid = vals[Math.floor(vals.length / 2)];
+  let hot = 0;
+  for (const v of vals) if (v > mid + 42 && v > 180) hot += 1;
+  const frac = hot / vals.length;
+  return frac > 0.08 && frac < 0.6;
+}
+
+function chips(rgba, width, height, median, paper) {
   let blobs = 0;
   const seen = new Uint8Array(width * height);
   const lightBorder = median > 140;
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
       const i = y * width + x;
-      if (seen[i]) continue;
+      if (seen[i] || (paper && !paper(x, y))) continue;
       const v = grayAt(rgba, i * 4);
+      if (!Number.isFinite(v)) continue;
       const chip = lightBorder ? v < median - 50 : v > median + 50 && v > 170;
       if (!chip) continue;
       const stack = [i];
@@ -146,6 +175,7 @@ function chips(rgba, width, height, median) {
           const nx = n % width;
           const ny = (n - nx) / width;
           if (Math.abs(nx - cx) + Math.abs(ny - cy) !== 1) continue;
+          if (paper && !paper(nx, ny)) continue;
           const nv = grayAt(rgba, n * 4);
           const same = lightBorder ? nv < median - 50 : nv > median + 50 && nv > 170;
           if (!same) continue;
@@ -159,7 +189,7 @@ function chips(rgba, width, height, median) {
   return blobs;
 }
 
-function findingFor(kind, sample, rgba, width, height, id) {
+function findingFor(kind, sample, rgba, width, height, id, paper) {
   const light = lighting(sample);
   if (!light.trust) {
     return { flag: 'unchecked', text: light.note, trusted: false };
@@ -170,17 +200,17 @@ function findingFor(kind, sample, rgba, width, height, id) {
   if (kind === 'edge' && borderGap(rgba, width, height, id) > 0) {
     return { flag: 'ding', text: 'A nick breaks the edge line in this photo. This is not a grade.', trusted: true };
   }
-  if (chips(rgba, width, height, sample.median) > 0) {
+  if (chips(rgba, width, height, sample.median, paper) > 0) {
     return { flag: 'chip', text: 'A small chip is visible on this crop. This is not a grade.', trusted: true };
   }
-  if (whitening(sample)) {
+  if (whitening(rgba, width, height, paper)) {
     return { flag: 'whitening', text: 'Part of this border is lighter than the rest. Whitening is only a visual note.', trusted: true };
   }
   return { flag: 'clear', text: 'No whitening, ding, rounding, or chip stood out on this crop.', trusted: true };
 }
 
 export function inspectSide(rgba, width, height, side) {
-  if (width !== 500 || height !== 700 || !rgba) {
+  if (width !== 500 || height !== 700 || !rgba || rgba.length < width * height * 4) {
     return {
       side,
       trusted: false,
@@ -192,7 +222,8 @@ export function inspectSide(rgba, width, height, side) {
   for (const box of [...CORNERS.map((item) => ({ ...item, w: 90, h: 90, kind: 'corner' })), ...EDGES.map((item) => ({ ...item, kind: 'edge' }))]) {
     const pixels = crop(rgba, width, height, box);
     const sample = stats(pixels);
-    const found = findingFor(box.kind, sample, pixels, box.w, box.h, box.id);
+    const paper = (x, y) => onCardPaper(box, x, y, width, height);
+    const found = findingFor(box.kind, sample, pixels, box.w, box.h, box.id, paper);
     crops.push({
       id: `${side}-${box.id}`,
       side,

@@ -34,7 +34,7 @@ function grayGrid(rgba, width, height, crop) {
 export function artworkCorrelation(cardRgba, cardW, cardH, officialRgba, officialW, officialH) {
   if (!cardRgba || !officialRgba || cardW < 8 || officialW < 8) return null;
   const a = grayGrid(cardRgba, cardW, cardH, true);
-  const b = grayGrid(officialRgba, officialW, officialH, false);
+  const b = grayGrid(officialRgba, officialW, officialH, true);
   let dot = 0;
   let aa = 0;
   let bb = 0;

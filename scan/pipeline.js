@@ -383,20 +383,26 @@ export function findQuad(rgba, width, height, longEdge = 480, minArea = 0.18, mi
     epsilon *= 1.55;
   }
   if (poly.length !== 4) return { found: false, reason: 'poly '+poly.length, ...frame };
-  const ordered = orderQuad(poly);
+  let ordered = orderQuad(poly);
   const area = Math.abs(
     ordered.reduce((sum, p, i) => {
       const q = ordered[(i + 1) % 4];
       return sum + p.x * q.y - q.x * p.y;
     }, 0) / 2,
   );
-  const spanW = Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y);
-  const spanH = Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y);
+  let spanW = Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y);
+  let spanH = Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y);
+  if (spanW > spanH) {
+    ordered = [ordered[3], ordered[0], ordered[1], ordered[2]];
+    spanW = Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y);
+    spanH = Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y);
+  }
+  const shape = Math.min(spanW, spanH) / (Math.max(spanW, spanH) || 1);
   const ratio = spanW / (spanH || 1);
   const quad = ordered.map((p) => ({ x: p.x / scaled.scale, y: p.y / scaled.scale }));
   const areaFrac = area / (scaled.width * scaled.height);
-  if (area < minArea * scaled.width * scaled.height || ratio < 0.5 || ratio > 0.95) {
-    return { found: false, reason: 'geom '+area+' '+ratio, candidate: quad, areaFrac, ratio, ...frame };
+  if (area < minArea * scaled.width * scaled.height || shape < 0.5 || shape > 0.95) {
+    return { found: false, reason: 'geom '+area+' '+shape, candidate: quad, areaFrac, ratio, ...frame };
   }
   return { found: true, quad, areaFrac, ratio, reason: '', ...frame };
 }
@@ -409,47 +415,57 @@ export function straighten(rgba, width, height) {
   return { flattened: true, width: 500, height: 700, rgba: warped.rgba };
 }
 
-export function measureCentering(gray, width, height) {
-  if (width !== 500 || height !== 700) return null;
-  const bin = new Uint8Array(gray.length);
-  for (let i = 0; i < gray.length; i++) bin[i] = gray[i] > 60 ? 255 : 0;
-  function walk(horizontal) {
-    const mid = horizontal ? Math.floor(height / 2) : Math.floor(width / 2);
-    const limit = horizontal ? Math.floor(width / 2) : Math.floor(height / 2);
-    const edge = horizontal ? bin[mid * width] : bin[mid];
-    let left = 0;
-    for (let i = 0; i < limit; i++) {
-      const v = horizontal ? bin[mid * width + i] : bin[i * width + mid];
-      if (v !== edge) {
-        left = i;
-        break;
-      }
-    }
-    let right = 0;
-    for (let i = 0; i < limit; i++) {
-      const v = horizontal ? bin[mid * width + (width - 1 - i)] : bin[(height - 1 - i) * width + mid];
-      if (v !== edge) {
-        right = i;
-        break;
-      }
-    }
-    if (left < 5 || left > 80 || right < 5 || right > 80) return null;
-    return [left, right];
-  }
-  const lr = walk(true);
-  const tb = walk(false);
-  if (!lr && !tb) return null;
-  const part = (pair) => {
-    if (!pair) return null;
-    const sum = pair[0] + pair[1];
-    return [((pair[0] / sum) * 100), ((pair[1] / sum) * 100)];
+function median(nums) {
+  const sorted = nums.filter((n) => Number.isFinite(n)).slice().sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  return sorted[Math.floor(sorted.length / 2)];
+}
+
+function borderRun(gray, width, height, side, fixed) {
+  const limit = side === 'left' || side === 'right' ? Math.floor(width / 2) : Math.floor(height / 2);
+  const at = (step) => {
+    if (side === 'left') return gray[fixed * width + step];
+    if (side === 'right') return gray[fixed * width + (width - 1 - step)];
+    if (side === 'top') return gray[step * width + fixed];
+    return gray[(height - 1 - step) * width + fixed];
   };
-  const a = part(lr);
-  const b = part(tb);
-  const bits = [];
-  if (a) bits.push(`${a[0].toFixed(1)}/${a[1].toFixed(1)} left/right`);
-  if (b) bits.push(`${b[0].toFixed(1)}/${b[1].toFixed(1)} top/bottom`);
-  return `Centering: ${bits.join('. ')}.`;
+  const ref = at(0);
+  if (!Number.isFinite(ref)) return null;
+  for (let step = 1; step < limit && step < 90; step++) {
+    const v = at(step);
+    if (!Number.isFinite(v)) return null;
+    if (Math.abs(v - ref) > 18) return step;
+  }
+  return null;
+}
+
+export function measureCentering(gray, width, height) {
+  if (!gray || width !== 500 || height !== 700 || gray.length < width * height) return null;
+  function axis(sideA, sideB, horizontal) {
+    const fracs = [0.2, 0.35, 0.5, 0.65, 0.8];
+    const lefts = [];
+    const rights = [];
+    for (const frac of fracs) {
+      const fixed = Math.round((horizontal ? height : width) * frac);
+      const a = borderRun(gray, width, height, sideA, Math.min(fixed, (horizontal ? height : width) - 1));
+      const b = borderRun(gray, width, height, sideB, Math.min(fixed, (horizontal ? height : width) - 1));
+      if (a != null) lefts.push(a);
+      if (b != null) rights.push(b);
+    }
+    if (lefts.length < 3 || rights.length < 3) return null;
+    const leftSpread = Math.max(...lefts) - Math.min(...lefts);
+    const rightSpread = Math.max(...rights) - Math.min(...rights);
+    if (leftSpread > 4 || rightSpread > 4) return null;
+    const left = median(lefts);
+    const right = median(rights);
+    if (left == null || right == null || left < 5 || right < 5) return null;
+    const sum = left + right;
+    return [(left / sum) * 100, (right / sum) * 100];
+  }
+  const lr = axis('left', 'right', true);
+  const tb = axis('top', 'bottom', false);
+  if (!lr || !tb) return null;
+  return `Centering: ${lr[0].toFixed(1)}/${lr[1].toFixed(1)} left/right. ${tb[0].toFixed(1)}/${tb[1].toFixed(1)} top/bottom.`;
 }
 
 function offCenter(text, axis) {
@@ -474,6 +490,15 @@ function stddev(vals) {
   return Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
 }
 
+function unavailableMarks(note) {
+  return {
+    centering: { score: null, note },
+    corners: { score: null, note },
+    edges: { score: null, note },
+    surface: { score: null, note },
+  };
+}
+
 export function gradeSide(gray, width, height, centeringText, flattened, back = false) {
   if (!flattened) {
     return {
@@ -482,6 +507,10 @@ export function gradeSide(gray, width, height, centeringText, flattened, back = 
       edges: { score: null, note: 'Tilted. Not checked.' },
       surface: { score: null, note: 'Tilted. Not checked.' },
     };
+  }
+  if (!gray || width < 40 || height < 40 || gray.length < width * height) return unavailableMarks('Unavailable.');
+  for (let i = 0; i < gray.length; i += 47) {
+    if (!Number.isFinite(gray[i])) return unavailableMarks('Unavailable.');
   }
   const lr = offCenter(centeringText, 'lr');
   const tb = offCenter(centeringText, 'tb');

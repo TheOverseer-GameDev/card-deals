@@ -80,6 +80,9 @@ function result(code, hint, extra) {
 }
 
 export function judgePreview(rgba, width, height) {
+  if (!rgba || !(width > 0) || !(height > 0) || rgba.length < width * height * 4) {
+    return result('too-dark', 'Too dark. Add light.', { mean: 0 });
+  }
   const located = findQuad(rgba, width, height, 160, 0.04, 0.02);
   const quad = located.quad || located.candidate || null;
   const meanFrame = average(located.gray);
@@ -109,6 +112,9 @@ export function judgePreview(rgba, width, height) {
 
 export function quadShift(a, b) {
   if (!a || !b || a.length !== 4 || b.length !== 4) return Infinity;
+  for (let i = 0; i < 4; i++) {
+    if (!Number.isFinite(a[i].x) || !Number.isFinite(a[i].y) || !Number.isFinite(b[i].x) || !Number.isFinite(b[i].y)) return Infinity;
+  }
   let sum = 0;
   for (let i = 0; i < 4; i++) sum += Math.hypot(a[i].x - b[i].x, a[i].y - b[i].y);
   return sum / 4;
