@@ -3,6 +3,19 @@
  * Totals use only figures that were already stored. A missing price stays null.
  */
 
+import { toCad } from './worth.js';
+
+export function storedCad(grades, rate) {
+  const lines = grades && grades.ungraded;
+  if (!Array.isArray(lines)) return null;
+  for (const line of lines) {
+    if (!line || line.status === 'unavailable') continue;
+    const cad = toCad(line.price, line.currency, rate);
+    if (cad != null) return cad;
+  }
+  return null;
+}
+
 export function createSession() {
   return { items: [] };
 }

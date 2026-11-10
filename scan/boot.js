@@ -39,7 +39,7 @@ import { printQuality } from './printq.js';
 import { estimateRange } from './range.js';
 import { gradingWorth } from './worth.js';
 import { openScanHistory, saveScan } from './history.js';
-import { addToSession, createSession, cue, sessionTotal, toCsv } from './session.js';
+import { addToSession, createSession, cue, sessionTotal, storedCad, toCsv } from './session.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
 import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
@@ -942,6 +942,7 @@ function boot() {
     showCheck(ui.consistencyHost, consistency.note);
     showCheck(ui.printHost, photo.note);
     const rangeNotes = flat ? range.notes : ['The card outline was not straightened, so these readings are less reliable.', ...range.notes];
+    if (!slots.back || !slots.back.canvas) rangeNotes.push('No back photo. Back centering is not checked.');
     const grid = ui.rangeHost.querySelector('.scan-grid') || ui.rangeHost.insertBefore(document.createElement('div'), ui.rangeHost.querySelector('p'));
     grid.className = 'scan-grid';
     grid.replaceChildren();
@@ -1217,6 +1218,9 @@ function boot() {
     try {
       const report = await lookup.report(row);
       if (confirmedKey !== row.key) return;
+      const rate = typeof globalThis.FX === 'number' ? globalThis.FX : null;
+      entry.cad = storedCad(report && report.grades, rate);
+      renderSession();
       renderPrices(report);
       let market = emptyMarket();
       if (row.id) market = await book.load(row.game, row.id);

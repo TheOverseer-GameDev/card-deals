@@ -1,6 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { addToSession, createSession, sessionTotal, targetNote, toCsv } from '../session.js';
+import { addToSession, createSession, sessionTotal, storedCad, targetNote, toCsv } from '../session.js';
+
+test('a session total is shown only when every stored price is known', () => {
+  const known = { ungraded: [{ status: 'value', price: 10, currency: 'CAD' }] };
+  const missing = { ungraded: [{ status: 'unavailable', price: null, currency: null }] };
+  assert.equal(storedCad(known, null), 10);
+  assert.equal(storedCad(missing, null), null);
+  const session = createSession();
+  const first = addToSession(session, { name: 'One', cad: storedCad(known, null) });
+  const second = addToSession(session, { name: 'Two', cad: storedCad(known, null) });
+  assert.equal(sessionTotal(session).cad, 20);
+  second.cad = storedCad(missing, null);
+  assert.equal(second.cad, null);
+  assert.equal(sessionTotal(session).cad, null);
+  first.cad = 10;
+  assert.equal(first.name, 'One');
+});
 
 test('a session total counts cards and leaves a missing price unavailable', () => {
   const session = createSession();

@@ -72,6 +72,7 @@ test('phase 2 sections appear from a local photo and history can be cleared', { 
   assert.match(text.consistency, /not compared|looks consistent|looks inconsistent/);
   assert.match(text.printq, /print-run verdict/);
   assert.match(text.range, /PSA \d+–\d+|Unavailable/);
+  assert.match(text.range, /No back photo/);
   assert.match(text.worth, /Unavailable/);
   assert.doesNotMatch(`${text.consistency} ${text.range}`, /\breal\b|\bfake\b/i);
   assert.match(text.history, /Delete all scans on this phone/);
