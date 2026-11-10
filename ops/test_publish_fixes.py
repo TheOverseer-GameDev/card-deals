@@ -111,10 +111,76 @@ class PublishOrderTests(unittest.TestCase):
         self.assertIn('deferred', log)
         self.assertNotIn('gate PASS', log)
 
+    def test_rollback_removes_generated_strays_and_keeps_other_files(self):
+        (self.root / 'card_app' / 'build.py').write_text(
+            "from pathlib import Path\n"
+            "p = Path('site')\n"
+            "(p / 'data.js').write_text('NEW')\n"
+            "(p / 'h' / 'ygo').mkdir(parents=True)\n"
+            "(p / 'h' / 'ygo' / 'stray.json').write_text('{}')\n"
+            "(p / 'scan' / 'market' / 'mtg').mkdir(parents=True)\n"
+            "(p / 'scan' / 'market' / 'mtg' / 'shard.json').write_text('{}')\n"
+            "(p / 'keep-notes.txt').write_text('user')\n"
+        )
+        proc, _seen, data, log = self.publish(1)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertEqual(data, 'OLD')
+        site = self.root / 'card_app' / 'site'
+        self.assertFalse((site / 'h' / 'ygo' / 'stray.json').exists())
+        self.assertFalse((site / 'scan' / 'market' / 'mtg' / 'shard.json').exists())
+        self.assertEqual((site / 'keep-notes.txt').read_text(), 'user')
+        self.assertIn('prepublish failed rc=1', log)
+
     def test_bot_author_email_is_the_noreply_address(self):
         text = (DEPLOY / 'card_app' / 'publish.sh').read_text()
         self.assertEqual(text.count('user.email="bot@users.noreply.github.com"'), 2)
         self.assertNotIn('example.invalid', text)
+
+
+class GateMessageTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        install.apply(self.root)
+        (self.root / 'ygo_cards' / 'latest.json').write_text('[]')
+        (self.root / 'mtg_cards' / 'latest.json').write_text('[]')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_fix_reports_429_cooldown_instead_of_a_missing_token(self):
+        (self.root / 'card_ops' / 'source_guard.json').write_text(json.dumps({
+            'cooldown_until': time.time() + 90,
+            'retry_after': 90,
+            'reason': '429',
+        }))
+        proc = subprocess.run([sys.executable, str(self.root / 'card_ops' / 'doctor.py'), '--fix'],
+                              env=isolated_env(self.root), text=True, capture_output=True)
+        text = proc.stdout + proc.stderr
+        self.assertIn('HTTP 429 cooldown', text)
+        self.assertNotIn('no eBay token', text)
+        status = subprocess.run([sys.executable, str(self.root / 'card_ops' / 'status.py')],
+                                env=isolated_env(self.root), text=True, capture_output=True)
+        self.assertIn('HTTP 429 cooldown', status.stdout)
+
+    def test_mtg_link_test_does_not_pass_when_nothing_was_checked(self):
+        proc = subprocess.run([sys.executable, str(self.root / 'mtg_cards' / 'test_verified_links.py')],
+                              env=isolated_env(self.root), text=True, capture_output=True)
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertIn('NOT CHECKED: 0 offers were checked', proc.stdout)
+        self.assertNotIn('PASS all buy links verified', proc.stdout)
+
+    def test_mtg_link_test_names_a_cooldown_when_nothing_was_checked(self):
+        (self.root / 'card_ops' / 'source_guard.json').write_text(json.dumps({
+            'cooldown_until': time.time() + 60,
+            'retry_after': 60,
+            'reason': '429',
+        }))
+        proc = subprocess.run([sys.executable, str(self.root / 'mtg_cards' / 'test_verified_links.py')],
+                              env=isolated_env(self.root), text=True, capture_output=True)
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertIn('HTTP 429 cooldown', proc.stdout)
+        self.assertNotIn('PASS all buy links verified', proc.stdout)
 
 
 class SiteRootTests(unittest.TestCase):
