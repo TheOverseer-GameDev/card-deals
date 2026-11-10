@@ -43,7 +43,8 @@ export function toCsv(rows) {
   const list = Array.isArray(rows) ? rows : [];
   const keys = ['name', 'set', 'number', 'variant', 'foil', 'qty', 'condition', 'cad'];
   const cell = (value) => {
-    const text = value == null ? '' : String(value);
+    let text = value == null ? '' : String(value);
+    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
     return `"${text.replace(/"/g, '""')}"`;
   };
   const lines = [keys.join(',')];
