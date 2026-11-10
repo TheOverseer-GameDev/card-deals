@@ -622,29 +622,17 @@ export function straighten(rgba, width, height) {
   }
   const quad = paper ? paper.quad : (located.found ? located.quad : null);
   const tiltHint = paper && paper.tilt != null ? paper.tilt : located.tilt;
-  const imageRatio = Math.min(width, height) / Math.max(width, height);
-  const ratioDiff = Math.abs(imageRatio - 63 / 88);
-  // A picture that already fills a card-shaped frame is the card. The printed
-  // frame inside it is not a second outline, and stretching that line invents
-  // nicks. Working-size scans sit on 63/88. Native Yu-Gi-Oh frames (813×1185)
-  // and 3:4 phone frames sit a little off it, and the same nick appears if the
-  // pixel rules run at that other size, so those are scaled to the one 500×700
-  // picture too. A rotated card can land in that second band. Most of its outer
-  // edge is the pad color, and when the pad is the same black as the border the
-  // top edge is still a diagonal, which a full-bleed scan is not.
-  const edge = topEdge(rgba, width, height);
-  // The second band is a full-bleed card only when the border starts at the
-  // top edge. A card sitting inside a photo of the same shape does not.
-  const fullBleed = !flatPadAround(rgba, width, height) && (
-    ratioDiff <= 0.004
-    || (ratioDiff >= 0.028 && ratioDiff <= 0.036 && edge.slope <= 0.55 && edge.depth <= 0.06)
-  );
-  if (fullBleed) {
-    const pose = quad ? quadPose(quad) : { tilt: 0, minTilt: 0, parallelDelta: 0, parallel: true, ratio: imageRatio, aspectOk: true };
-    pose.tilt = 0;
-    pose.parallel = true;
-    pose.aspectOk = true;
-    pose.ratio = imageRatio;
+  // A scan that already fills a portrait frame is the card. The printed frame
+  // inside it is not a second outline, and stretching that line invents nicks.
+  // A photo with a margin, or a landscape frame, is not this case: the card is
+  // warped out of the picture instead. Centering still has to pass the same
+  // pose checks as a warp. Scaling the picture does not make it flat.
+  if (frameReachesEdges(rgba, width, height)) {
+    const pose = quad ? quadPose(quad) : null;
+    if (pose && Number.isFinite(tiltHint)) pose.tilt = tiltHint;
+    // A one-degree rotate can still be read under the 0.75° warp cutoff.
+    // Scaling that picture as if it were flat produced a wrong number.
+    const centeringOk = Boolean(pose) && pose.tilt <= 0.4 && centeringAllowed(pose);
     return {
       flattened: true,
       width: 500,
@@ -653,8 +641,39 @@ export function straighten(rgba, width, height) {
       paper: !!paper,
       quad,
       pose,
-      centeringOk: true,
-      reason: '',
+      centeringOk,
+      reason: centeringOk ? '' : 'rotated',
+    };
+  }
+  // A flat card in an even margin is cropped out of that margin. Warping the
+  // printed frame instead invents edge chips. A tilted or distant card keeps
+  // the warp, so a nick on its border is not cropped away.
+  const bounds = !(located.tilt > 1.5) && located.areaFrac >= 0.45 && located.areaFrac <= 0.93
+    ? contentBounds(rgba, width, height)
+    : null;
+  if (bounds) {
+    const bw = bounds.maxX - bounds.minX + 1;
+    const bh = bounds.maxY - bounds.minY + 1;
+    const ratio = Math.min(bw, bh) / Math.max(bw, bh);
+    const pose = {
+      tilt: Number.isFinite(located.tilt) ? located.tilt : 0,
+      minTilt: Number.isFinite(located.tilt) ? located.tilt : 0,
+      parallelDelta: 0,
+      parallel: true,
+      ratio,
+      aspectOk: Math.abs(ratio - 63 / 88) <= 0.08,
+    };
+    const centeringOk = pose.tilt <= 0.4 && centeringAllowed(pose);
+    return {
+      flattened: true,
+      width: 500,
+      height: 700,
+      rgba: scaleToSize(cropRect(rgba, width, height, bounds), bw, bh, 500, 700),
+      paper: false,
+      quad,
+      pose,
+      centeringOk,
+      reason: centeringOk ? '' : 'rotated',
     };
   }
   if (!quad) return { flattened: false, reason: located.reason || 'no card edge' };
@@ -682,63 +701,112 @@ export function straighten(rgba, width, height) {
   };
 }
 
-function flatPadAround(rgba, width, height) {
-  const origin = (1 * width + 1) * 4;
-  const corner = 0.299 * rgba[origin] + 0.587 * rgba[origin + 1] + 0.114 * rgba[origin + 2];
-  let count = 0;
-  let same = 0;
-  for (let x = 0; x < width; x += 3) {
-    const i = (width + x) * 4;
-    const gray = 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
-    count += 1;
-    if (Math.abs(gray - corner) < 12) same += 1;
-  }
-  const fraction = count ? same / count : 0;
-  return fraction > 0.6 && fraction < 0.98;
-}
-
-// Slope, in degrees, of the first row that leaves the corner color, and how far
-// down that row sits. A full-bleed border is horizontal and starts at the edge.
-// A rotated pad is diagonal. A card photographed inside the frame starts lower.
-function topEdge(rgba, width, height) {
+// How far the middle of one side stays the edge color, as a fraction of that
+// side's depth. A real card border is short on at least three sides. A margin
+// around the card pushes the change inward on the sides it covers.
+function sideInset(rgba, width, height, edge) {
   const grayAt = (x, y) => {
     const i = (y * width + x) * 4;
     return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
   };
-  const corner = grayAt(1, 1);
-  const xs = [];
-  const ys = [];
-  const limit = Math.max(8, Math.round(height * 0.2));
-  for (let x = 2; x < width - 2; x += 4) {
-    let hit = 0;
-    for (let y = 1; y < limit; y++) {
-      if (Math.abs(grayAt(x, y) - corner) > 18) {
-        hit = y;
+  const vertical = edge === 'left' || edge === 'right';
+  const span = vertical ? height : width;
+  const depth = vertical ? width : height;
+  const hits = [];
+  const start = Math.floor(span * 0.4);
+  const end = Math.floor(span * 0.6);
+  const limit = Math.max(4, Math.round(depth * 0.15));
+  for (let t = start; t < end; t += 3) {
+    const ex = edge === 'left' ? 1 : edge === 'right' ? width - 2 : t;
+    const ey = edge === 'top' ? 1 : edge === 'bottom' ? height - 2 : t;
+    const edgeGray = vertical ? grayAt(ex, t) : grayAt(t, ey);
+    let hit = limit;
+    for (let d = 2; d < limit; d++) {
+      const x = edge === 'left' ? d : edge === 'right' ? width - 1 - d : t;
+      const y = edge === 'top' ? d : edge === 'bottom' ? height - 1 - d : t;
+      if (Math.abs(grayAt(x, y) - edgeGray) > 22) {
+        hit = d;
         break;
       }
     }
-    if (!hit) continue;
-    xs.push(x);
-    ys.push(hit);
+    hits.push(hit / depth);
   }
-  if (xs.length < 8) return { slope: 0, depth: 1 };
-  let sx = 0;
-  let sy = 0;
-  let sxx = 0;
-  let sxy = 0;
-  for (let i = 0; i < xs.length; i++) {
-    sx += xs[i];
-    sy += ys[i];
-    sxx += xs[i] * xs[i];
-    sxy += xs[i] * ys[i];
+  if (!hits.length) return 1;
+  hits.sort((a, b) => a - b);
+  return hits[Math.floor(hits.length / 2)];
+}
+
+function frameReachesEdges(rgba, width, height) {
+  if (!(height > width) || width < 40) return false;
+  const sides = ['left', 'right', 'top', 'bottom'].map((edge) => sideInset(rgba, width, height, edge));
+  const near = sides.filter((value) => value <= 0.045).length;
+  // One thick printed border is still the card. A margin on every side, or
+  // one side that is mostly empty, is a photo of the card and not the card.
+  return near >= 3 && !sides.some((value) => value >= 0.12);
+}
+
+function cropRect(rgba, width, height, box) {
+  const bw = box.maxX - box.minX + 1;
+  const bh = box.maxY - box.minY + 1;
+  const out = new Uint8ClampedArray(bw * bh * 4);
+  for (let y = 0; y < bh; y++) {
+    out.set(rgba.subarray(((box.minY + y) * width + box.minX) * 4, ((box.minY + y) * width + box.minX) * 4 + bw * 4), y * bw * 4);
   }
-  const den = xs.length * sxx - sx * sx;
-  const slope = den ? (xs.length * sxy - sx * sy) / den : 0;
-  const ordered = ys.slice().sort((a, b) => a - b);
-  return {
-    slope: Math.abs(Math.atan(slope) * 180 / Math.PI),
-    depth: ordered[Math.floor(ordered.length / 2)] / height,
+  return out;
+}
+
+function contentBounds(rgba, width, height) {
+  const grayAt = (x, y) => {
+    const i = (y * width + x) * 4;
+    return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
   };
+  const corners = [grayAt(1, 1), grayAt(width - 2, 1), grayAt(1, height - 2), grayAt(width - 2, height - 2)];
+  if (Math.max(...corners) - Math.min(...corners) > 24) return null;
+  const bg = corners.slice().sort((a, b) => a - b)[1];
+  let minX = width;
+  let minY = height;
+  let maxX = 0;
+  let maxY = 0;
+  let count = 0;
+  const step = Math.max(2, Math.floor(Math.min(width, height) / 100));
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+      if (Math.abs(grayAt(x, y) - bg) < 18) continue;
+      count += 1;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (count < 30) return null;
+  const bw = maxX - minX + 1;
+  const bh = maxY - minY + 1;
+  if (bw < width * 0.45 || bh < height * 0.45) return null;
+  if (minX <= 1 && minY <= 1 && maxX >= width - 2 && maxY >= height - 2) return null;
+  const margins = [minX, minY, width - 1 - maxX, height - 1 - maxY];
+  if (Math.max(...margins) - Math.min(...margins) > Math.max(12, 0.03 * Math.min(width, height))) return null;
+  function fill(edge) {
+    let hit = 0;
+    let total = 0;
+    const vertical = edge === 'left' || edge === 'right';
+    const span = vertical ? bh : bw;
+    for (let t = 0; t < span; t += Math.max(1, Math.floor(span / 24))) {
+      const x = edge === 'left' ? minX : edge === 'right' ? maxX : minX + t;
+      const y = edge === 'top' ? minY : edge === 'bottom' ? maxY : minY + t;
+      total += 1;
+      if (Math.abs(grayAt(Math.min(width - 1, x), Math.min(height - 1, y)) - bg) > 18) hit += 1;
+    }
+    return total ? hit / total : 0;
+  }
+  const fills = ['left', 'right', 'top', 'bottom'].map(fill);
+  let box = { minX, minY, maxX, maxY };
+  if (fills.filter((value) => value < 0.5).length >= 3) {
+    const growX = Math.min(Math.round(bw * 0.035), Math.max(0, Math.min(minX, width - 1 - maxX) - 2));
+    const growY = Math.min(Math.round(bh * 0.035), Math.max(0, Math.min(minY, height - 1 - maxY) - 2));
+    box = { minX: minX - growX, minY: minY - growY, maxX: maxX + growX, maxY: maxY + growY };
+  }
+  return box;
 }
 
 function scaleToSize(rgba, width, height, dw, dh) {

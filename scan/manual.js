@@ -32,7 +32,8 @@ export function manualCentering({ width, height, outerLeft, innerLeft, outerRigh
   const bottom = placed.outerBottom - placed.innerBottom;
   if (![width, height, left, right, top, bottom].every((n) => Number.isFinite(n))) return null;
   if (width < 2 || height < 2) return null;
-  if (left <= 0 || right <= 0 || top <= 0 || bottom <= 0) return null;
+  // A one-pixel gap is the collapsed default, not a border the user placed.
+  if (left < 3 || right < 3 || top < 3 || bottom < 3) return null;
   const leftPct = (100 * left) / (left + right);
   const rightPct = (100 * right) / (left + right);
   const topPct = (100 * top) / (top + bottom);
@@ -81,9 +82,8 @@ function guide(host, axis, name, readLimits) {
   hit.append(line);
   host.append(hit);
   let value = 0;
-  function place(px, span) {
+  function paint(span) {
     const limits = readLimits(name);
-    value = clamp(px, limits.min, Math.min(limits.max, span - 1));
     const pct = span > 1 ? (value / (span - 1)) * 100 : 0;
     if (axis === 'x') hit.style.left = `${pct}%`;
     else hit.style.top = `${pct}%`;
@@ -91,10 +91,22 @@ function guide(host, axis, name, readLimits) {
     hit.setAttribute('aria-valuemin', String(limits.min));
     hit.setAttribute('aria-valuemax', String(limits.max));
   }
+  // The initial lines are already ordered. Clamping each one against the
+  // others while those are still 0 collapses every line onto the left edge.
+  function assign(px, span) {
+    value = clamp(px, 0, Math.max(0, span - 1));
+    paint(span);
+  }
+  function place(px, span) {
+    const limits = readLimits(name);
+    value = clamp(px, limits.min, Math.min(limits.max, span - 1));
+    paint(span);
+  }
   hit.addEventListener('pointerdown', (event) => {
+    event.stopPropagation();
+    event.preventDefault();
     hit.setPointerCapture(event.pointerId);
     hit.focus();
-    event.preventDefault();
   });
   hit.addEventListener('pointermove', (event) => {
     if (!hit.hasPointerCapture(event.pointerId)) return;
@@ -120,6 +132,7 @@ function guide(host, axis, name, readLimits) {
   });
   return {
     place,
+    assign,
     get value() { return value; },
   };
 }
@@ -172,17 +185,14 @@ export function mountGuides(host) {
       outerBottom: guides.outerBottom.value,
     });
   }
-  function publish() {
+  const prompt = 'Measured by you: move the guides onto the border.';
+  function measured() {
     const placed = values();
-    const result = manualCentering({ width, height, ...placed, back });
-    note.textContent = formatManual(result);
-    return result;
-  }
-  function redraw() {
-    publish();
+    return manualCentering({ width, height, ...placed, back });
   }
   host.addEventListener('guide', () => {
-    const result = publish();
+    const result = measured();
+    note.textContent = formatManual(result);
     if (onChange) onChange(result);
   });
   function setImage(nextWidth, nextHeight, estimate) {
@@ -190,35 +200,38 @@ export function mountGuides(host) {
     height = nextHeight;
     host.dataset.w = String(nextWidth);
     host.dataset.h = String(nextHeight);
-    const left = estimate && estimate.left > 1 ? estimate.left : nextWidth * 0.08;
-    const right = estimate && estimate.right > 1 ? estimate.right : nextWidth * 0.08;
-    const top = estimate && estimate.top > 1 ? estimate.top : nextHeight * 0.08;
-    const bottom = estimate && estimate.bottom > 1 ? estimate.bottom : nextHeight * 0.08;
+    // The 44 px hit target hangs 22 px off a line. Keep the outer lines
+    // inside the photo so that target is not under the top bar or off the stage.
+    const edge = Math.min(22, Math.floor(nextWidth / 6), Math.floor(nextHeight / 6));
+    const left = Math.max(8, estimate && estimate.left > 1 ? estimate.left : Math.round(nextWidth * 0.08));
+    const right = Math.max(8, estimate && estimate.right > 1 ? estimate.right : Math.round(nextWidth * 0.08));
+    const top = Math.max(8, estimate && estimate.top > 1 ? estimate.top : Math.round(nextHeight * 0.08));
+    const bottom = Math.max(8, estimate && estimate.bottom > 1 ? estimate.bottom : Math.round(nextHeight * 0.08));
     const placed = clampGuides({
       width: nextWidth,
       height: nextHeight,
-      outerLeft: 0,
-      innerLeft: left,
-      innerRight: nextWidth - 1 - right,
-      outerRight: nextWidth - 1,
-      outerTop: 0,
-      innerTop: top,
-      innerBottom: nextHeight - 1 - bottom,
-      outerBottom: nextHeight - 1,
+      outerLeft: edge,
+      innerLeft: edge + left,
+      innerRight: nextWidth - 1 - edge - right,
+      outerRight: nextWidth - 1 - edge,
+      outerTop: edge,
+      innerTop: edge + top,
+      innerBottom: nextHeight - 1 - edge - bottom,
+      outerBottom: nextHeight - 1 - edge,
     });
-    guides.outerLeft.place(placed.outerLeft, nextWidth);
-    guides.innerLeft.place(placed.innerLeft, nextWidth);
-    guides.innerRight.place(placed.innerRight, nextWidth);
-    guides.outerRight.place(placed.outerRight, nextWidth);
-    guides.outerTop.place(placed.outerTop, nextHeight);
-    guides.innerTop.place(placed.innerTop, nextHeight);
-    guides.innerBottom.place(placed.innerBottom, nextHeight);
-    guides.outerBottom.place(placed.outerBottom, nextHeight);
-    redraw();
+    guides.outerLeft.assign(placed.outerLeft, nextWidth);
+    guides.innerLeft.assign(placed.innerLeft, nextWidth);
+    guides.innerRight.assign(placed.innerRight, nextWidth);
+    guides.outerRight.assign(placed.outerRight, nextWidth);
+    guides.outerTop.assign(placed.outerTop, nextHeight);
+    guides.innerTop.assign(placed.innerTop, nextHeight);
+    guides.innerBottom.assign(placed.innerBottom, nextHeight);
+    guides.outerBottom.assign(placed.outerBottom, nextHeight);
+    note.textContent = prompt;
   }
   return {
     note,
-    setBack(value) { back = Boolean(value); redraw(); },
+    setBack(value) { back = Boolean(value); },
     setImage,
     set onChange(fn) { onChange = fn; },
   };

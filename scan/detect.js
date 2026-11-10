@@ -101,11 +101,22 @@ export function judgePreview(rgba, width, height) {
   const nearEdge = quad.some((p) => p.x < width * 0.03 || p.y < height * 0.03 || p.x > width * 0.97 || p.y > height * 0.97);
   const shared = { quad, focus, mean: stats.mean, clipped: stats.clipped, skew, portrait };
   if (stats.mean < 42) return result('too-dark', 'Too dark. Add light.', shared);
-  if (stats.clipped > 0.1 || stats.mean > 230) return result('too-glary', 'Too much glare. Soften the light.', shared);
-  if (focus < 12) return result('blurry', 'Blurry. Hold still.', shared);
+  if (stats.clipped > 0.06 || stats.mean > 230) return result('too-glary', 'Too much glare. Soften the light.', shared);
+  // The 160 px preview washes out a blur that is obvious on the photo. A
+  // larger copy keeps that blur below the sharp cards without moving the
+  // small live sample off the check it already passed.
+  let blurred = focus < 12;
+  if (!blurred && Math.max(width, height) > 360) {
+    const detail = findQuad(rgba, width, height, 480, 0.04, 0.02);
+    blurred = laplacianVariance(detail.gray, detail.width, detail.height) < 30;
+  }
+  if (blurred) return result('blurry', 'Blurry. Hold still.', shared);
   if (skew > 20 || portrait < 0.56 || portrait > 0.9) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
   if (located.areaFrac < 0.18) return result('too-far', 'Too far. Move closer.', shared);
   if (located.areaFrac > 0.72 || nearEdge) return result('too-close', 'Too close. Move back so the whole card is in frame.', shared);
+  // Lined-up photos in the bench sit inside about 6°. The tilted ones are
+  // past 12°. The old 3° cut also rejected lined-up frames.
+  if (Number.isFinite(located.tilt) && located.tilt > 12) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
   if (!located.found) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
   return result('lined-up', 'Lined up. Hold steady.', shared);
 }

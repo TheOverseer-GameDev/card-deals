@@ -286,6 +286,7 @@ function boot() {
     }
     const viewport = ui.viewport;
     viewport.addEventListener('pointerdown', (ev) => {
+      if (ev.target.closest && ev.target.closest('.scan-guide')) return;
       drag = { x: ev.clientX, y: ev.clientY, px: Number(ui.panX.value), py: Number(ui.panY.value) };
       viewport.setPointerCapture(ev.pointerId);
     });
@@ -368,6 +369,7 @@ function boot() {
     }
     if (state.canvas) releaseCanvas(state.canvas);
     state.canvas = decoded.canvas;
+    if (ui.blocked) ui.blocked.hidden = true;
     state.originalWidth = decoded.originalWidth;
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
@@ -1754,7 +1756,7 @@ function build(section, missingList) {
   const defectNote = document.createElement('p');
   defectNote.className = 'note';
   defectHost.append(defectTitle, defectNote);
-  const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
+  const backQualityBtn = button('Check back photo', 'scan-back-quality-btn', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
 
