@@ -62,6 +62,8 @@ test('a straightened photo shows eight front close-ups at 320px', async () => {
   const text = await page.locator('#scan-edges').innerText();
   assert.match(text, /Corner and edge close-ups/);
   assert.match(text, /cannot guarantee a grade/);
+  assert.match(await page.locator('#scan-artmatch').innerText(), /Official image unavailable/);
+  assert.match(await page.locator('#scan-defects').innerText(), /Nothing on the checked crops/);
   assert.equal(await page.locator('#scan-edges canvas').count(), 8);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   assert.equal(overflow, true, 'close-ups overflow 320px');

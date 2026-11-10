@@ -27,6 +27,8 @@ import { createLookup } from './lookup.js';
 import { createPriceBook, emptyMarket } from './prices.js';
 import { inspectSide } from './edges.js';
 import { compareTilt } from './tilt.js';
+import { matchArtwork } from './artmatch.js';
+import { buildDefectMap } from './defects.js';
 import { formatGuide, gradePhoto, gradeSide, straighten } from './pipeline.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
@@ -34,6 +36,7 @@ import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
+let tiltReport = null;
 
 function migrateSaved() {
   try {
@@ -118,6 +121,8 @@ function boot() {
   let camToken = 0;
 
   const ui = build(section, rows.length === 0);
+  if (ui.tiltHost) ui.tiltHost.addEventListener('tilt-report', () => renderDefects());
+  section.addEventListener('scan-official', (event) => rememberOfficial(event.detail));
   wire(ui);
   clearHarmfulZoom();
   pinNav();
@@ -756,6 +761,90 @@ function boot() {
       }
       host.append(row);
     }
+    renderArt();
+    renderDefects();
+  }
+
+  let officialArt = null;
+  let officialUrl = '';
+
+  function renderArt() {
+    const host = ui.artHost;
+    if (!host) return;
+    const flat = slots.front.flat;
+    const note = host.querySelector('p');
+    if (!flat) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    if (!officialArt) {
+      note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, null, 0, 0).note;
+      return;
+    }
+    note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, officialArt.rgba, officialArt.width, officialArt.height).note;
+  }
+
+  function rememberOfficial(url) {
+    if (!url) {
+      officialUrl = '';
+      officialArt = null;
+      renderArt();
+      return;
+    }
+    if (url === officialUrl) {
+      renderArt();
+      return;
+    }
+    officialUrl = url;
+    officialArt = null;
+    const img = new Image();
+    img.onload = () => {
+      if (officialUrl !== url) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const shot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      officialArt = { rgba: shot.data, width: canvas.width, height: canvas.height };
+      renderArt();
+    };
+    img.onerror = () => {
+      if (officialUrl !== url) return;
+      officialArt = null;
+      renderArt();
+    };
+    img.src = url;
+  }
+
+  function renderDefects() {
+    const reports = ['front', 'back'].filter((side) => slots[side].flat).map((side) => inspectSide(slots[side].flat.rgba, 500, 700, side));
+    const map = buildDefectMap(reports, tiltReport);
+    const host = ui.defectHost;
+    if (host) {
+      host.hidden = reports.length === 0;
+      const note = host.querySelector('p');
+      if (note) note.textContent = map.note;
+    }
+    const layer = ui.defectLayer;
+    if (!layer) return;
+    layer.replaceChildren();
+    for (const mark of map.marks) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'scan-defect';
+      btn.style.left = `${mark.x * 100}%`;
+      btn.style.top = `${mark.y * 100}%`;
+      btn.style.width = `${Math.max(mark.w * 100, 8)}%`;
+      btn.style.height = `${Math.max(mark.h * 100, 6)}%`;
+      btn.textContent = mark.label;
+      btn.addEventListener('click', () => {
+        const note = ui.defectHost && ui.defectHost.querySelector('p');
+        if (note) note.textContent = `${mark.label}. ${mark.detail}`;
+      });
+      layer.append(btn);
+    }
   }
 
   function releaseStream() {
@@ -1388,6 +1477,9 @@ function build(section, missingList) {
   const rect = document.createElement('div');
   rect.className = 'scan-rect';
   stage.append(map, rect);
+  const defectLayer = document.createElement('div');
+  defectLayer.id = 'scan-defect-map';
+  stage.append(defectLayer);
   viewport.append(stage);
   const backView = document.createElement('div');
   backView.className = 'scan-viewport';
@@ -1544,8 +1636,26 @@ function build(section, missingList) {
     while (tiltFrames.length > 3) tiltFrames.shift();
     const report = compareTilt(tiltFrames);
     tiltNote.textContent = [report.note, ...report.findings.map((item) => item.text)].filter(Boolean).join(' ');
+    tiltReport = report;
+    tiltHost.dispatchEvent(new Event('tilt-report'));
   });
   tiltHost.append(tiltTitle, tiltNote, tiltBtn, tiltFile);
+  const artHost = document.createElement('div');
+  artHost.id = 'scan-artmatch';
+  artHost.hidden = true;
+  const artTitle = document.createElement('h3');
+  artTitle.textContent = 'Artwork check';
+  const artNote = document.createElement('p');
+  artNote.className = 'note';
+  artHost.append(artTitle, artNote);
+  const defectHost = document.createElement('div');
+  defectHost.id = 'scan-defects';
+  defectHost.hidden = true;
+  const defectTitle = document.createElement('h3');
+  defectTitle.textContent = 'Defect map';
+  const defectNote = document.createElement('p');
+  defectNote.className = 'note';
+  defectHost.append(defectTitle, defectNote);
   const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
@@ -1671,7 +1781,7 @@ function build(section, missingList) {
   panel.append(
     fresh,
     frontNote, backNote, retakes, backQualityBtn, backQuality,
-    controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost, tiltHost,
+    controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost, tiltHost, artHost, defectHost,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
     identity, psa, sold, asks, prices, chartCard, gauges, condition,
@@ -1747,6 +1857,7 @@ function build(section, missingList) {
     }
     lastMatch = (rows && rows[0]) || null;
     matchCard(sheets['scan-match'], lastMatch, rate);
+    section.dispatchEvent(new CustomEvent('scan-official', { detail: (lastMatch && lastMatch.image) || '' }));
     if (lastMatch) {
       cardScreen(sheets['scan-card'], {
         name: lastMatch.name,
@@ -1910,6 +2021,10 @@ function build(section, missingList) {
     qualityBtn,
     frontQuality,
     edgesHost,
+    tiltHost,
+    artHost,
+    defectHost,
+    defectLayer,
     readBtn,
     cancelBtn,
     progress,
