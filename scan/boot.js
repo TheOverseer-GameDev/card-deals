@@ -15,6 +15,7 @@ import {
   REGION_GEOM,
   REGION_LABEL,
   retakePrompts,
+  measureCentering,
   psaEstimate,
   safeHttpUrl,
   searchCatalog,
@@ -29,7 +30,16 @@ import { inspectSide } from './edges.js';
 import { compareTilt } from './tilt.js';
 import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
-import { formatGuide, gradePhoto, gradeSide, straighten } from './pipeline.js';
+import { formatGuide, gradePhoto, gradeSide, grayOf, straighten } from './pipeline.js';
+import { findStains } from './stains.js';
+import { findCreases } from './creases.js';
+import { findFoilWear } from './foil.js';
+import { readMarks } from './marks.js';
+import { compareReference } from './consistency.js';
+import { printQuality } from './printq.js';
+import { estimateRange } from './range.js';
+import { gradingWorth } from './worth.js';
+import { openScanHistory, saveScan } from './history.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
 import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
@@ -121,6 +131,14 @@ function boot() {
   let camToken = 0;
 
   const ui = build(section, rows.length === 0);
+  ui.historyDelete.addEventListener('click', () => {
+    openScanHistory().then(async (store) => {
+      await store.clear();
+      refreshHistory('Saved scans on this phone were deleted.');
+    }).catch(() => refreshHistory('Saved scans on this phone could not be deleted.'));
+  });
+  ui.feeInput.addEventListener('input', () => renderPhase2());
+  refreshHistory();
   if (ui.tiltHost) ui.tiltHost.addEventListener('tilt-report', () => renderDefects());
   section.addEventListener('scan-official', (event) => rememberOfficial(event.detail));
   wire(ui);
@@ -734,6 +752,7 @@ function boot() {
     const sides = ['front', 'back'].filter((side) => slots[side].flat);
     if (!sides.length) {
       host.hidden = true;
+      renderPhase2();
       return;
     }
     host.hidden = false;
@@ -764,6 +783,7 @@ function boot() {
     }
     renderArt();
     renderDefects();
+    renderPhase2();
   }
 
   let officialArt = null;
@@ -776,14 +796,16 @@ function boot() {
     const note = host.querySelector('p');
     if (!flat) {
       host.hidden = true;
+      renderPhase2();
       return;
     }
     host.hidden = false;
     if (!officialArt) {
       note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, null, 0, 0).note;
-      return;
+    } else {
+      note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, officialArt.rgba, officialArt.width, officialArt.height).note;
     }
-    note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, officialArt.rgba, officialArt.width, officialArt.height).note;
+    renderPhase2();
   }
 
   function rememberOfficial(url) {
@@ -854,6 +876,94 @@ function boot() {
       });
       layer.append(btn);
     }
+  }
+
+  let lastGrades = null;
+  let confirmedName = '';
+  let savedToken = '';
+
+  function showCheck(host, text) {
+    if (!host) return;
+    host.hidden = false;
+    const note = host.querySelector('p');
+    if (note) note.textContent = text;
+  }
+
+  function renderPhase2() {
+    const flat = slots.front.flat;
+    let rgba = flat && flat.rgba;
+    let width = flat && flat.width;
+    let height = flat && flat.height;
+    if (!rgba && slots.front.canvas) {
+      const shot = slots.front.canvas.getContext('2d').getImageData(0, 0, slots.front.canvas.width, slots.front.canvas.height);
+      rgba = shot.data;
+      width = shot.width;
+      height = shot.height;
+    }
+    if (!rgba) {
+      for (const host of [ui.stainHost, ui.creaseHost, ui.foilHost, ui.markHost, ui.consistencyHost, ui.printHost, ui.rangeHost, ui.worthHost]) {
+        if (host) host.hidden = true;
+      }
+      return;
+    }
+    const stains = findStains(rgba, width, height);
+    const creases = findCreases(rgba, width, height);
+    const foil = findFoilWear(rgba, width, height);
+    const marks = readMarks(rgba, width, height, ui.text ? ui.text.value : '');
+    const reference = officialArt ? { rgba: officialArt.rgba, width: officialArt.width, height: officialArt.height } : null;
+    const consistency = compareReference({ rgba, width, height }, reference);
+    const photo = printQuality(rgba, width, height, reference);
+    if (!flat) photo.poor = true;
+    const gray = grayOf(rgba, width, height);
+    const measured = measureCentering(gray, width, height);
+    const centeringText = measured && measured.state === 'measured'
+      ? `Centering: ${measured.leftPct.toFixed(1)}/${measured.rightPct.toFixed(1)} left/right. ${measured.topPct.toFixed(1)}/${measured.bottomPct.toFixed(1)} top/bottom.`
+      : '';
+    const side = gradeSide(gray, width, height, centeringText, Boolean(flat));
+    const photoGrade = gradePhoto({ front: { flattened: true, marks: side }, back: null, frontBack: false });
+    const range = estimateRange(photoGrade, photo);
+    const fee = ui.feeInput ? ui.feeInput.value : '';
+    const rate = typeof globalThis.FX === 'number' ? globalThis.FX : null;
+    const worth = gradingWorth({ grades: lastGrades, low: range.low, high: range.high, feeCad: fee, rate });
+    showCheck(ui.stainHost, stains.note);
+    showCheck(ui.creaseHost, creases.note);
+    showCheck(ui.foilHost, foil.note);
+    showCheck(ui.markHost, marks.note);
+    showCheck(ui.consistencyHost, consistency.note);
+    showCheck(ui.printHost, photo.note);
+    const rangeNotes = flat ? range.notes : ['The card outline was not straightened, so these readings are less reliable.', ...range.notes];
+    showCheck(ui.rangeHost, [range.text, ...rangeNotes].join(' '));
+    showCheck(ui.worthHost, worth.text);
+    const token = `${width}x${height}:${rgba[0]}:${rgba[rgba.length - 1]}:${flat ? 'flat' : 'raw'}`;
+    if (token === savedToken) return;
+    savedToken = token;
+    const summary = `${range.text} ${stains.status}. ${creases.status}.`;
+    openScanHistory().then((store) => saveScan(store, {
+      at: Date.now(),
+      name: confirmedName || 'Unnamed card',
+      summary,
+    })).then((result) => refreshHistory(result && result.reason)).catch(() => refreshHistory('The scan was not saved on this phone.'));
+  }
+
+  function refreshHistory(extra) {
+    openScanHistory().then((store) => Promise.all([store, store.list()])).then(([store, rows]) => {
+      if (!ui.historyList) return;
+      ui.historyList.replaceChildren();
+      const where = store.persistent ? 'on this phone' : 'for this visit only';
+      if (ui.historyNote) {
+        ui.historyNote.textContent = extra || (rows.length
+          ? `${rows.length} saved ${where}. Nothing was uploaded.`
+          : `No scans saved ${where}.`);
+      }
+      for (const row of rows) {
+        const line = document.createElement('p');
+        const when = new Date(row.at || Date.now()).toLocaleString();
+        line.textContent = `${when}. ${row.name || 'Unnamed card'}. ${row.summary || ''}`;
+        ui.historyList.append(line);
+      }
+    }).catch(() => {
+      if (ui.historyNote) ui.historyNote.textContent = 'Saved scans on this phone could not be read.';
+    });
   }
 
   function releaseStream() {
@@ -967,6 +1077,8 @@ function boot() {
 
   function renderMatch(result) {
     confirmedKey = null;
+    confirmedName = '';
+    lastGrades = null;
     ui.identity.replaceChildren();
     ui.prices.replaceChildren(text('Confirm a catalog row to see stored prices.'));
     resetMarket();
@@ -987,6 +1099,7 @@ function boot() {
     ui.results.replaceChildren();
     if (!result.candidates.length) {
       ui.results.append(text('No loaded row matched that text. Search the list or correct the text. The print is unknown.'));
+      renderPhase2();
       return;
     }
     const lead = result.ambiguous
@@ -999,6 +1112,7 @@ function boot() {
       ui.results.append(rowButton(row, candidate.evidence));
     }
     if (result.hiddenCount) ui.results.append(text(`${result.hiddenCount} more rows matched. Search to narrow them.`));
+    renderPhase2();
   }
 
   function renderSearch(query) {
@@ -1041,6 +1155,7 @@ function boot() {
 
   async function confirmRow(row) {
     confirmedKey = row.key;
+    confirmedName = row.name || '';
     ui.identity.replaceChildren();
     const banner = document.createElement('p');
     banner.className = 'scan-warn';
@@ -1077,6 +1192,8 @@ function boot() {
   }
 
   function renderPrices(report) {
+    lastGrades = report && report.grades ? report.grades : null;
+    renderPhase2();
     ui.prices.replaceChildren();
     const intro = document.createElement('p');
     intro.textContent = report.exactSetNamed
@@ -1670,6 +1787,43 @@ function build(section, missingList) {
   const defectNote = document.createElement('p');
   defectNote.className = 'note';
   defectHost.append(defectTitle, defectNote);
+  function checkHost(id, title) {
+    const host = document.createElement('div');
+    host.id = id;
+    host.hidden = true;
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+    const note = document.createElement('p');
+    note.className = 'note';
+    host.append(heading, note);
+    return host;
+  }
+  const stainHost = checkHost('scan-stains', 'Stains, dirt, and fingerprints');
+  const creaseHost = checkHost('scan-creases', 'Creases and dents');
+  const foilHost = checkHost('scan-foil', 'Foil wear');
+  const markHost = checkHost('scan-marks', 'Edition and rarity marks');
+  const consistencyHost = checkHost('scan-consistency', 'Reference comparison');
+  const printHost = checkHost('scan-print', 'Print quality');
+  const rangeHost = checkHost('scan-grade-range', 'Photo grade range');
+  const worthHost = checkHost('scan-worth', 'Grading fee check');
+  const feeInput = document.createElement('input');
+  feeInput.id = 'scan-grade-fee';
+  feeInput.type = 'number';
+  feeInput.min = '0';
+  feeInput.step = '0.01';
+  feeInput.placeholder = 'Grading fee in CAD';
+  worthHost.append(feeInput);
+  const historyHost = document.createElement('div');
+  historyHost.id = 'scan-history';
+  const historyTitle = document.createElement('h3');
+  historyTitle.textContent = 'Scans on this phone';
+  const historyNote = document.createElement('p');
+  historyNote.className = 'note';
+  historyNote.textContent = 'No scans saved on this phone.';
+  const historyList = document.createElement('div');
+  historyList.id = 'scan-history-list';
+  const historyDelete = button('Delete all scans on this phone', 'scan-history-delete', true);
+  historyHost.append(historyTitle, historyNote, historyList, historyDelete);
   const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
@@ -1796,6 +1950,7 @@ function build(section, missingList) {
     fresh,
     frontNote, backNote, retakes, backQualityBtn, backQuality,
     controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost, tiltHost, artHost, defectHost,
+    stainHost, creaseHost, foilHost, markHost, consistencyHost, printHost, rangeHost, worthHost, historyHost,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
     identity, psa, sold, asks, prices, chartCard, gauges, condition,
@@ -2038,6 +2193,18 @@ function build(section, missingList) {
     tiltHost,
     artHost,
     defectHost,
+    stainHost,
+    creaseHost,
+    foilHost,
+    markHost,
+    consistencyHost,
+    printHost,
+    rangeHost,
+    worthHost,
+    feeInput,
+    historyNote,
+    historyList,
+    historyDelete,
     defectLayer,
     readBtn,
     cancelBtn,
