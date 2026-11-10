@@ -15,7 +15,6 @@ import {
   REGION_GEOM,
   REGION_LABEL,
   retakePrompts,
-  psaEstimate,
   safeHttpUrl,
   searchCatalog,
   suggestCrop,
@@ -25,12 +24,21 @@ import { buildGauges } from './gauges.js';
 import { cropCanvas, fileToCanvas, grayFromCanvas, releaseCanvas } from './image.js';
 import { createLookup } from './lookup.js';
 import { createPriceBook, emptyMarket } from './prices.js';
-import { formatGuide, gradePhoto, gradeSide, straighten } from './pipeline.js';
+import { inspectSide } from './edges.js';
+import { compareTilt } from './tilt.js';
+import { matchArtwork } from './artmatch.js';
+import { buildDefectMap } from './defects.js';
+import { AUTO_CENTERING } from './engine.js';
+import { psaEstimate } from './engine.js';
+import { estimateBorders, formatGuide, gradePhoto, gradeSide, grayOf, measureCentering, straighten } from './pipeline.js';
+import { mountGuides } from './manual.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
+import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
+let tiltReport = null;
 
 function migrateSaved() {
   try {
@@ -100,8 +108,8 @@ function boot() {
   const lookup = createLookup();
   const book = createPriceBook();
   const slots = {
-    front: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0 },
-    back: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0 },
+    front: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0, flat: null },
+    back: { canvas: null, originalWidth: 0, originalHeight: 0, token: 0, flat: null },
   };
   const reports = { front: null, back: null };
   let readerPromise = null;
@@ -115,6 +123,8 @@ function boot() {
   let camToken = 0;
 
   const ui = build(section, rows.length === 0);
+  if (ui.tiltHost) ui.tiltHost.addEventListener('tilt-report', () => renderDefects());
+  section.addEventListener('scan-official', (event) => rememberOfficial(event.detail));
   wire(ui);
   clearHarmfulZoom();
   pinNav();
@@ -276,6 +286,7 @@ function boot() {
     }
     const viewport = ui.viewport;
     viewport.addEventListener('pointerdown', (ev) => {
+      if (ev.target.closest && ev.target.closest('.scan-guide')) return;
       drag = { x: ev.clientX, y: ev.clientY, px: Number(ui.panX.value), py: Number(ui.panY.value) };
       viewport.setPointerCapture(ev.pointerId);
     });
@@ -351,14 +362,19 @@ function boot() {
       return;
     }
     if (!decoded.ok) {
+      state.flat = null;
       note.textContent = fileMessage(decoded.code);
+      renderCloseups();
       return;
     }
     if (state.canvas) releaseCanvas(state.canvas);
     state.canvas = decoded.canvas;
+    if (ui.blocked) ui.blocked.hidden = true;
     state.originalWidth = decoded.originalWidth;
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
+    state.flat = null;
+    if (slot === 'front' && ui.tiltHost && ui.tiltHost.reset) ui.tiltHost.reset();
     try {
       const shot = state.canvas.getContext('2d').getImageData(0, 0, state.canvas.width, state.canvas.height);
       const flat = straighten(shot.data, shot.width, shot.height);
@@ -370,22 +386,45 @@ function boot() {
         next.getContext('2d').putImageData(new ImageData(flat.rgba, 500, 700), 0, 0);
         releaseCanvas(state.canvas);
         state.canvas = next;
+        state.flat = {
+          rgba: flat.rgba,
+          width: 500,
+          height: 700,
+          centeringOk: Boolean(flat.centeringOk),
+          parallel: !(flat.pose && flat.pose.parallel === false),
+          edgesOk: flat.edgesOk !== false,
+        };
+        const gray = grayOf(flat.rgba, 500, 700);
+        let autoLine = 'Measure centering yourself.';
+        if (AUTO_CENTERING && flat.centeringOk) {
+          const autoText = measureCentering(gray, 500, 700) || '';
+          if (/\d+\.\d+\/\d+\.\d+/.test(autoText)) autoLine = autoText;
+        }
+        const autoHost = slot === 'back' ? ui.backAuto : ui.autoCenter;
+        const guides = slot === 'back' ? ui.backManual : ui.frontManual;
+        if (autoHost) autoHost.textContent = autoLine;
+        if (guides) {
+          guides.onChange = (result) => applyManualCentering(slot, result);
+          guides.setBack(slot === 'back');
+          guides.setImage(500, 700, AUTO_CENTERING ? estimateBorders(gray, 500, 700) : null);
+        }
       } else if (slot === 'front') {
         note.textContent += ' Front is tilted.';
       }
     } catch { /* Keep the original photo when the warp cannot run. */ }
+    captureSide = slot;
+    renderCloseups();
     camToken += 1;
     releaseStream();
     ui.video.hidden = true;
-    captureSide = slot;
     if (slot === 'front') {
-      ui.stage.replaceChildren(decoded.canvas, ui.map, ui.rect);
+      ui.stage.replaceChildren(state.canvas, ui.map, ui.rect, ui.defectLayer, ui.frontGuideHost);
       ui.readBtn.disabled = false;
       ui.video.hidden = true;
       runQuality('front');
       offerCrop();
     } else {
-      ui.backStage.replaceChildren(decoded.canvas, ui.backMap);
+      ui.backStage.replaceChildren(state.canvas, ui.backMap, ui.backGuideHost);
       ui.video.hidden = true;
       runQuality('back');
     }
@@ -425,6 +464,24 @@ function boot() {
     return sample;
   }
 
+  function applyManualCentering(slot, result) {
+    slots[slot].manual = result || null;
+    const report = reports[slot];
+    if (!report) return;
+    report.centering = result ? {
+      state: 'measured',
+      source: 'manual',
+      leftPct: result.leftPct,
+      rightPct: result.rightPct,
+      topPct: result.topPct,
+      bottomPct: result.bottomPct,
+    } : { state: 'not-measured' };
+    const host = slot === 'front' ? ui.frontQuality : ui.backQuality;
+    if (host) renderQuality(host, report);
+    if (slot === 'front' && ui.centering) ui.centering.textContent = centeringLine(report.centering);
+    renderPsa();
+  }
+
   function runQuality(slot) {
     const state = slots[slot];
     const host = slot === 'front' ? ui.frontQuality : ui.backQuality;
@@ -450,6 +507,16 @@ function boot() {
       originalHeight: sample.originalHeight,
     });
     reports[slot] = report;
+    if (state.manual) {
+      report.centering = {
+        state: 'measured',
+        source: 'manual',
+        leftPct: state.manual.leftPct,
+        rightPct: state.manual.rightPct,
+        topPct: state.manual.topPct,
+        bottomPct: state.manual.bottomPct,
+      };
+    }
     renderQuality(host, report);
     if (slot === 'front') ui.centering.textContent = centeringLine(report.centering);
     syncNotes(slot, report);
@@ -697,9 +764,160 @@ function boot() {
     try { ui.video.srcObject = stream; } catch { /* A test double is not a real stream. The preview element is already on screen. */ }
     try { await ui.video.play(); } catch { /* The shutter still works after the video is ready. */ }
     await fillCameraList();
+    if (my !== camToken || !ui.stream) return;
+    ui.stopLive = startLive(ui.video, {
+      onFrame(view) {
+        if (ui.align) ui.align.textContent = view.hint;
+        if (ui.tightNote) ui.tightNote.textContent = view.hint;
+        if (ui.setCaptureProgress) ui.setCaptureProgress(view.progress);
+        drawLiveQuad(ui.liveEdge, ui.video, view.quad, view.code);
+      },
+      onCapture() {
+        useFrame().catch(() => {
+          ui.camMsg.textContent = 'The frame could not be copied. You can still use the shutter.';
+          ui.blocked.hidden = false;
+        });
+      },
+    });
+  }
+
+  function renderCloseups() {
+    const host = ui.edgesHost;
+    if (!host) return;
+    host.replaceChildren();
+    const sides = ['front', 'back'].filter((side) => slots[side].flat);
+    if (!sides.length) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    const title = document.createElement('h3');
+    title.textContent = 'Corner and edge close-ups';
+    host.append(title);
+    for (const side of sides) {
+      const report = inspectSide(slots[side].flat.rgba, 500, 700, side, { edgesOk: slots[side].flat.edgesOk !== false });
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = report.note;
+      host.append(note);
+      const row = document.createElement('div');
+      row.className = 'scan-crops';
+      for (const item of report.crops) {
+        const cell = document.createElement('div');
+        cell.className = 'scan-crop';
+        const canvas = document.createElement('canvas');
+        canvas.width = item.width;
+        canvas.height = item.height;
+        canvas.getContext('2d').putImageData(new ImageData(item.rgba, item.width, item.height), 0, 0);
+        const label = document.createElement('p');
+        label.textContent = `${item.label}. ${item.text}`;
+        cell.append(canvas, label);
+        row.append(cell);
+      }
+      host.append(row);
+    }
+    renderArt();
+    renderDefects();
+  }
+
+  let officialArt = null;
+  let officialUrl = '';
+
+  function renderArt() {
+    const host = ui.artHost;
+    if (!host) return;
+    const flat = slots.front.flat;
+    const note = host.querySelector('p');
+    if (!flat) {
+      host.hidden = true;
+      return;
+    }
+    host.hidden = false;
+    if (!officialArt) {
+      note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, null, 0, 0).note;
+      return;
+    }
+    note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, officialArt.rgba, officialArt.width, officialArt.height).note;
+  }
+
+  function rememberOfficial(url) {
+    if (!url) {
+      officialUrl = '';
+      officialArt = null;
+      renderArt();
+      return;
+    }
+    if (url === officialUrl) {
+      renderArt();
+      return;
+    }
+    officialUrl = url;
+    officialArt = null;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (officialUrl !== url) return;
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const shot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        officialArt = { rgba: shot.data, width: canvas.width, height: canvas.height };
+      } catch {
+        officialArt = null;
+      }
+      renderArt();
+    };
+    img.onerror = () => {
+      if (officialUrl !== url) return;
+      officialArt = null;
+      renderArt();
+    };
+    img.src = url;
+  }
+
+  function renderDefects() {
+    const reports = ['front', 'back'].filter((side) => slots[side].flat).map((side) => inspectSide(slots[side].flat.rgba, 500, 700, side, { edgesOk: slots[side].flat.edgesOk !== false }));
+    const map = buildDefectMap(reports, tiltReport);
+    const host = ui.defectHost;
+    if (host) {
+      host.hidden = reports.length === 0;
+      const note = host.querySelector('p');
+      if (note) note.textContent = map.note;
+    }
+    const layer = ui.defectLayer;
+    if (!layer) return;
+    layer.replaceChildren();
+    const shown = captureSide === 'back' ? 'back' : 'front';
+    for (const mark of map.marks) {
+      if (!mark.id.startsWith(shown) && !mark.id.startsWith('tilt-')) continue;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'scan-defect';
+      btn.style.left = `${mark.x * 100}%`;
+      btn.style.top = `${mark.y * 100}%`;
+      btn.style.width = `${Math.max(mark.w * 100, 8)}%`;
+      btn.style.height = `${Math.max(mark.h * 100, 6)}%`;
+      btn.textContent = mark.label;
+      btn.setAttribute('aria-label', mark.label);
+      btn.addEventListener('click', () => {
+        const note = ui.defectHost && ui.defectHost.querySelector('p');
+        if (note) note.textContent = `${mark.label}. ${mark.detail}`;
+      });
+      layer.append(btn);
+    }
   }
 
   function releaseStream() {
+    if (ui.stopLive) {
+      ui.stopLive();
+      ui.stopLive = null;
+    }
+    if (ui.setCaptureProgress) ui.setCaptureProgress(0);
+    if (ui.align) ui.align.textContent = 'Align the card in the frame.';
+    drawLiveQuad(ui.liveEdge, null, null, '');
     if (ui.stream) {
       for (const track of ui.stream.getTracks()) track.stop();
       ui.stream = null;
@@ -714,6 +932,24 @@ function boot() {
     ui.camStop.hidden = true;
     showActive();
   }
+
+  let resumeCamera = false;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      resumeCamera = Boolean(ui.stream);
+      releaseStream();
+      if (ui.video) ui.video.hidden = true;
+      return;
+    }
+    if (resumeCamera) {
+      resumeCamera = false;
+      openCamera(ui.camSlot || 'front');
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    resumeCamera = false;
+    releaseStream();
+  });
 
   async function useFrame() {
     const box = captureSize(ui.video.videoWidth, ui.video.videoHeight);
@@ -1241,10 +1477,10 @@ function renderQuality(host, report) {
 }
 
 function centeringLine(centering) {
-  if (centering.state === 'measured') {
-    return `Centering measurement: left ${centering.leftPct.toFixed(0)}% / right ${centering.rightPct.toFixed(0)}% of the horizontal border pair, top ${centering.topPct.toFixed(0)}% / bottom ${centering.bottomPct.toFixed(0)}% of the vertical border pair. This is not a PSA centering subgrade.`;
+  if (centering && centering.state === 'measured' && centering.source === 'manual') {
+    return `Measured by you. Left/right ${centering.leftPct.toFixed(1)}/${centering.rightPct.toFixed(1)}. Top/bottom ${centering.topPct.toFixed(1)}/${centering.bottomPct.toFixed(1)}. This is not a PSA grade.`;
   }
-  return 'Centering: not assessable from this photo.';
+  return 'Measure centering yourself. Centering is not measured.';
 }
 
 function text(value) {
@@ -1327,6 +1563,13 @@ function build(section, missingList) {
   const rect = document.createElement('div');
   rect.className = 'scan-rect';
   stage.append(map, rect);
+  const defectLayer = document.createElement('div');
+  defectLayer.id = 'scan-defect-map';
+  stage.append(defectLayer);
+  const frontGuideHost = document.createElement('div');
+  frontGuideHost.id = 'scan-front-guides';
+  stage.append(frontGuideHost);
+  const frontManual = mountGuides(frontGuideHost);
   viewport.append(stage);
   const backView = document.createElement('div');
   backView.className = 'scan-viewport';
@@ -1341,11 +1584,16 @@ function build(section, missingList) {
   backMap.style.width = '100%';
   backMap.style.height = '100%';
   backStage.append(backMap);
+  const backGuideHost = document.createElement('div');
+  backGuideHost.id = 'scan-back-guides';
+  backStage.append(backGuideHost);
+  const backManual = mountGuides(backGuideHost);
   backView.append(backStage);
   const outline = document.createElement('div');
   outline.className = 'scan-outline';
   outline.id = 'scan-outline';
   finder.append(video, viewport, backView, outline);
+  const liveEdge = mountEdge(finder);
 
   const gallery = button('', 'scan-gallery', true);
   gallery.setAttribute('aria-label', 'Gallery');
@@ -1378,6 +1626,7 @@ function build(section, missingList) {
   camRight.append(gallery, next);
   const camBar = document.createElement('div');
   camBar.className = 'scan-cam-bar';
+  const captureRing = mountRing(camBar);
   camBar.append(camLeft, camRight, frontCam);
   const camMsg = document.createElement('p');
   camMsg.id = 'scan-cam-msg';
@@ -1420,6 +1669,14 @@ function build(section, missingList) {
   const frontNote = document.createElement('p');
   frontNote.className = 'note';
   frontNote.id = 'scan-front-note';
+  const autoCenter = document.createElement('p');
+  autoCenter.id = 'scan-auto-center';
+  autoCenter.className = 'note';
+  autoCenter.textContent = 'Measure centering yourself.';
+  const backAuto = document.createElement('p');
+  backAuto.id = 'scan-back-auto';
+  backAuto.className = 'note';
+  backAuto.textContent = 'Measure centering yourself.';
   const backNote = document.createElement('p');
   backNote.className = 'note';
   backNote.id = 'scan-back-note';
@@ -1451,7 +1708,62 @@ function build(section, missingList) {
   const qualityBtn = button('Check this crop', 'scan-quality-btn', true);
   const frontQuality = document.createElement('div');
   frontQuality.id = 'scan-front-quality';
-  const backQualityBtn = button('Check back photo', 'scan-back-quality', true);
+  const edgesHost = document.createElement('div');
+  edgesHost.id = 'scan-edges';
+  edgesHost.hidden = true;
+  const tiltHost = document.createElement('div');
+  tiltHost.id = 'scan-tilt';
+  const tiltTitle = document.createElement('h3');
+  tiltTitle.textContent = 'Tilt-light check';
+  const tiltNote = document.createElement('p');
+  tiltNote.id = 'scan-tilt-note';
+  tiltNote.className = 'note';
+  const tiltFrames = [];
+  const tiltFile = fileInput('scan-tilt-file');
+  const tiltBtn = button('Add angled photo', 'scan-tilt-add', true);
+  tiltNote.textContent = compareTilt([]).note;
+  tiltBtn.addEventListener('click', () => tiltFile.click());
+  tiltFile.addEventListener('change', async () => {
+    const file = tiltFile.files && tiltFile.files[0];
+    tiltFile.value = '';
+    if (!file) return;
+    const decoded = await fileToCanvas(file);
+    if (!decoded.ok) {
+      tiltNote.textContent = fileMessage(decoded.code);
+      return;
+    }
+    const shot = decoded.canvas.getContext('2d').getImageData(0, 0, decoded.canvas.width, decoded.canvas.height);
+    tiltFrames.push({ rgba: shot.data, width: shot.width, height: shot.height });
+    releaseCanvas(decoded.canvas);
+    while (tiltFrames.length > 3) tiltFrames.shift();
+    const report = compareTilt(tiltFrames);
+    tiltNote.textContent = [report.note, ...report.findings.map((item) => item.text)].filter(Boolean).join(' ');
+    tiltReport = report;
+    tiltHost.dispatchEvent(new Event('tilt-report'));
+  });
+  tiltHost.reset = () => {
+    tiltFrames.length = 0;
+    tiltReport = null;
+    tiltNote.textContent = compareTilt([]).note;
+  };
+  tiltHost.append(tiltTitle, tiltNote, tiltBtn, tiltFile);
+  const artHost = document.createElement('div');
+  artHost.id = 'scan-artmatch';
+  artHost.hidden = true;
+  const artTitle = document.createElement('h3');
+  artTitle.textContent = 'Artwork check';
+  const artNote = document.createElement('p');
+  artNote.className = 'note';
+  artHost.append(artTitle, artNote);
+  const defectHost = document.createElement('div');
+  defectHost.id = 'scan-defects';
+  defectHost.hidden = true;
+  const defectTitle = document.createElement('h3');
+  defectTitle.textContent = 'Defect map';
+  const defectNote = document.createElement('p');
+  defectNote.className = 'note';
+  defectHost.append(defectTitle, defectNote);
+  const backQualityBtn = button('Check back photo', 'scan-back-quality-btn', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
 
@@ -1579,8 +1891,8 @@ function build(section, missingList) {
   panel.className = 'scan-panel';
   panel.append(
     fresh,
-    frontNote, backNote, retakes, backQualityBtn, backQuality,
-    controls, suggestNote, suggestBtn, qualityBtn, frontQuality,
+    frontNote, autoCenter, frontManual.note, backNote, backAuto, backManual.note, retakes, backQualityBtn, backQuality,
+    controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost, tiltHost, artHost, defectHost,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
     identity, psa, sold, asks, priceLimit, prices, chartCard, gauges, condition,
@@ -1656,6 +1968,7 @@ function build(section, missingList) {
     }
     lastMatch = (rows && rows[0]) || null;
     matchCard(sheets['scan-match'], lastMatch, rate);
+    section.dispatchEvent(new CustomEvent('scan-official', { detail: (lastMatch && lastMatch.image) || '' }));
     if (lastMatch) {
       cardScreen(sheets['scan-card'], {
         name: lastMatch.name,
@@ -1792,9 +2105,20 @@ function build(section, missingList) {
     step,
     frontNote,
     backNote,
+    autoCenter,
+    backAuto,
+    frontManual,
+    backManual,
+    frontGuideHost,
+    backGuideHost,
     camMsg,
     camRetry,
     video,
+    align,
+    tightNote,
+    liveEdge,
+    setCaptureProgress: captureRing.set,
+    stopLive: null,
     camStop,
     stream: null,
     camSlot: 'front',
@@ -1814,6 +2138,11 @@ function build(section, missingList) {
     suggestBtn,
     qualityBtn,
     frontQuality,
+    edgesHost,
+    tiltHost,
+    artHost,
+    defectHost,
+    defectLayer,
     readBtn,
     cancelBtn,
     progress,

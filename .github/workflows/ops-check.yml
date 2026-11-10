@@ -14,3 +14,20 @@ jobs:
         run: |
           python3 -m unittest discover -s ops -p 'test_*.py'
           python3 -m py_compile ops/deploy/ygo_cards/tracker.py ops/deploy/ygo_cards/verify.py ops/deploy/card_ops/doctor.py ops/deploy/mtg_cards/tracker.py
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: browser for the scan suites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg ffmpeg
+          wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y /tmp/chrome.deb
+      - name: scanner tests
+        run: |
+          npm install --no-save --no-audit --no-fund playwright-core
+          node --test --test-concurrency=1 scan/test/*.js scan/test/*.mjs
