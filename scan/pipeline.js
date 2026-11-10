@@ -623,11 +623,23 @@ export function straighten(rgba, width, height) {
   const quad = paper ? paper.quad : (located.found ? located.quad : null);
   const tiltHint = paper && paper.tilt != null ? paper.tilt : located.tilt;
   const imageRatio = Math.min(width, height) / Math.max(width, height);
+  const ratioDiff = Math.abs(imageRatio - 63 / 88);
   // A picture that already fills a card-shaped frame is the card. The printed
   // frame inside it is not a second outline, and stretching that line invents
-  // nicks. A rotated card on a flat pad also looks card-shaped, but most of
-  // the outer edge is that one pad color, so it is not this case.
-  if (Math.abs(imageRatio - 63 / 88) <= 0.004 && !flatPadAround(rgba, width, height)) {
+  // nicks. Working-size scans sit on 63/88. Native Yu-Gi-Oh frames (813×1185)
+  // and 3:4 phone frames sit a little off it, and the same nick appears if the
+  // pixel rules run at that other size, so those are scaled to the one 500×700
+  // picture too. A rotated card can land in that second band. Most of its outer
+  // edge is the pad color, and when the pad is the same black as the border the
+  // top edge is still a diagonal, which a full-bleed scan is not.
+  const edge = topEdge(rgba, width, height);
+  // The second band is a full-bleed card only when the border starts at the
+  // top edge. A card sitting inside a photo of the same shape does not.
+  const fullBleed = !flatPadAround(rgba, width, height) && (
+    ratioDiff <= 0.004
+    || (ratioDiff >= 0.028 && ratioDiff <= 0.036 && edge.slope <= 0.55 && edge.depth <= 0.06)
+  );
+  if (fullBleed) {
     const pose = quad ? quadPose(quad) : { tilt: 0, minTilt: 0, parallelDelta: 0, parallel: true, ratio: imageRatio, aspectOk: true };
     pose.tilt = 0;
     pose.parallel = true;
@@ -683,6 +695,50 @@ function flatPadAround(rgba, width, height) {
   }
   const fraction = count ? same / count : 0;
   return fraction > 0.6 && fraction < 0.98;
+}
+
+// Slope, in degrees, of the first row that leaves the corner color, and how far
+// down that row sits. A full-bleed border is horizontal and starts at the edge.
+// A rotated pad is diagonal. A card photographed inside the frame starts lower.
+function topEdge(rgba, width, height) {
+  const grayAt = (x, y) => {
+    const i = (y * width + x) * 4;
+    return 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+  };
+  const corner = grayAt(1, 1);
+  const xs = [];
+  const ys = [];
+  const limit = Math.max(8, Math.round(height * 0.2));
+  for (let x = 2; x < width - 2; x += 4) {
+    let hit = 0;
+    for (let y = 1; y < limit; y++) {
+      if (Math.abs(grayAt(x, y) - corner) > 18) {
+        hit = y;
+        break;
+      }
+    }
+    if (!hit) continue;
+    xs.push(x);
+    ys.push(hit);
+  }
+  if (xs.length < 8) return { slope: 0, depth: 1 };
+  let sx = 0;
+  let sy = 0;
+  let sxx = 0;
+  let sxy = 0;
+  for (let i = 0; i < xs.length; i++) {
+    sx += xs[i];
+    sy += ys[i];
+    sxx += xs[i] * xs[i];
+    sxy += xs[i] * ys[i];
+  }
+  const den = xs.length * sxx - sx * sx;
+  const slope = den ? (xs.length * sxy - sx * sy) / den : 0;
+  const ordered = ys.slice().sort((a, b) => a - b);
+  return {
+    slope: Math.abs(Math.atan(slope) * 180 / Math.PI),
+    depth: ordered[Math.floor(ordered.length / 2)] / height,
+  };
 }
 
 function scaleToSize(rgba, width, height, dw, dh) {

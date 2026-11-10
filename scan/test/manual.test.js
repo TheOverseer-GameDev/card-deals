@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatManual, manualCentering } from '../manual.js';
+import { clampGuides, formatManual, manualCentering } from '../manual.js';
 
 test('guide positions become the border ratio and the PSA cutoff', () => {
   const even = manualCentering({
@@ -54,7 +54,22 @@ test('guide positions become the border ratio and the PSA cutoff', () => {
   assert.equal(back.withinCutoff, true);
   assert.match(formatManual(back), /Measured by you/);
   assert.match(formatManual(back), /back 75\/25/);
-  assert.equal(manualCentering({
-    width: 500, height: 700, outerLeft: 10, innerLeft: 10, innerRight: 40, outerRight: 80, outerTop: 0, innerTop: 10, innerBottom: 40, outerBottom: 80,
-  }), null);
+  const crossed = clampGuides({
+    width: 500,
+    height: 700,
+    outerLeft: 200,
+    innerLeft: 10,
+    innerRight: 20,
+    outerRight: 30,
+    outerTop: 400,
+    innerTop: 10,
+    innerBottom: 20,
+    outerBottom: 30,
+  });
+  assert.ok(crossed.outerLeft < crossed.innerLeft);
+  assert.ok(crossed.innerLeft < crossed.innerRight);
+  assert.ok(crossed.innerRight < crossed.outerRight);
+  assert.ok(crossed.outerTop < crossed.innerTop);
+  assert.ok(crossed.innerTop < crossed.innerBottom);
+  assert.ok(crossed.innerBottom < crossed.outerBottom);
 });

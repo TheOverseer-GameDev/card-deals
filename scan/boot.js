@@ -15,7 +15,6 @@ import {
   REGION_GEOM,
   REGION_LABEL,
   retakePrompts,
-  psaEstimate,
   safeHttpUrl,
   searchCatalog,
   suggestCrop,
@@ -29,6 +28,8 @@ import { inspectSide } from './edges.js';
 import { compareTilt } from './tilt.js';
 import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
+import { AUTO_CENTERING } from './engine.js';
+import { psaEstimate } from './engine.js';
 import { estimateBorders, formatGuide, gradePhoto, gradeSide, grayOf, measureCentering, straighten } from './pipeline.js';
 import { mountGuides } from './manual.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
@@ -385,16 +386,19 @@ function boot() {
         state.canvas = next;
         state.flat = { rgba: flat.rgba, width: 500, height: 700 };
         const gray = grayOf(flat.rgba, 500, 700);
-        const autoText = flat.centeringOk ? (measureCentering(gray, 500, 700) || '') : '';
-        const autoLine = /\d+\.\d+\/\d+\.\d+/.test(autoText) ? autoText : 'Auto centering unavailable, measure it yourself.';
+        let autoLine = 'Measure centering yourself.';
+        if (AUTO_CENTERING && flat.centeringOk) {
+          const autoText = measureCentering(gray, 500, 700) || '';
+          if (/\d+\.\d+\/\d+\.\d+/.test(autoText)) autoLine = autoText;
+        }
         const autoHost = slot === 'back' ? ui.backAuto : ui.autoCenter;
         const guides = slot === 'back' ? ui.backManual : ui.frontManual;
         if (autoHost) autoHost.textContent = autoLine;
         if (guides) {
+          guides.onChange = (result) => applyManualCentering(slot, result);
           guides.setBack(slot === 'back');
-          guides.setImage(500, 700, estimateBorders(gray, 500, 700));
+          guides.setImage(500, 700, AUTO_CENTERING ? estimateBorders(gray, 500, 700) : null);
         }
-        if (flat.centeringOk === false) note.textContent += ' Auto centering unavailable, measure it yourself. Corners, edges, and surface are still checked.';
       } else if (slot === 'front') {
         note.textContent += ' Front is tilted.';
       }
@@ -405,13 +409,13 @@ function boot() {
     releaseStream();
     ui.video.hidden = true;
     if (slot === 'front') {
-      ui.stage.replaceChildren(state.canvas, ui.map, ui.rect, ui.defectLayer);
+      ui.stage.replaceChildren(state.canvas, ui.map, ui.rect, ui.defectLayer, ui.frontGuideHost);
       ui.readBtn.disabled = false;
       ui.video.hidden = true;
       runQuality('front');
       offerCrop();
     } else {
-      ui.backStage.replaceChildren(state.canvas, ui.backMap);
+      ui.backStage.replaceChildren(state.canvas, ui.backMap, ui.backGuideHost);
       ui.video.hidden = true;
       runQuality('back');
     }
@@ -451,6 +455,24 @@ function boot() {
     return sample;
   }
 
+  function applyManualCentering(slot, result) {
+    slots[slot].manual = result || null;
+    const report = reports[slot];
+    if (!report) return;
+    report.centering = result ? {
+      state: 'measured',
+      source: 'manual',
+      leftPct: result.leftPct,
+      rightPct: result.rightPct,
+      topPct: result.topPct,
+      bottomPct: result.bottomPct,
+    } : { state: 'not-measured' };
+    const host = slot === 'front' ? ui.frontQuality : ui.backQuality;
+    if (host) renderQuality(host, report);
+    if (slot === 'front' && ui.centering) ui.centering.textContent = centeringLine(report.centering);
+    renderPsa();
+  }
+
   function runQuality(slot) {
     const state = slots[slot];
     const host = slot === 'front' ? ui.frontQuality : ui.backQuality;
@@ -476,6 +498,16 @@ function boot() {
       originalHeight: sample.originalHeight,
     });
     reports[slot] = report;
+    if (state.manual) {
+      report.centering = {
+        state: 'measured',
+        source: 'manual',
+        leftPct: state.manual.leftPct,
+        rightPct: state.manual.rightPct,
+        topPct: state.manual.topPct,
+        bottomPct: state.manual.bottomPct,
+      };
+    }
     renderQuality(host, report);
     if (slot === 'front') ui.centering.textContent = centeringLine(report.centering);
     syncNotes(slot, report);
@@ -1436,10 +1468,10 @@ function renderQuality(host, report) {
 }
 
 function centeringLine(centering) {
-  if (centering.state === 'measured') {
-    return `Centering measurement: left ${centering.leftPct.toFixed(0)}% / right ${centering.rightPct.toFixed(0)}% of the horizontal border pair, top ${centering.topPct.toFixed(0)}% / bottom ${centering.bottomPct.toFixed(0)}% of the vertical border pair. This is not a PSA centering subgrade.`;
+  if (centering && centering.state === 'measured' && centering.source === 'manual') {
+    return `Measured by you. Left/right ${centering.leftPct.toFixed(1)}/${centering.rightPct.toFixed(1)}. Top/bottom ${centering.topPct.toFixed(1)}/${centering.bottomPct.toFixed(1)}. This is not a PSA grade.`;
   }
-  return 'Centering: not assessable from this photo.';
+  return 'Measure centering yourself. Centering is not measured.';
 }
 
 function text(value) {
@@ -1526,6 +1558,7 @@ function build(section, missingList) {
   defectLayer.id = 'scan-defect-map';
   stage.append(defectLayer);
   const frontGuideHost = document.createElement('div');
+  frontGuideHost.id = 'scan-front-guides';
   stage.append(frontGuideHost);
   const frontManual = mountGuides(frontGuideHost);
   viewport.append(stage);
@@ -1543,6 +1576,7 @@ function build(section, missingList) {
   backMap.style.height = '100%';
   backStage.append(backMap);
   const backGuideHost = document.createElement('div');
+  backGuideHost.id = 'scan-back-guides';
   backStage.append(backGuideHost);
   const backManual = mountGuides(backGuideHost);
   backView.append(backStage);
@@ -1629,11 +1663,11 @@ function build(section, missingList) {
   const autoCenter = document.createElement('p');
   autoCenter.id = 'scan-auto-center';
   autoCenter.className = 'note';
-  autoCenter.textContent = 'Auto centering unavailable, measure it yourself.';
+  autoCenter.textContent = 'Measure centering yourself.';
   const backAuto = document.createElement('p');
   backAuto.id = 'scan-back-auto';
   backAuto.className = 'note';
-  backAuto.textContent = 'Auto centering unavailable, measure it yourself.';
+  backAuto.textContent = 'Measure centering yourself.';
   const backNote = document.createElement('p');
   backNote.className = 'note';
   backNote.id = 'scan-back-note';
@@ -2066,6 +2100,8 @@ function build(section, missingList) {
     backAuto,
     frontManual,
     backManual,
+    frontGuideHost,
+    backGuideHost,
     camMsg,
     camRetry,
     video,

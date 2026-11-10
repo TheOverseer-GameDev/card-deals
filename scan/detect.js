@@ -3,7 +3,7 @@
  * A lined-up card is only a framing check, not a grade.
  */
 import { clippedFraction, laplacianVariance } from './engine.js';
-import { findQuad, quadPose } from './pipeline.js';
+import { findQuad } from './pipeline.js';
 
 const HOLD_MS = 700;
 
@@ -105,15 +105,9 @@ export function judgePreview(rgba, width, height) {
   if (focus < 12) return result('blurry', 'Blurry. Hold still.', shared);
   if (skew > 20 || portrait < 0.56 || portrait > 0.9) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
   if (located.areaFrac < 0.18) return result('too-far', 'Too far. Move closer.', shared);
-  if (located.areaFrac > 0.72 || nearEdge) return result('too-close', 'Too close. Show all four edges.', shared);
-  const pose = quadPose(quad);
-  // The viewfinder uses the same edge fit as a saved photo. A card that is
-  // clearly rotated waits. A fraction of a degree is still "lined up" here;
-  // the centering number uses a tighter bar of its own.
-  if (!located.found || pose.tilt > 3 || !pose.parallel) {
-    return result('tilted', 'Hold flat. Tilted. Keep the phone parallel to the card.', shared);
-  }
-  return result('lined-up', 'Lined up. Hold still.', shared);
+  if (located.areaFrac > 0.72 || nearEdge) return result('too-close', 'Too close. Move back so the whole card is in frame.', shared);
+  if (!located.found) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
+  return result('lined-up', 'Lined up. Hold steady.', shared);
 }
 
 export function quadShift(a, b) {
