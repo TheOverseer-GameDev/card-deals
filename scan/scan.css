@@ -205,6 +205,13 @@ html.phone #v-scan .scan-outline { width: 76%; }
   #v-scan.on .scan-stage { height: 100%; width: fit-content; max-width: 100%; }
   #v-scan.on .scan-stage canvas { height: 100%; width: auto; max-width: 100%; margin: 0 auto; }
   #v-scan.on .scan-guides { inset: 0; }
+  /* A short phone was leaving a 135 px photo, with the step line on the
+     grade note and the top guide under that line. */
+  @media (max-height: 720px) {
+    #v-scan.on .scan-finder { padding: 4px 8px 4px; }
+    #v-scan #scan-step { position: relative; z-index: 3; background: #fff; margin: 0; }
+    #v-scan.on .scan-capture { overflow: auto; }
+  }
   html.desktop nav {
     top: auto !important; bottom: 0 !important; left: 0 !important; right: 0 !important;
     width: auto !important; height: auto !important; flex-direction: row !important;

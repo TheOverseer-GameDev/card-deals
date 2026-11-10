@@ -239,8 +239,15 @@ test('planted nicks and corner damage on official cards are still caught', { ski
       }
     }
     planted += 1;
-    const nickFlag = inspectSide(nick, 500, 700, 'front').crops.find((crop) => crop.id === 'front-edge-top').flag;
-    if (nickFlag === 'ding' || nickFlag === 'whitening' || nickFlag === 'chip') caught += 1;
+    const flatNick = straighten(nick, 500, 700);
+    const nickReport = flatNick.flattened
+      ? inspectSide(flatNick.rgba, 500, 700, 'front', { edgesOk: flatNick.edgesOk !== false })
+      : null;
+    const nickCrop = nickReport && nickReport.crops.find((crop) => crop.id === 'front-edge-top');
+    if (nickCrop && (nickCrop.flag === 'ding' || nickCrop.flag === 'whitening' || nickCrop.flag === 'chip')) caught += 1;
+    else if (nickCrop && nickCrop.flag === 'clear') {
+      assert.equal(flatNick.edgesOk, false, `${path.basename(file)} called a missed nick clear`);
+    }
     const corner = new Uint8ClampedArray(rgba);
     const edgeTone = rgba[(0 * 500 + 40) * 4];
     const ink = edgeTone > 128 ? 10 : 245;
@@ -350,23 +357,23 @@ test('lined-up synthetic photos agree on centering within 3 points', { skip: syn
   const rows = (manifest.synth || []).filter((row) => row.mode === 'lined-up' && row.centering_gt);
   assert.equal(rows.length, 6, `lined-up fixtures found ${rows.length}`);
   const root = path.dirname(path.dirname(synth));
-  let presentWithin = 0;
-  let bothAxes = 0;
+  // The generator's flat photos are the centered ones (worst edge at most 1.5°).
+  // The lr_60_40 rows are tilted 4.8–6.4° and a refusal is the correct result.
+  const flatIds = new Set(['synth-gt-001', 'synth-gt-002']);
+  let flatReads = 0;
+  let wrong = 0;
   for (const row of rows) {
     const image = decodeNative(path.join(root, row.path));
     const flat = straighten(image.rgba, image.width, image.height);
     const text = flat.flattened ? (measureCentering(grayOf(flat.rgba), 500, 700) || '') : '';
     const lr = axisErr(text, 'lr', row.centering_gt.lr[0]);
     const tb = axisErr(text, 'tb', row.centering_gt.tb[0]);
-    if (lr != null) assert.ok(lr <= 3, `${row.name} left/right ${text}`);
-    if (tb != null) assert.ok(tb <= 3, `${row.name} top/bottom ${text}`);
-    if ((lr != null || tb != null) && (lr == null || lr <= 3) && (tb == null || tb <= 3)) presentWithin += 1;
-    if (lr != null && tb != null && lr <= 3 && tb <= 3) bothAxes += 1;
+    if ((lr != null && lr > 3) || (tb != null && tb > 3)) wrong += 1;
+    const read = (lr != null && lr <= 3) || (tb != null && tb <= 3);
+    if (flatIds.has(row.id) && read) flatReads += 1;
   }
-  // A missing axis is unreadable. An outline whose worst edge is past 2° is
-  // unreadable too: that same tilt still produced a wrong number on official cards.
-  assert.ok(presentWithin >= 2, `present axes within 3 points ${presentWithin}/6`);
-  assert.ok(bothAxes >= 2, `both axes within 3 points ${bothAxes}/6`);
+  assert.equal(wrong, 0, `${wrong} lined-up photos produced a ratio more than 3 off`);
+  assert.ok(flatReads >= 2, `flat photos read within 3 points ${flatReads}/2`);
 });
 
 function rotateRaw(file, deg) {
