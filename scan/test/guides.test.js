@@ -130,14 +130,25 @@ test('a short phone can drag the outer top guide', async () => {
     });
     const size = await page.evaluate(() => {
       const canvas = document.querySelector('#scan-stage canvas').getBoundingClientRect();
-      const step = document.querySelector('#scan-step').getBoundingClientRect();
-      const note = document.querySelector('#scan-price-limit-live');
-      const noteBox = note ? note.getBoundingClientRect() : null;
-      const overlap = noteBox ? !(step.bottom <= noteBox.top || noteBox.bottom <= step.top) : false;
-      return { h: canvas.height, w: canvas.width, overlap };
+      const stepEl = document.querySelector('#scan-step');
+      const step = stepEl.getBoundingClientRect();
+      const clipped = stepEl.scrollWidth > stepEl.clientWidth + 1 || stepEl.scrollHeight > stepEl.clientHeight + 1;
+      let overlap = false;
+      let node = stepEl.nextElementSibling;
+      while (node) {
+        const shown = !node.hidden && getComputedStyle(node).display !== 'none';
+        const box = node.getBoundingClientRect();
+        if (shown && box.height > 2 && box.width > 2) {
+          overlap = step.bottom > box.top + 1 && box.bottom > step.top + 1;
+          break;
+        }
+        node = node.nextElementSibling;
+      }
+      return { h: canvas.height, w: canvas.width, overlap, clipped };
     });
     assert.ok(size.h > 180, `photo is only ${Math.round(size.w)}x${Math.round(size.h)}`);
-    assert.equal(size.overlap, false, 'the step line overlaps the grade note');
+    assert.equal(size.overlap, false, 'the step line overlaps the next line');
+    assert.equal(size.clipped, false, 'the step line is clipped');
     const start = Number(await page.locator('#scan-front-guides .scan-guide[aria-label="Outer top border"]').getAttribute('aria-valuenow'));
     const box = await page.locator('#scan-front-guides .scan-guide[aria-label="Outer top border"]').boundingBox();
     assert.ok(box, 'outer top guide has a box');

@@ -1,6 +1,7 @@
 /**
- * The PSA unavailable note has to be in the visible scan text.
- * The publish gate reads #v-scan innerText and ignores hidden sheets.
+ * The camera must not show the developer price sentence.
+ * The price panel still says PSA 5 through PSA 8 stay unavailable,
+ * beside the stored prices. The publish gate reads that sentence.
  */
 import assert from 'node:assert/strict';
 import fs from 'fs';
@@ -29,7 +30,7 @@ function startServer() {
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
 }
 
-test('the PSA unavailable note is visible when Scan opens', async () => {
+test('the camera omits the developer price note and the price panel keeps it', async () => {
   const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
   const server = await startServer();
   const page = await (await browser.newContext({
@@ -41,19 +42,26 @@ test('the PSA unavailable note is visible when Scan opens', async () => {
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.locator('nav button[data-v="scan"]').click();
   await page.waitForSelector('#v-scan.on');
-  const body = await page.locator('#v-scan').innerText();
-  assert.match(body, new RegExp(NOTE));
+  const camera = await page.locator('.scan-capture').innerText();
+  assert.doesNotMatch(camera, /verified-prices\.json/);
+  assert.doesNotMatch(camera, /Market shards/);
   const place = await page.evaluate(() => {
     const info = document.getElementById('scan-info-sheet');
     const live = document.getElementById('scan-price-limit-live');
     const beside = document.getElementById('scan-price-limit');
+    const capture = document.querySelector('.scan-capture');
     return {
-      liveOutsideInfo: !!(live && info && !info.contains(live) && !live.hidden),
-      besidePrices: !!(beside && beside.previousElementSibling && beside.nextElementSibling && beside.nextElementSibling.id === 'scan-prices'),
+      liveInCapture: !!(live && capture && capture.contains(live) && !live.hidden),
+      besidePrices: !!(beside && beside.nextElementSibling && beside.nextElementSibling.id === 'scan-prices'),
+      priceText: beside ? beside.textContent : '',
+      infoText: info ? info.textContent : '',
     };
   });
-  assert.equal(place.liveOutsideInfo, true);
+  assert.equal(place.liveInCapture, false);
   assert.equal(place.besidePrices, true);
+  assert.match(place.priceText, new RegExp(NOTE));
+  assert.doesNotMatch(place.infoText, /verified-prices\.json/);
+  assert.doesNotMatch(place.infoText, /Market shards/);
   await browser.close();
   server.close();
 });

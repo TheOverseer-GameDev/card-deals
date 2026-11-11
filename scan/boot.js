@@ -133,6 +133,18 @@ function boot() {
   let camToken = 0;
 
   const ui = build(section, rows.length === 0);
+  function applyGuideShape() {
+    const outline = ui.outline;
+    if (!outline) return;
+    const game = ui.game && ui.game.value;
+    outline.style.aspectRatio = game === 'mtg' ? '63 / 88' : '59 / 86';
+    outline.style.width = 'auto';
+    outline.style.height = '68%';
+    outline.style.maxWidth = '78%';
+    outline.style.borderRadius = '16px';
+  }
+  if (ui.game) ui.game.addEventListener('change', applyGuideShape);
+  applyGuideShape();
   ui.historyDelete.addEventListener('click', () => {
     openScanHistory().then(async (store) => {
       await store.clear();
@@ -356,9 +368,9 @@ function boot() {
     ui.modeBoth.classList.toggle('on', both);
     ui.modeFront.setAttribute('aria-pressed', both ? 'false' : 'true');
     ui.modeBoth.setAttribute('aria-pressed', both ? 'true' : 'false');
-    if (!both) ui.step.textContent = 'Front only. Scan or upload the front of your card.';
-    else if (captureSide === 'back') ui.step.textContent = 'Step 2 of 2. Scan or upload the back of your card.';
-    else ui.step.textContent = 'Step 1 of 2. Scan or upload the front of your card.';
+    if (!both) ui.step.textContent = 'Front only. Frame the front of the card.';
+    else if (captureSide === 'back') ui.step.textContent = 'Step 2 of 2. Frame the back of the card.';
+    else ui.step.textContent = 'Step 1 of 2. Frame the front of the card.';
     const frontReady = Boolean(slots.front.canvas);
     const backReady = Boolean(slots.back.canvas);
     ui.next.hidden = both ? !(frontReady && backReady) : !frontReady;
@@ -367,10 +379,7 @@ function boot() {
 
   function showActive() {
     if (ui.stream) {
-      ui.video.hidden = false;
-      ui.outline.hidden = false;
-      ui.viewport.hidden = true;
-      ui.backView.hidden = true;
+      showLiveFinder();
       return;
     }
     const backOn = activeSlot() === 'back' && !ui.stream;
@@ -382,7 +391,7 @@ function boot() {
     if (backOn) renderMap(ui.backMap, reports.back);
   }
 
-  async function loadFile(slot, file) {
+  async function loadFile(slot, file, options = {}) {
     const state = slots[slot];
     const my = ++state.token;
     const note = slot === 'front' ? ui.frontNote : ui.backNote;
@@ -443,11 +452,17 @@ function boot() {
         note.textContent += ' Front is tilted.';
       }
     } catch { /* Keep the original photo when the warp cannot run. */ }
-    captureSide = slot;
+    const keepCamera = options.fromCamera === true && mode === 'front-and-back' && slot === 'front';
+    captureSide = keepCamera ? 'back' : slot;
     renderCloseups();
     camToken += 1;
     releaseStream();
     ui.video.hidden = true;
+    if (keepCamera) {
+      ui.viewport.hidden = true;
+      ui.backView.hidden = true;
+      ui.outline.hidden = false;
+    }
     if (slot === 'front') {
       ui.stage.replaceChildren(state.canvas, ui.map, ui.rect, ui.defectLayer, ui.frontGuideHost);
       ui.readBtn.disabled = false;
@@ -460,8 +475,15 @@ function boot() {
       runQuality('back');
     }
     updateStep();
-    showActive();
     paintThumbs();
+    if (keepCamera) {
+      ui.viewport.hidden = true;
+      ui.backView.hidden = true;
+      ui.outline.hidden = false;
+      await openCamera('back');
+      return;
+    }
+    showActive();
   }
 
   function cropFractions() {
@@ -748,10 +770,7 @@ function boot() {
     ui.camRetry.hidden = true;
     if (ui.blocked) ui.blocked.hidden = true;
     ui.step.hidden = false;
-    ui.video.hidden = false;
-    ui.outline.hidden = false;
-    ui.viewport.hidden = true;
-    ui.backView.hidden = true;
+    showLiveFinder();
     const listed = fillCameraList();
     if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
       await listed;
@@ -791,12 +810,12 @@ function boot() {
     }
     ui.video.playsInline = true;
     ui.video.muted = true;
-    ui.video.hidden = false;
-    ui.outline.hidden = false;
     try { ui.video.srcObject = stream; } catch { /* A test double is not a real stream. The preview element is already on screen. */ }
+    showLiveFinder();
     try { await ui.video.play(); } catch { /* The shutter still works after the video is ready. */ }
     await fillCameraList();
     if (my !== camToken || !ui.stream) return;
+    showLiveFinder();
     ui.stopLive = startLive(ui.video, {
       onFrame(view) {
         if (ui.align) ui.align.textContent = view.hint;
@@ -1078,6 +1097,25 @@ function boot() {
     });
   }
 
+  function clearLiveOverlay() {
+    const canvas = ui.liveEdge;
+    if (!canvas) return;
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+
+  function showLiveFinder() {
+    if (!ui.video) return;
+    ui.video.hidden = false;
+    ui.video.style.visibility = 'visible';
+    const half = document.getElementById('scan-zoom-half');
+    const scale = half && half.classList.contains('on') ? 0.5 : 1;
+    ui.video.style.transform = `scale(${scale})`;
+    ui.outline.hidden = false;
+    ui.viewport.hidden = true;
+    ui.backView.hidden = true;
+  }
+
   function releaseStream() {
     if (ui.stopLive) {
       ui.stopLive();
@@ -1085,12 +1123,17 @@ function boot() {
     }
     if (ui.setCaptureProgress) ui.setCaptureProgress(0);
     if (ui.align) ui.align.textContent = 'Align the card in the frame.';
-    drawLiveQuad(ui.liveEdge, null, null, '');
+    clearLiveOverlay();
     if (ui.stream) {
       for (const track of ui.stream.getTracks()) track.stop();
       ui.stream = null;
     }
-    if (ui.video) ui.video.srcObject = null;
+    if (ui.video) {
+      try { ui.video.pause(); } catch { /* The preview was already idle. */ }
+      ui.video.srcObject = null;
+      ui.video.style.transform = '';
+      ui.video.style.visibility = 'hidden';
+    }
   }
 
   function stopCamera() {
@@ -1139,7 +1182,7 @@ function boot() {
       ui.blocked.hidden = false;
       return;
     }
-    await loadFile(slot, new File([blob], 'camera.jpg', { type: 'image/jpeg' }));
+    await loadFile(slot, new File([blob], 'camera.jpg', { type: 'image/jpeg' }), { fromCamera: true });
   }
 
   async function readFront() {
@@ -1765,11 +1808,7 @@ function build(section, missingList) {
   modeBar.append(modeFront, modeBoth);
   const step = document.createElement('p');
   step.id = 'scan-step';
-  const priceLimitText = 'PSA 5 through PSA 8 stay unavailable unless scan/verified-prices.json has a sourced figure. Market shards that were not exported stay unavailable.';
-  const priceLimitLive = document.createElement('p');
-  priceLimitLive.id = 'scan-price-limit-live';
-  priceLimitLive.className = 'note';
-  priceLimitLive.textContent = priceLimitText;
+  const priceLimitText = 'PSA 5 through PSA 8 stay unavailable until a sourced price is on file.';
 
   const finder = document.createElement('div');
   finder.className = 'scan-finder';
@@ -2143,7 +2182,7 @@ function build(section, missingList) {
 
   const limits = document.createElement('p');
   limits.className = 'note';
-  limits.append(document.createTextNode('English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. PSA 5 through PSA 8 stay unavailable unless scan/verified-prices.json has a sourced figure. Market shards that were not exported stay unavailable. '));
+  limits.append(document.createTextNode('English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. '));
   const more = document.createElement('a');
   more.href = 'scan/LIMITATIONS.md';
   more.textContent = 'Full limitations';
@@ -2162,7 +2201,7 @@ function build(section, missingList) {
   const align = document.createElement('p');
   align.id = 'scan-align';
   align.textContent = 'Align the card in the frame.';
-  capture.append(top, finder, align, step, priceLimitLive, tightNote, blocked, thumbs, camBar, infoSheet, frontFile, backFile);
+  capture.append(top, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, frontFile, backFile);
   const fresh = document.createElement('p');
   fresh.id = 'scan-freshness';
   fresh.className = 'note';
