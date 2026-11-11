@@ -4,7 +4,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'url';
 
 const root = new URL('..', import.meta.url);
-const files = ['boot.js', 'engine.js', 'lookup.js', 'ocr.js', 'image.js', 'prices.js', 'charts.js', 'gauges.js', 'scan.css', 'detect.js', 'edges.js', 'tilt.js', 'artmatch.js', 'defects.js', 'pipeline.js', 'live.js', 'session.js', 'manual.js'];
+const files = ['boot.js', 'engine.js', 'lookup.js', 'ocr.js', 'image.js', 'prices.js', 'charts.js', 'gauges.js', 'scan.css', 'detect.js', 'edges.js', 'tilt.js', 'artmatch.js', 'defects.js', 'pipeline.js', 'live.js', 'stains.js', 'creases.js', 'foil.js', 'marks.js', 'consistency.js', 'printq.js', 'range.js', 'worth.js', 'history.js', 'session.js', 'manual.js'];
 
 function source(name) {
   return fs.readFileSync(new URL(name, root), 'utf8');
@@ -36,6 +36,7 @@ test('scan code has no cloud model, token, or upload path', () => {
     const text = source(name);
     for (const pattern of banned) {
       if (name === 'live.js' && pattern.source === 'requestAnimationFrame') continue;
+      if (name === 'history.js' && pattern.source === 'indexedDB') continue;
       if (name === 'live.js' && pattern.source === 'https?:\\/\\/' && !/https?:\/\/(?!www\.w3\.org)/.test(text)) continue;
       assert.equal(pattern.test(text), false, `${name} matched ${pattern}`);
     }

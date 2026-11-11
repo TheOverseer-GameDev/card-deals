@@ -28,10 +28,20 @@ import { inspectSide } from './edges.js';
 import { compareTilt } from './tilt.js';
 import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
-import { AUTO_CENTERING } from './engine.js';
+import { AUTO_CENTERING, ESTIMATE_UNAVAILABLE } from './engine.js';
 import { psaEstimate } from './engine.js';
 import { estimateBorders, formatGuide, gradePhoto, gradeSide, grayOf, measureCentering, straighten } from './pipeline.js';
 import { mountGuides } from './manual.js';
+import { findStains } from './stains.js';
+import { findCreases } from './creases.js';
+import { findFoilWear } from './foil.js';
+import { readMarks } from './marks.js';
+import { compareReference } from './consistency.js';
+import { printQuality } from './printq.js';
+import { estimateRange } from './range.js';
+import { gradingWorth } from './worth.js';
+import { HISTORY_VERSION, openScanHistory, presentScan, saveScan } from './history.js';
+import { addToSession, createSession, cue, sessionTotal, storedCad, toCsv } from './session.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
 import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
@@ -123,6 +133,38 @@ function boot() {
   let camToken = 0;
 
   const ui = build(section, rows.length === 0);
+  function applyGuideShape() {
+    const outline = ui.outline;
+    if (!outline) return;
+    const game = ui.game && ui.game.value;
+    outline.style.aspectRatio = game === 'mtg' ? '63 / 88' : '59 / 86';
+    outline.style.width = 'auto';
+    outline.style.height = '68%';
+    outline.style.maxWidth = '78%';
+    outline.style.borderRadius = '16px';
+  }
+  if (ui.game) ui.game.addEventListener('change', applyGuideShape);
+  applyGuideShape();
+  ui.historyDelete.addEventListener('click', () => {
+    openScanHistory().then(async (store) => {
+      await store.clear();
+      refreshHistory('Saved scans on this phone were deleted.');
+    }).catch(() => refreshHistory('Saved scans on this phone could not be deleted.'));
+  });
+  ui.feeInput.addEventListener('input', () => renderPhase2());
+  ui.historyExport.addEventListener('click', () => {
+    openScanHistory().then((store) => store.list()).then((rows) => {
+      ui.historyCsv.hidden = false;
+      ui.historyCsv.value = toCsv((rows || []).map((row) => ({
+        name: row.name,
+        condition: presentScan(row),
+      })));
+    }).catch(() => {
+      ui.historyCsv.hidden = false;
+      ui.historyCsv.value = 'Saved scans on this phone could not be read.';
+    });
+  });
+  refreshHistory();
   if (ui.tiltHost) ui.tiltHost.addEventListener('tilt-report', () => renderDefects());
   section.addEventListener('scan-official', (event) => rememberOfficial(event.detail));
   wire(ui);
@@ -326,9 +368,9 @@ function boot() {
     ui.modeBoth.classList.toggle('on', both);
     ui.modeFront.setAttribute('aria-pressed', both ? 'false' : 'true');
     ui.modeBoth.setAttribute('aria-pressed', both ? 'true' : 'false');
-    if (!both) ui.step.textContent = 'Front only. Scan or upload the front of your card.';
-    else if (captureSide === 'back') ui.step.textContent = 'Step 2 of 2. Scan or upload the back of your card.';
-    else ui.step.textContent = 'Step 1 of 2. Scan or upload the front of your card.';
+    if (!both) ui.step.textContent = 'Front only. Frame the front of the card.';
+    else if (captureSide === 'back') ui.step.textContent = 'Step 2 of 2. Frame the back of the card.';
+    else ui.step.textContent = 'Step 1 of 2. Frame the front of the card.';
     const frontReady = Boolean(slots.front.canvas);
     const backReady = Boolean(slots.back.canvas);
     ui.next.hidden = both ? !(frontReady && backReady) : !frontReady;
@@ -337,10 +379,7 @@ function boot() {
 
   function showActive() {
     if (ui.stream) {
-      ui.video.hidden = false;
-      ui.outline.hidden = false;
-      ui.viewport.hidden = true;
-      ui.backView.hidden = true;
+      showLiveFinder();
       return;
     }
     const backOn = activeSlot() === 'back' && !ui.stream;
@@ -352,7 +391,7 @@ function boot() {
     if (backOn) renderMap(ui.backMap, reports.back);
   }
 
-  async function loadFile(slot, file) {
+  async function loadFile(slot, file, options = {}) {
     const state = slots[slot];
     const my = ++state.token;
     const note = slot === 'front' ? ui.frontNote : ui.backNote;
@@ -374,6 +413,7 @@ function boot() {
     state.originalHeight = decoded.originalHeight;
     note.textContent = `Working copy ${decoded.workingWidth}×${decoded.workingHeight} from ${decoded.originalWidth}×${decoded.originalHeight}. Longest side is capped at ${LIMITS.maxEdge} px.`;
     state.flat = null;
+    state.manual = null;
     if (slot === 'front' && ui.tiltHost && ui.tiltHost.reset) ui.tiltHost.reset();
     try {
       const shot = state.canvas.getContext('2d').getImageData(0, 0, state.canvas.width, state.canvas.height);
@@ -412,11 +452,17 @@ function boot() {
         note.textContent += ' Front is tilted.';
       }
     } catch { /* Keep the original photo when the warp cannot run. */ }
-    captureSide = slot;
+    const keepCamera = options.fromCamera === true && mode === 'front-and-back' && slot === 'front';
+    captureSide = keepCamera ? 'back' : slot;
     renderCloseups();
     camToken += 1;
     releaseStream();
     ui.video.hidden = true;
+    if (keepCamera) {
+      ui.viewport.hidden = true;
+      ui.backView.hidden = true;
+      ui.outline.hidden = false;
+    }
     if (slot === 'front') {
       ui.stage.replaceChildren(state.canvas, ui.map, ui.rect, ui.defectLayer, ui.frontGuideHost);
       ui.readBtn.disabled = false;
@@ -429,8 +475,15 @@ function boot() {
       runQuality('back');
     }
     updateStep();
-    showActive();
     paintThumbs();
+    if (keepCamera) {
+      ui.viewport.hidden = true;
+      ui.backView.hidden = true;
+      ui.outline.hidden = false;
+      await openCamera('back');
+      return;
+    }
+    showActive();
   }
 
   function cropFractions() {
@@ -480,6 +533,7 @@ function boot() {
     if (host) renderQuality(host, report);
     if (slot === 'front' && ui.centering) ui.centering.textContent = centeringLine(report.centering);
     renderPsa();
+    if (slot === 'front') renderPhase2();
   }
 
   function runQuality(slot) {
@@ -716,10 +770,7 @@ function boot() {
     ui.camRetry.hidden = true;
     if (ui.blocked) ui.blocked.hidden = true;
     ui.step.hidden = false;
-    ui.video.hidden = false;
-    ui.outline.hidden = false;
-    ui.viewport.hidden = true;
-    ui.backView.hidden = true;
+    showLiveFinder();
     const listed = fillCameraList();
     if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
       await listed;
@@ -759,12 +810,12 @@ function boot() {
     }
     ui.video.playsInline = true;
     ui.video.muted = true;
-    ui.video.hidden = false;
-    ui.outline.hidden = false;
     try { ui.video.srcObject = stream; } catch { /* A test double is not a real stream. The preview element is already on screen. */ }
+    showLiveFinder();
     try { await ui.video.play(); } catch { /* The shutter still works after the video is ready. */ }
     await fillCameraList();
     if (my !== camToken || !ui.stream) return;
+    showLiveFinder();
     ui.stopLive = startLive(ui.video, {
       onFrame(view) {
         if (ui.align) ui.align.textContent = view.hint;
@@ -788,6 +839,7 @@ function boot() {
     const sides = ['front', 'back'].filter((side) => slots[side].flat);
     if (!sides.length) {
       host.hidden = true;
+      renderPhase2();
       return;
     }
     host.hidden = false;
@@ -818,6 +870,7 @@ function boot() {
     }
     renderArt();
     renderDefects();
+    renderPhase2();
   }
 
   let officialArt = null;
@@ -830,14 +883,16 @@ function boot() {
     const note = host.querySelector('p');
     if (!flat) {
       host.hidden = true;
+      renderPhase2();
       return;
     }
     host.hidden = false;
     if (!officialArt) {
       note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, null, 0, 0).note;
-      return;
+    } else {
+      note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, officialArt.rgba, officialArt.width, officialArt.height).note;
     }
-    note.textContent = matchArtwork(flat.rgba, flat.width, flat.height, officialArt.rgba, officialArt.width, officialArt.height).note;
+    renderPhase2();
   }
 
   function rememberOfficial(url) {
@@ -910,6 +965,157 @@ function boot() {
     }
   }
 
+  let lastGrades = null;
+  let confirmedName = '';
+  let savedToken = '';
+  const scanSession = createSession();
+
+  function showCheck(host, text) {
+    if (!host) return;
+    host.hidden = false;
+    const note = host.querySelector('p');
+    if (note) note.textContent = text;
+  }
+
+  function renderPhase2() {
+    const flat = slots.front.flat;
+    let rgba = flat && flat.rgba;
+    let width = flat && flat.width;
+    let height = flat && flat.height;
+    if (!rgba && slots.front.canvas) {
+      const shot = slots.front.canvas.getContext('2d').getImageData(0, 0, slots.front.canvas.width, slots.front.canvas.height);
+      rgba = shot.data;
+      width = shot.width;
+      height = shot.height;
+    }
+    if (!rgba) {
+      for (const host of [ui.stainHost, ui.creaseHost, ui.foilHost, ui.markHost, ui.consistencyHost, ui.printHost, ui.rangeHost, ui.worthHost]) {
+        if (host) host.hidden = true;
+      }
+      return;
+    }
+    const stains = findStains(rgba, width, height);
+    const creases = findCreases(rgba, width, height);
+    const foil = findFoilWear(rgba, width, height);
+    const marks = readMarks(rgba, width, height, ui.text ? ui.text.value : '');
+    const reference = officialArt ? { rgba: officialArt.rgba, width: officialArt.width, height: officialArt.height } : null;
+    const consistency = compareReference({ rgba, width, height }, reference);
+    const photo = printQuality(rgba, width, height, reference);
+    if (!flat) photo.poor = true;
+    const gray = grayOf(rgba, width, height);
+    const manual = slots.front.manual;
+    let centeringText = '';
+    if (AUTO_CENTERING && flat && flat.centeringOk && width === 500 && height === 700) {
+      centeringText = measureCentering(gray, width, height) || '';
+    } else if (manual && Number.isFinite(manual.leftPct) && Number.isFinite(manual.topPct)) {
+      centeringText = `Centering: ${manual.leftPct.toFixed(1)}/${manual.rightPct.toFixed(1)} left/right. ${manual.topPct.toFixed(1)}/${manual.bottomPct.toFixed(1)} top/bottom.`;
+    }
+    const side = gradeSide(gray, width, height, centeringText, Boolean(flat));
+    if (!centeringText && side.centering) {
+      side.centering.score = null;
+      side.centering.note = 'Centering is not measured.';
+    }
+    const photoGrade = gradePhoto({ front: { flattened: true, marks: side }, back: null, frontBack: false });
+    const range = estimateRange(photoGrade, photo);
+    const fee = ui.feeInput ? ui.feeInput.value : '';
+    const rate = typeof globalThis.FX === 'number' ? globalThis.FX : null;
+    const worth = gradingWorth({ grades: lastGrades, low: range.low, high: range.high, feeCad: fee, rate });
+    showCheck(ui.stainHost, stains.note);
+    showCheck(ui.creaseHost, creases.note);
+    showCheck(ui.foilHost, foil.note);
+    showCheck(ui.markHost, marks.note);
+    showCheck(ui.consistencyHost, consistency.note);
+    showCheck(ui.printHost, photo.note);
+    const rangeNotes = flat ? range.notes : ['The card outline was not straightened, so these readings are less reliable.', ...range.notes];
+    if (!slots.back || !slots.back.canvas) rangeNotes.push('No back photo. Back centering is not checked.');
+    if (!centeringText) {
+      let said = false;
+      for (let i = 0; i < rangeNotes.length; i++) {
+        if (rangeNotes[i] === 'This is a range from the photo scores for centering, corners, edges, and surface. It is not a PSA grade and not a single promised grade.') {
+          rangeNotes[i] = 'This is a range from the photo scores for corners, edges, and surface. Centering is not measured. It is not a PSA grade and not a single promised grade.';
+          said = true;
+        }
+      }
+      if (!said) rangeNotes.push('Centering is not measured.');
+    }
+    const grid = ui.rangeHost.querySelector('.scan-grid') || ui.rangeHost.insertBefore(document.createElement('div'), ui.rangeHost.querySelector('p'));
+    grid.className = 'scan-grid';
+    grid.replaceChildren();
+    for (const [key, label] of [['centering', 'Centering'], ['corners', 'Corners'], ['edges', 'Edges'], ['surface', 'Surface']]) {
+      const cell = document.createElement('div');
+      cell.className = 'scan-cell';
+      const score = side[key] && side[key].score;
+      const shown = key === 'centering' && !centeringText ? 'not measured' : (score == null ? 'Unread' : score);
+      cell.textContent = `${label}: ${shown}`;
+      grid.append(cell);
+    }
+    let headline = centeringText ? range.text : ESTIMATE_UNAVAILABLE;
+    if (reports.front) {
+      const estimate = psaEstimate({
+        mode,
+        front: reports.front,
+        back: reports.back,
+        notes: { front: readNotes('front'), back: readNotes('back') },
+      });
+      if (!estimate.range) headline = ESTIMATE_UNAVAILABLE;
+    }
+    showCheck(ui.rangeHost, [headline, range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.', ...rangeNotes].join(' '));
+    showCheck(ui.worthHost, `Estimate, not a PSA grade. ${worth.text}`);
+    const token = `${width}x${height}:${rgba[0]}:${rgba[rgba.length - 1]}:${flat ? 'flat' : 'raw'}`;
+    if (token === savedToken) return;
+    savedToken = token;
+    const summary = [headline]
+      .concat(stains.status && stains.status !== 'clear' ? [stains.note] : [])
+      .concat(creases.status && creases.status !== 'clear' ? [creases.note] : [])
+      .join(' ');
+    openScanHistory().then((store) => saveScan(store, {
+      at: Date.now(),
+      version: HISTORY_VERSION,
+      name: confirmedName || 'Unnamed card',
+      summary,
+    })).then((result) => refreshHistory(result && result.reason)).catch(() => refreshHistory('The scan was not saved on this phone.'));
+  }
+
+  function refreshHistory(extra) {
+    openScanHistory().then((store) => Promise.all([store, store.list()])).then(([store, rows]) => {
+      if (!ui.historyList) return;
+      ui.historyList.replaceChildren();
+      const where = store.persistent ? 'on this phone' : 'for this visit only';
+      if (ui.historyNote) {
+        ui.historyNote.textContent = extra || (rows.length
+          ? `${rows.length} saved ${where}. Nothing was uploaded.`
+          : `No scans saved ${where}.`);
+      }
+      for (const row of rows) {
+        const line = document.createElement('p');
+        const when = new Date(row.at || Date.now()).toLocaleString();
+        line.textContent = `${when}. ${row.name || 'Unnamed card'}. ${presentScan(row)}`;
+        ui.historyList.append(line);
+      }
+    }).catch(() => {
+      if (ui.historyNote) ui.historyNote.textContent = 'Saved scans on this phone could not be read.';
+    });
+  }
+
+  function clearLiveOverlay() {
+    const canvas = ui.liveEdge;
+    if (!canvas) return;
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+
+  function showLiveFinder() {
+    if (!ui.video) return;
+    ui.video.hidden = false;
+    ui.video.style.visibility = 'visible';
+    const half = document.getElementById('scan-zoom-half');
+    const scale = half && half.classList.contains('on') ? 0.5 : 1;
+    ui.video.style.transform = `scale(${scale})`;
+    ui.outline.hidden = false;
+    ui.viewport.hidden = true;
+    ui.backView.hidden = true;
+  }
+
   function releaseStream() {
     if (ui.stopLive) {
       ui.stopLive();
@@ -917,12 +1123,17 @@ function boot() {
     }
     if (ui.setCaptureProgress) ui.setCaptureProgress(0);
     if (ui.align) ui.align.textContent = 'Align the card in the frame.';
-    drawLiveQuad(ui.liveEdge, null, null, '');
+    clearLiveOverlay();
     if (ui.stream) {
       for (const track of ui.stream.getTracks()) track.stop();
       ui.stream = null;
     }
-    if (ui.video) ui.video.srcObject = null;
+    if (ui.video) {
+      try { ui.video.pause(); } catch { /* The preview was already idle. */ }
+      ui.video.srcObject = null;
+      ui.video.style.transform = '';
+      ui.video.style.visibility = 'hidden';
+    }
   }
 
   function stopCamera() {
@@ -971,7 +1182,7 @@ function boot() {
       ui.blocked.hidden = false;
       return;
     }
-    await loadFile(slot, new File([blob], 'camera.jpg', { type: 'image/jpeg' }));
+    await loadFile(slot, new File([blob], 'camera.jpg', { type: 'image/jpeg' }), { fromCamera: true });
   }
 
   async function readFront() {
@@ -1039,6 +1250,8 @@ function boot() {
 
   function renderMatch(result) {
     confirmedKey = null;
+    confirmedName = '';
+    lastGrades = null;
     ui.identity.replaceChildren();
     ui.prices.replaceChildren(text('Confirm a catalog row to see stored prices.'));
     resetMarket();
@@ -1059,6 +1272,7 @@ function boot() {
     ui.results.replaceChildren();
     if (!result.candidates.length) {
       ui.results.append(text('No loaded row matched that text. Search the list or correct the text. The print is unknown.'));
+      renderPhase2();
       return;
     }
     const lead = result.ambiguous
@@ -1071,6 +1285,7 @@ function boot() {
       ui.results.append(rowButton(row, candidate.evidence));
     }
     if (result.hiddenCount) ui.results.append(text(`${result.hiddenCount} more rows matched. Search to narrow them.`));
+    renderPhase2();
   }
 
   function renderSearch(query) {
@@ -1113,6 +1328,7 @@ function boot() {
 
   async function confirmRow(row) {
     confirmedKey = row.key;
+    confirmedName = row.name || '';
     ui.identity.replaceChildren();
     const banner = document.createElement('p');
     banner.className = 'scan-warn';
@@ -1130,11 +1346,33 @@ function boot() {
       grid.append(k, v);
     }
     ui.identity.append(grid);
+    const foil = document.createElement('label');
+    foil.className = 'note';
+    const foilBox = document.createElement('input');
+    foilBox.type = 'checkbox';
+    foilBox.id = 'scan-foil-toggle';
+    foil.append(foilBox, document.createTextNode(' Foil or etched. This does not change the stored price.'));
+    ui.identity.append(foil);
+    const entry = addToSession(scanSession, {
+      name: row.name,
+      set: row.parsed && row.parsed.setCode,
+      number: row.parsed && row.parsed.collectorNumber,
+      variant: row.parsed && (row.parsed.edition || row.parsed.finish),
+    });
+    foilBox.addEventListener('change', () => {
+      entry.foil = foilBox.checked;
+      renderSession();
+    });
+    renderSession();
+    if (ui.sessionSound && ui.sessionSound.checked) cue(true);
     ui.prices.replaceChildren(text('Loading stored prices…'));
     resetMarket();
     try {
       const report = await lookup.report(row);
       if (confirmedKey !== row.key) return;
+      const rate = typeof globalThis.FX === 'number' ? globalThis.FX : null;
+      entry.cad = storedCad(report && report.grades, rate);
+      renderSession();
       renderPrices(report);
       let market = emptyMarket();
       if (row.id) market = await book.load(row.game, row.id);
@@ -1148,7 +1386,42 @@ function boot() {
     }
   }
 
+  function renderSession() {
+    if (!ui.sessionList) return;
+    ui.sessionList.replaceChildren();
+    const total = sessionTotal(scanSession);
+    const head = document.createElement('p');
+    head.textContent = total.cad == null
+      ? `${total.count} in this session. Session total: Unavailable until every card has a stored price.`
+      : `${total.count} in this session. Session total: CAD ${total.cad.toFixed(2)}.`;
+    ui.sessionList.append(head);
+    scanSession.items.forEach((item, index) => {
+      const block = document.createElement('div');
+      block.className = 'scan-session';
+      const title = document.createElement('p');
+      title.textContent = item.name;
+      block.append(title);
+      for (const [key, label] of [['qty', 'Quantity'], ['set', 'Set'], ['condition', 'Condition']]) {
+        const labelEl = document.createElement('label');
+        labelEl.textContent = label;
+        const input = document.createElement('input');
+        input.value = item[key];
+        input.addEventListener('input', () => {
+          item[key] = key === 'qty' ? Math.max(1, Math.round(Number(input.value) || 1)) : input.value;
+          if (key === 'qty') head.textContent = sessionTotal(scanSession).cad == null
+            ? `${sessionTotal(scanSession).count} in this session. Session total: Unavailable until every card has a stored price.`
+            : `${sessionTotal(scanSession).count} in this session. Session total: CAD ${sessionTotal(scanSession).cad.toFixed(2)}.`;
+        });
+        labelEl.append(input);
+        block.append(labelEl);
+      }
+      ui.sessionList.append(block);
+    });
+  }
+
   function renderPrices(report) {
+    lastGrades = report && report.grades ? report.grades : null;
+    renderPhase2();
     ui.prices.replaceChildren();
     const intro = document.createElement('p');
     intro.textContent = report.exactSetNamed
@@ -1535,11 +1808,7 @@ function build(section, missingList) {
   modeBar.append(modeFront, modeBoth);
   const step = document.createElement('p');
   step.id = 'scan-step';
-  const priceLimitText = 'PSA 5 through PSA 8 stay unavailable unless scan/verified-prices.json has a sourced figure. Market shards that were not exported stay unavailable.';
-  const priceLimitLive = document.createElement('p');
-  priceLimitLive.id = 'scan-price-limit-live';
-  priceLimitLive.className = 'note';
-  priceLimitLive.textContent = priceLimitText;
+  const priceLimitText = 'PSA 5 through PSA 8 stay unavailable until a sourced price is on file.';
 
   const finder = document.createElement('div');
   finder.className = 'scan-finder';
@@ -1763,6 +2032,61 @@ function build(section, missingList) {
   const defectNote = document.createElement('p');
   defectNote.className = 'note';
   defectHost.append(defectTitle, defectNote);
+  function checkHost(id, title) {
+    const host = document.createElement('div');
+    host.id = id;
+    host.hidden = true;
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+    const note = document.createElement('p');
+    note.className = 'note';
+    host.append(heading, note);
+    return host;
+  }
+  const stainHost = checkHost('scan-stains', 'Stains, dirt, and fingerprints');
+  const creaseHost = checkHost('scan-creases', 'Creases and dents');
+  const foilHost = checkHost('scan-foil', 'Foil wear');
+  const markHost = checkHost('scan-marks', 'Edition and rarity marks');
+  const consistencyHost = checkHost('scan-consistency', 'Reference comparison');
+  const printHost = checkHost('scan-print', 'Print quality');
+  const rangeHost = checkHost('scan-grade-range', 'Photo grade range');
+  const worthHost = checkHost('scan-worth', 'Grading fee check');
+  const feeInput = document.createElement('input');
+  feeInput.id = 'scan-grade-fee';
+  feeInput.type = 'number';
+  feeInput.min = '0';
+  feeInput.step = '0.01';
+  feeInput.placeholder = 'Grading fee in CAD';
+  worthHost.append(feeInput);
+  const historyHost = document.createElement('div');
+  historyHost.id = 'scan-history';
+  const historyTitle = document.createElement('h3');
+  historyTitle.textContent = 'Scans on this phone';
+  const historyNote = document.createElement('p');
+  historyNote.className = 'note';
+  historyNote.textContent = 'No scans saved on this phone.';
+  const historyList = document.createElement('div');
+  historyList.id = 'scan-history-list';
+  const historyDelete = button('Delete all scans on this phone', 'scan-history-delete', true);
+  const historyExport = button('Copy scan history as CSV', 'scan-history-export', true);
+  const historyCsv = document.createElement('textarea');
+  historyCsv.id = 'scan-history-csv';
+  historyCsv.readOnly = true;
+  historyCsv.hidden = true;
+  historyHost.append(historyTitle, historyNote, historyList, historyDelete, historyExport, historyCsv);
+  const sessionHost = document.createElement('div');
+  sessionHost.id = 'scan-session';
+  const sessionTitle = document.createElement('h3');
+  sessionTitle.textContent = 'This session';
+  const sessionSound = document.createElement('input');
+  sessionSound.id = 'scan-session-sound';
+  sessionSound.type = 'checkbox';
+  const sessionSoundLabel = document.createElement('label');
+  sessionSoundLabel.className = 'note';
+  sessionSoundLabel.append(sessionSound, document.createTextNode(' Optional click when a card is confirmed. Off by default. Nothing is uploaded.'));
+  const sessionList = document.createElement('div');
+  sessionList.id = 'scan-session-list';
+  sessionHost.append(sessionTitle, sessionSoundLabel, sessionList);
   const backQualityBtn = button('Check back photo', 'scan-back-quality-btn', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
@@ -1858,7 +2182,7 @@ function build(section, missingList) {
 
   const limits = document.createElement('p');
   limits.className = 'note';
-  limits.append(document.createTextNode('English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. PSA 5 through PSA 8 stay unavailable unless scan/verified-prices.json has a sourced figure. Market shards that were not exported stay unavailable. '));
+  limits.append(document.createTextNode('English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. '));
   const more = document.createElement('a');
   more.href = 'scan/LIMITATIONS.md';
   more.textContent = 'Full limitations';
@@ -1877,7 +2201,7 @@ function build(section, missingList) {
   const align = document.createElement('p');
   align.id = 'scan-align';
   align.textContent = 'Align the card in the frame.';
-  capture.append(top, finder, align, step, priceLimitLive, tightNote, blocked, thumbs, camBar, infoSheet, frontFile, backFile);
+  capture.append(top, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, frontFile, backFile);
   const fresh = document.createElement('p');
   fresh.id = 'scan-freshness';
   fresh.className = 'note';
@@ -1893,6 +2217,7 @@ function build(section, missingList) {
     fresh,
     frontNote, autoCenter, frontManual.note, backNote, backAuto, backManual.note, retakes, backQualityBtn, backQuality,
     controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost, tiltHost, artHost, defectHost,
+    stainHost, creaseHost, foilHost, markHost, consistencyHost, printHost, rangeHost, worthHost, historyHost, sessionHost,
     readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
     identity, psa, sold, asks, priceLimit, prices, chartCard, gauges, condition,
@@ -1925,7 +2250,7 @@ function build(section, missingList) {
   const gray = new Float32Array(500 * 700);
   gray.fill(140);
   const sampleGrade = gradePhoto({
-    front: { flattened: true, marks: gradeSide(gray, 500, 700, 'Centering: 55.0/45.0 left/right. 50.0/50.0 top/bottom.', true) },
+    front: { flattened: true, marks: gradeSide(gray, 500, 700, '', true) },
     back: null,
     frontBack: true,
   });
@@ -2142,6 +2467,22 @@ function build(section, missingList) {
     tiltHost,
     artHost,
     defectHost,
+    stainHost,
+    creaseHost,
+    foilHost,
+    markHost,
+    consistencyHost,
+    printHost,
+    rangeHost,
+    worthHost,
+    feeInput,
+    historyNote,
+    historyList,
+    historyDelete,
+    historyExport,
+    historyCsv,
+    sessionList,
+    sessionSound,
     defectLayer,
     readBtn,
     cancelBtn,

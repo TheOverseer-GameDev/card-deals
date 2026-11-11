@@ -10,8 +10,13 @@ import { spawnSync } from 'node:child_process';
 import fs from 'fs';
 import path from 'path';
 import test from 'node:test';
-import { gradeSide, measureCentering, straighten } from '../pipeline.js';
+import { gradeSide, gradePhoto, measureCentering, straighten } from '../pipeline.js';
 import { inspectSide } from '../edges.js';
+import { findStains } from '../stains.js';
+import { findCreases } from '../creases.js';
+import { findFoilWear } from '../foil.js';
+import { printQuality } from '../printq.js';
+import { estimateRange } from '../range.js';
 
 const root = process.env.CARD_OFFICIAL_DIR
   || (fs.existsSync('/tmp/card-official/data/official') ? '/tmp/card-official/data/official' : '');
@@ -221,6 +226,33 @@ test('centering of official cards is readable and the left and right borders sta
   }
   assert.ok(readable >= 50, `readable centering ${readable}/${files.length}`);
   assert.ok(leftWithin / leftAxes >= 0.8, `left/right within 3 points ${leftWithin}/${leftAxes}`);
+});
+
+test('clean official cards are not called stained, creased, or foil-worn', { skip }, () => {
+  const files = images();
+  let stain = 0;
+  let crease = 0;
+  let foil = 0;
+  let low = 0;
+  for (const file of files) {
+    const rgba = decode(file, 500, 700);
+    if (findStains(rgba, 500, 700).status === 'marked') stain += 1;
+    if (findCreases(rgba, 500, 700).status === 'marked') crease += 1;
+    if (findFoilWear(rgba, 500, 700).status === 'marked') foil += 1;
+    const gray = grayOf(rgba);
+    const text = measureCentering(gray, 500, 700) || '';
+    const photo = printQuality(rgba, 500, 700, null);
+    const range = estimateRange(gradePhoto({
+      front: { flattened: true, marks: gradeSide(gray, 500, 700, text, true) },
+      back: null,
+      frontBack: false,
+    }), photo);
+    if (range.confidence === 'low' && !photo.poor) low += 1;
+  }
+  assert.equal(stain, 0, `${stain}/${files.length} clean official cards were marked stained`);
+  assert.equal(crease, 0, `${crease}/${files.length} clean official cards were marked creased`);
+  assert.equal(foil, 0, `${foil}/${files.length} clean official cards were marked foil-worn`);
+  assert.equal(low, 0, `${low}/${files.length} clean official cards got a low grade range without a poor photo`);
 });
 
 test('planted nicks and corner damage on official cards are still caught', { skip }, () => {

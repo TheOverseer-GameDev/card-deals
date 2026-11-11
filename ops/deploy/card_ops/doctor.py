@@ -300,10 +300,15 @@ def scan_issues():
                     if res.get('err'): out.append(f'{lab}: {res["err"]}')
                     # Click first suggest is hard without OCR; check static copy promises PSA 5-8 unavailable
                     body=pg.evaluate("document.querySelector('#v-scan')?.innerText||''")
-                    if 'PSA 5 through PSA 8 stay unavailable' not in body and 'PSA 5' not in body:
-                        # limits text should mention unavailable
-                        if 'unavailable' not in body.lower():
+                    price=pg.evaluate("document.querySelector('#scan-price-limit')?.textContent||''")
+                    shown=(body or '')+'\n'+(price or '')
+                    if 'PSA 5 through PSA 8 stay unavailable' not in shown and 'PSA 5' not in shown:
+                        # The price panel, not the camera, carries the unavailable promise.
+                        if 'unavailable' not in shown.lower():
                             out.append(f'{lab}: Scan limits text missing PSA unavailable note')
+                    cam=pg.evaluate("document.querySelector('.scan-capture')?.innerText||''")
+                    if 'verified-prices.json' in cam or 'Market shards' in cam:
+                        out.append(f'{lab}: developer price note is on the camera')
                     # Upload path: set a tiny PNG via input files
                     png=tmp+'/tiny.png'
                     open(png,'wb').write(bytes.fromhex(
