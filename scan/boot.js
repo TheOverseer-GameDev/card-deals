@@ -2192,7 +2192,10 @@ function build(section, missingList) {
   infoSheet.id = 'scan-info-sheet';
   infoSheet.hidden = true;
   const infoClose = button('Close', 'scan-info-close', true);
-  infoSheet.append(infoClose, intro, introNote, s22, s22Note, limits);
+  const infoPanel = document.createElement('div');
+  infoPanel.className = 'scan-sheet-panel';
+  infoPanel.append(infoClose, intro, introNote, s22, s22Note, limits);
+  infoSheet.append(infoPanel);
   const capture = document.createElement('div');
   capture.className = 'scan-capture';
   const tightNote = document.createElement('p');

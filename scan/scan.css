@@ -491,3 +491,174 @@ html.scan-tight #scan-capture-ring { width: 52px; height: 52px; }
   pointer-events: none;
   z-index: 3;
 }
+
+/* Premium chrome. The card guide keeps its 16px corners and per-game shape. */
+html.scan-cam #v-scan.on,
+#v-scan.on,
+html.scan-cam #v-scan.scan-sheet.on,
+html.scan-cam #v-scan.scan-review.on .scan-panel {
+  background: var(--bg, #06080F);
+  color: var(--text, #F4F6FF);
+}
+#v-scan .scan-top,
+#v-scan .scan-cam-bar,
+#scan-thumbs {
+  background: #0B0F1C;
+  color: #F4F6FF;
+}
+#v-scan .scan-top button,
+#scan-gallery,
+#scan-align,
+#v-scan #scan-step { color: #E4E7F8; }
+#v-scan #scan-info-btn { border-color: rgba(255, 255, 255, .45); color: #F4F6FF; }
+#v-scan .scan-mode { background: rgba(255, 255, 255, .08); }
+#v-scan .scan-mode button { color: rgba(255, 255, 255, .78); }
+#v-scan .scan-mode button.on { background: #fff; color: #1A1640; }
+#scan-zoom-toggle { background: #14182A; }
+#scan-zoom-toggle button.on { background: #7C5CFF; color: #fff; }
+#v-scan .scan-outline { border-radius: 16px; }
+#scan-deck,
+html.scan-cam #v-scan.scan-sheet.on #scan-deck {
+  background: var(--bg, #06080F);
+  color: var(--text, #F4F6FF);
+}
+#scan-tabs {
+  margin: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(12, 15, 28, .78);
+  backdrop-filter: blur(24px) saturate(1.6);
+  overflow: hidden;
+}
+#scan-tabs button {
+  background: transparent;
+  color: #C5CAE2;
+  font-size: 10px;
+  font-weight: 650;
+  min-width: 0;
+}
+#scan-tabs button.on { color: #F4F6FF; }
+#scan-deck.cd-theme {
+  background-color: #06080F;
+  background-image: radial-gradient(90% 50% at 0% 0%, rgba(124, 92, 255, .35), transparent 60%), radial-gradient(80% 50% at 100% 100%, rgba(47, 184, 255, .22), transparent 62%);
+  animation: none;
+  color: #F4F6FF;
+}
+#scan-deck.cd-theme .cd-match,
+#scan-deck.cd-theme .cd-sheet,
+#scan-deck .cd-match {
+  background: rgba(255, 255, 255, .06);
+  color: #F4F6FF;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 22px;
+  box-shadow: none;
+}
+#scan-deck.cd-theme > #scan-match > h2,
+#scan-deck.cd-theme .cd-top,
+#scan-deck.cd-theme .cd-top h2,
+#scan-deck.cd-theme #scan-done,
+#scan-done { color: #F4F6FF; }
+.cd-art { width: min(240px, 72%); border-radius: 16px; }
+.cd-cad { font-size: 40px; font-weight: 720; letter-spacing: -.04em; color: #F4F6FF; font-variant-numeric: tabular-nums; }
+.cd-usd, .cd-fixture { color: #C5CAE2; }
+#v-scan #scan-add-card, .cd-add { background: linear-gradient(135deg, #7C5CFF, #3D8BFF); border-radius: 16px; }
+.cd-seg { background: rgba(255, 255, 255, .06); }
+.cd-seg button { color: #C5CAE2; }
+.cd-seg button.on { background: #fff; color: #1A1640; }
+#v-scan .scan-block, #v-scan .scan-card, #v-scan .scan-session {
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 22px;
+  padding: 14px;
+}
+#v-scan .scan-cell { font-variant-numeric: tabular-nums; }
+#v-scan #scan-info-sheet {
+  background: rgba(2, 4, 10, .62);
+  display: flex;
+  align-items: flex-end;
+  padding: 0;
+}
+#v-scan #scan-info-sheet[hidden] { display: none !important; }
+.scan-sheet-panel {
+  width: 100%;
+  max-height: 88vh;
+  overflow: auto;
+  background: #12172A;
+  color: #F4F6FF;
+  border-radius: 28px 28px 0 0;
+  padding: 16px 18px 28px;
+  border-top: 1px solid rgba(255, 255, 255, .16);
+}
+#scan-blocked:not([hidden]), #scan-blocked { background: #12172A; color: #F4F6FF; }
+#scan-blocked #scan-cam-msg { color: #F4F6FF; }
+:root[data-theme="light"] #v-scan .scan-top,
+:root[data-theme="light"] #v-scan .scan-cam-bar,
+:root[data-theme="light"] #scan-thumbs {
+  background: #F3F4F9;
+  color: #0E1124;
+}
+:root[data-theme="light"] #v-scan .scan-top button,
+:root[data-theme="light"] #scan-gallery,
+:root[data-theme="light"] #scan-align,
+:root[data-theme="light"] #v-scan #scan-step,
+:root[data-theme="light"] #v-scan #scan-info-btn { color: #0E1124; }
+:root[data-theme="light"] #v-scan #scan-info-btn { border-color: #0E1124; }
+:root[data-theme="light"] #v-scan .scan-mode { background: rgba(16, 20, 45, .08); }
+:root[data-theme="light"] #v-scan .scan-mode button { color: #3E4460; }
+:root[data-theme="light"] #v-scan .scan-mode button.on { background: #4C35C8; color: #fff; }
+:root[data-theme="light"] #scan-deck,
+:root[data-theme="light"] html.scan-cam #v-scan.scan-sheet.on,
+:root[data-theme="light"] html.scan-cam #v-scan.scan-review.on .scan-panel,
+:root[data-theme="light"] #scan-deck.cd-theme {
+  background: #F3F4F9;
+  color: #0E1124;
+}
+:root[data-theme="light"] #scan-deck.cd-theme .cd-match,
+:root[data-theme="light"] #scan-deck.cd-theme .cd-sheet,
+:root[data-theme="light"] #scan-deck .cd-match,
+:root[data-theme="light"] .scan-sheet-panel,
+:root[data-theme="light"] #v-scan .scan-block,
+:root[data-theme="light"] #v-scan .scan-card {
+  background: #fff;
+  color: #0E1124;
+}
+:root[data-theme="light"] .cd-cad,
+:root[data-theme="light"] #scan-done,
+:root[data-theme="light"] #scan-deck.cd-theme .cd-top,
+:root[data-theme="light"] #scan-deck.cd-theme .cd-top h2 { color: #0E1124; }
+:root[data-theme="light"] .cd-usd { color: #3E4460; }
+:root[data-theme="light"] #scan-tabs { background: rgba(255, 255, 255, .86); border-color: rgba(16, 20, 45, .12); }
+:root[data-theme="light"] #scan-tabs button { color: #3E4460; }
+:root[data-theme="light"] #scan-tabs button.on { color: #0E1124; }
+#scan-search-sheet { display: flex; flex-direction: column; gap: 10px; }
+#scan-search-sheet > div { display: flex; gap: 8px; align-items: center; }
+#scan-search-sheet #scan-game,
+#scan-search-sheet #scan-code {
+  background: #161B2E;
+  color: #F4F6FF;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+}
+#scan-search-sheet #scan-code { flex: 1; min-width: 0; }
+#scan-lookup, #scan-refresh {
+  background: linear-gradient(135deg, #7C5CFF, #3D8BFF);
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  border: 0;
+  border-radius: 14px;
+  min-height: 44px;
+  padding: 0 16px;
+  font-weight: 680;
+}
+:root[data-theme="light"] #scan-search-sheet #scan-game,
+:root[data-theme="light"] #scan-search-sheet #scan-code {
+  background: #fff;
+  color: #0E1124;
+  border-color: rgba(16, 20, 45, .12);
+}
+@media (max-height: 720px) {
+  #v-scan #scan-step { background: #0B0F1C; color: #E4E7F8; }
+  :root[data-theme="light"] #v-scan #scan-step { background: #F3F4F9; color: #0E1124; }
+}
