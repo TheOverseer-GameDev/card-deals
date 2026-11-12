@@ -113,15 +113,16 @@ html.scan-tight #v-scan .scan-gallery, html.scan-tight #v-scan .scan-next { min-
 }
 #v-scan .scan-finder .scan-video { width: 100%; height: 100%; max-height: none; object-fit: cover; position: absolute; inset: 0; border-radius: 0; }
 #v-scan .scan-finder .scan-viewport { position: relative; z-index: 1; width: 100%; max-height: 100%; background: transparent; }
+#v-scan { --guide-w: 59; --guide-h: 86; }
+#scan-finder { container-type: size; }
 #v-scan .scan-outline {
-  width: 76%;
-  max-width: 280px;
-  aspect-ratio: 5 / 7;
   border: 3px solid #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   position: relative;
   z-index: 2;
   pointer-events: none;
+  box-sizing: border-box;
+  aspect-ratio: var(--guide-w) / var(--guide-h);
 }
 #v-scan .scan-id span { overflow-wrap: anywhere; }
 #v-scan .scan-map { position: absolute; pointer-events: none; }
@@ -179,12 +180,12 @@ html.scan-tight #scan-align, html.scan-tight #scan-tabs { display: none !importa
 #v-scan .scan-meter i { display: block; height: 100%; width: calc(var(--p) * 1%); background: var(--gold); }
 #v-scan .scan-chart { width: 100%; height: 168px; background: #0f1424; border-radius: 12px; }
 #v-scan .scan-block + .scan-block { margin-top: 14px; }
-html.desktop #v-scan .scan-outline { width: 62%; max-width: 340px; }
+html.desktop #v-scan .scan-outline { max-width: none; }
 html.desktop #v-scan .scan-layout { display: grid; grid-template-columns: minmax(300px, 0.9fr) minmax(320px, 1.1fr); gap: 16px; align-items: start; }
 html.desktop:has(#v-scan.on) main { margin-right: 0; }
 html.desktop:has(#v-scan.on) #panel { display: none; }
 html.phone #v-scan .scan-layout { display: block; }
-html.phone #v-scan .scan-outline { width: 76%; }
+html.phone #v-scan .scan-outline { width: auto; }
 @media (max-width: 840px) {
   /* The camera control hangs under the top bar, and the step line sits on
      the bottom of the photo. Keep the picture, and its border guides, clear. */
@@ -234,7 +235,7 @@ html.phone #v-scan .scan-outline { width: 76%; }
   html.desktop #v-scan.on .scan-capture,
   #v-scan.on .scan-capture { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
   #v-scan.on .scan-finder { flex: 1; min-height: 0; height: auto; border-radius: 0; }
-  #v-scan.on .scan-outline { width: auto; max-width: 78%; height: 68%; }
+  #v-scan.on .scan-outline { width: auto; max-width: none; height: auto; }
 }
 @media (min-width: 900px) {
   #v-scan { max-width: none; }
@@ -249,7 +250,9 @@ html.scan-cam #v-scan.on, #v-scan.on { background: #fff; }
 #v-scan .scan-mode button.on { background: #E10600; color: #FFFFFF; }
 #v-scan .scan-outline {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: auto; height: 68%; aspect-ratio: 59 / 86; max-width: 78%;
+  width: auto; max-width: none;
+  height: min(68cqh, calc(78cqw * var(--guide-h) / var(--guide-w)));
+  aspect-ratio: var(--guide-w) / var(--guide-h);
   border-radius: 16px; border: 3px solid #fff;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, .45);
 }
@@ -491,3 +494,195 @@ html.scan-tight #scan-capture-ring { width: 52px; height: 52px; }
   pointer-events: none;
   z-index: 3;
 }
+
+/* Premium chrome. The card guide keeps its 16px corners and per-game shape. */
+html.scan-cam #v-scan.on,
+#v-scan.on,
+html.scan-cam #v-scan.scan-sheet.on,
+html.scan-cam #v-scan.scan-review.on .scan-panel {
+  background: var(--bg, #06080F);
+  color: var(--text, #F4F6FF);
+}
+#v-scan .scan-top,
+#v-scan .scan-cam-bar,
+#scan-thumbs {
+  background: #0B0F1C;
+  color: #F4F6FF;
+}
+#v-scan .scan-top button,
+#scan-gallery,
+#scan-align,
+#v-scan #scan-step { color: #E4E7F8; }
+#v-scan #scan-info-btn { border-color: rgba(255, 255, 255, .45); color: #F4F6FF; }
+#v-scan .scan-mode { background: rgba(255, 255, 255, .08); }
+#v-scan .scan-mode button { color: rgba(255, 255, 255, .78); }
+#v-scan .scan-mode button.on { background: #fff; color: #1A1640; }
+#scan-zoom-toggle { background: #14182A; }
+#scan-zoom-toggle button.on { background: #7C5CFF; color: #fff; }
+html.phone #v-scan .scan-outline,
+html.desktop #v-scan .scan-outline,
+#v-scan.on .scan-outline,
+#v-scan .scan-outline {
+  width: auto;
+  max-width: none;
+  height: min(68cqh, calc(78cqw * var(--guide-h) / var(--guide-w)));
+  aspect-ratio: var(--guide-w) / var(--guide-h);
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+#scan-deck,
+html.scan-cam #v-scan.scan-sheet.on #scan-deck {
+  background: var(--bg, #06080F);
+  color: var(--text, #F4F6FF);
+}
+#scan-tabs {
+  margin: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(12, 15, 28, .78);
+  backdrop-filter: blur(24px) saturate(1.6);
+  overflow: hidden;
+}
+#scan-tabs button {
+  background: transparent;
+  color: #C5CAE2;
+  font-size: 10px;
+  font-weight: 650;
+  min-width: 0;
+}
+#scan-tabs button.on { color: #F4F6FF; }
+#scan-deck.cd-theme {
+  background-color: #06080F;
+  background-image: radial-gradient(90% 50% at 0% 0%, rgba(124, 92, 255, .35), transparent 60%), radial-gradient(80% 50% at 100% 100%, rgba(47, 184, 255, .22), transparent 62%);
+  animation: none;
+  color: #F4F6FF;
+}
+#scan-deck.cd-theme .cd-match,
+#scan-deck.cd-theme .cd-sheet,
+#scan-deck .cd-match {
+  background: rgba(255, 255, 255, .06);
+  color: #F4F6FF;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 22px;
+  box-shadow: none;
+}
+#scan-deck.cd-theme > #scan-match > h2,
+#scan-deck.cd-theme .cd-top,
+#scan-deck.cd-theme .cd-top h2,
+#scan-deck.cd-theme #scan-done,
+#scan-done { color: #F4F6FF; }
+.cd-art { width: min(240px, 72%); border-radius: 16px; }
+.cd-cad { font-size: 40px; font-weight: 720; letter-spacing: -.04em; color: #F4F6FF; font-variant-numeric: tabular-nums; }
+.cd-usd, .cd-fixture { color: #C5CAE2; }
+#v-scan #scan-add-card, .cd-add { background: linear-gradient(135deg, #7C5CFF, #3D8BFF); border-radius: 16px; }
+.cd-seg { background: rgba(255, 255, 255, .06); }
+.cd-seg button { color: #C5CAE2; }
+.cd-seg button.on { background: #fff; color: #1A1640; }
+#v-scan .scan-block, #v-scan .scan-card, #v-scan .scan-session {
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 22px;
+  padding: 14px;
+}
+#v-scan .scan-cell { font-variant-numeric: tabular-nums; }
+#v-scan #scan-info-sheet {
+  background: rgba(2, 4, 10, .62);
+  display: flex;
+  align-items: flex-end;
+  padding: 0;
+}
+#v-scan #scan-info-sheet[hidden] { display: none !important; }
+.scan-sheet-panel {
+  width: 100%;
+  max-height: 88vh;
+  overflow: auto;
+  background: #12172A;
+  color: #F4F6FF;
+  border-radius: 28px 28px 0 0;
+  padding: 16px 18px 28px;
+  border-top: 1px solid rgba(255, 255, 255, .16);
+}
+#scan-blocked:not([hidden]), #scan-blocked { background: #12172A; color: #F4F6FF; }
+#scan-blocked #scan-cam-msg { color: #F4F6FF; }
+:root[data-theme="light"] #v-scan .scan-top,
+:root[data-theme="light"] #v-scan .scan-cam-bar,
+:root[data-theme="light"] #scan-thumbs {
+  background: #F3F4F9;
+  color: #0E1124;
+}
+:root[data-theme="light"] #v-scan .scan-top button,
+:root[data-theme="light"] #scan-gallery,
+:root[data-theme="light"] #scan-align,
+:root[data-theme="light"] #v-scan #scan-step,
+:root[data-theme="light"] #v-scan #scan-info-btn { color: #0E1124; }
+:root[data-theme="light"] #v-scan #scan-info-btn { border-color: #0E1124; }
+:root[data-theme="light"] #v-scan .scan-mode { background: rgba(16, 20, 45, .08); }
+:root[data-theme="light"] #v-scan .scan-mode button { color: #3E4460; }
+:root[data-theme="light"] #v-scan .scan-mode button.on { background: #4C35C8; color: #fff; }
+:root[data-theme="light"] #scan-deck,
+:root[data-theme="light"] html.scan-cam #v-scan.scan-sheet.on,
+:root[data-theme="light"] html.scan-cam #v-scan.scan-review.on .scan-panel,
+:root[data-theme="light"] #scan-deck.cd-theme {
+  background: #F3F4F9;
+  color: #0E1124;
+}
+:root[data-theme="light"] #scan-deck.cd-theme .cd-match,
+:root[data-theme="light"] #scan-deck.cd-theme .cd-sheet,
+:root[data-theme="light"] #scan-deck .cd-match,
+:root[data-theme="light"] .scan-sheet-panel,
+:root[data-theme="light"] #v-scan .scan-block,
+:root[data-theme="light"] #v-scan .scan-card {
+  background: #fff;
+  color: #0E1124;
+}
+:root[data-theme="light"] .cd-cad,
+:root[data-theme="light"] #scan-done,
+:root[data-theme="light"] #scan-deck.cd-theme .cd-top,
+:root[data-theme="light"] #scan-deck.cd-theme .cd-top h2 { color: #0E1124; }
+:root[data-theme="light"] .cd-usd { color: #3E4460; }
+:root[data-theme="light"] #scan-tabs { background: rgba(255, 255, 255, .86); border-color: rgba(16, 20, 45, .12); }
+:root[data-theme="light"] #scan-tabs button { color: #3E4460; }
+:root[data-theme="light"] #scan-tabs button.on { color: #0E1124; }
+#scan-search-sheet { display: flex; flex-direction: column; gap: 10px; }
+#scan-search-sheet > div { display: flex; gap: 8px; align-items: center; }
+#scan-search-sheet #scan-game,
+#scan-search-sheet #scan-code {
+  background: #161B2E;
+  color: #F4F6FF;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+}
+#scan-search-sheet #scan-code { flex: 1; min-width: 0; }
+#scan-lookup, #scan-refresh {
+  background: linear-gradient(135deg, #7C5CFF, #3D8BFF);
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  border: 0;
+  border-radius: 14px;
+  min-height: 44px;
+  padding: 0 16px;
+  font-weight: 680;
+}
+:root[data-theme="light"] #scan-search-sheet #scan-game,
+:root[data-theme="light"] #scan-search-sheet #scan-code {
+  background: #fff;
+  color: #0E1124;
+  border-color: rgba(16, 20, 45, .12);
+}
+@media (max-height: 720px) {
+  #v-scan #scan-step { background: #0B0F1C; color: #E4E7F8; }
+  :root[data-theme="light"] #v-scan #scan-step { background: #F3F4F9; color: #0E1124; }
+}
+#v-scan .scan-rect { border-color: #7C5CFF; }
+#v-scan .scan-meter i { background: #7C5CFF; }
+#scan-tabs button.on { color: #C4B5FF; }
+#scan-zoom-toggle button.on,
+#v-scan .scan-mode button.on { background: #7C5CFF; color: #fff; }
+.scan-shutter-core,
+#v-scan #scan-cam-retry,
+#v-scan #scan-blocked-gallery { background: linear-gradient(135deg, #7C5CFF, #3D8BFF); }
+#scan-done { color: #C4B5FF; }
+:root[data-theme="light"] #scan-tabs button.on,
+:root[data-theme="light"] #scan-done { color: #4C35C8; }

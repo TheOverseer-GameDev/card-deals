@@ -157,7 +157,7 @@ def precache_files():
     """Every scan module the offline screen imports, plus the app shell.
     Vendor OCR and market shards stay out: they are large and loaded on demand.
     A staged copy of this file may not sit next to scan/; the shell still builds."""
-    shell=['./','index.html','data.js','chart.min.js','manifest.json','icon-192.png']
+    shell=['./','index.html','styles.css','fonts/InterVariable.woff2','data.js','chart.min.js','manifest.json','icon-192.png']
     candidates=[
         os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(B))),'scan'),
         os.path.join(B,'scan'),
