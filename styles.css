@@ -20,8 +20,10 @@
   --mu: #C5CAE2;
   --text-2: #C5CAE2;
   --text-3: #A4ABC6;
-  --gold: #DDD0FF;
-  --accent: #8B6CFF;
+  --gold: #C4B5FF;
+  --accent-ink: #C4B5FF;
+  --accent-strong: #4C35C8;
+  --accent: #7C5CFF;
   --accent-2: #4DA3FF;
   --accent-soft: rgba(139, 108, 255, .18);
   --up: #3EE0A6;
@@ -61,6 +63,8 @@
   --text-2: #3E4460;
   --text-3: #4E5570;
   --gold: #4C35C8;
+  --accent-ink: #4C35C8;
+  --accent-strong: #4C35C8;
   --accent: #4C35C8;
   --accent-soft: rgba(76, 53, 200, .12);
   --up: #0B7A56;
@@ -108,7 +112,7 @@ h1 {
   line-height: 1.05;
   margin: 2px 0 0;
 }
-h1 b { color: var(--gold); }
+h1 b, .accent { color: var(--accent-ink); }
 .sub, #health { color: var(--text-2); font-size: 13px; }
 #vt {
   width: auto;

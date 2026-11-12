@@ -73,7 +73,7 @@ export function drawSalesChart(canvas, series) {
   const plotW = width - padL - padR;
   const plotH = height - padT - padB;
   const slot = plotW / series.buckets.length;
-  ctx.fillStyle = '#d4af37';
+  ctx.fillStyle = '#7C5CFF';
   series.buckets.forEach((bucket, index) => {
     if (typeof bucket.value !== 'number' || !(max > 0)) return;
     const barH = Math.max(2, (bucket.value / max) * plotH);

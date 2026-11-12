@@ -662,3 +662,14 @@ html.scan-cam #v-scan.scan-sheet.on #scan-deck {
   #v-scan #scan-step { background: #0B0F1C; color: #E4E7F8; }
   :root[data-theme="light"] #v-scan #scan-step { background: #F3F4F9; color: #0E1124; }
 }
+#v-scan .scan-rect { border-color: #7C5CFF; }
+#v-scan .scan-meter i { background: #7C5CFF; }
+#scan-tabs button.on { color: #C4B5FF; }
+#scan-zoom-toggle button.on,
+#v-scan .scan-mode button.on { background: #7C5CFF; color: #fff; }
+.scan-shutter-core,
+#v-scan #scan-cam-retry,
+#v-scan #scan-blocked-gallery { background: linear-gradient(135deg, #7C5CFF, #3D8BFF); }
+#scan-done { color: #C4B5FF; }
+:root[data-theme="light"] #scan-tabs button.on,
+:root[data-theme="light"] #scan-done { color: #4C35C8; }
