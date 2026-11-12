@@ -134,13 +134,15 @@ function boot() {
 
   const ui = build(section, rows.length === 0);
   function applyGuideShape() {
+    const mtg = ui.game && ui.game.value === 'mtg';
+    section.style.setProperty('--guide-w', mtg ? '63' : '59');
+    section.style.setProperty('--guide-h', mtg ? '88' : '86');
     const outline = ui.outline;
     if (!outline) return;
-    const game = ui.game && ui.game.value;
-    outline.style.aspectRatio = game === 'mtg' ? '63 / 88' : '59 / 86';
-    outline.style.width = 'auto';
-    outline.style.height = '68%';
-    outline.style.maxWidth = '78%';
+    outline.style.width = '';
+    outline.style.height = '';
+    outline.style.maxWidth = '';
+    outline.style.aspectRatio = '';
     outline.style.borderRadius = '16px';
   }
   if (ui.game) ui.game.addEventListener('change', applyGuideShape);
@@ -181,6 +183,7 @@ function boot() {
       leaveCapture();
     }
     markTight();
+    applyGuideShape();
   };
   window.addEventListener('resize', followViewport);
   if (window.visualViewport) {

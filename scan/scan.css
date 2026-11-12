@@ -113,15 +113,16 @@ html.scan-tight #v-scan .scan-gallery, html.scan-tight #v-scan .scan-next { min-
 }
 #v-scan .scan-finder .scan-video { width: 100%; height: 100%; max-height: none; object-fit: cover; position: absolute; inset: 0; border-radius: 0; }
 #v-scan .scan-finder .scan-viewport { position: relative; z-index: 1; width: 100%; max-height: 100%; background: transparent; }
+#v-scan { --guide-w: 59; --guide-h: 86; }
+#scan-finder { container-type: size; }
 #v-scan .scan-outline {
-  width: 76%;
-  max-width: 280px;
-  aspect-ratio: 5 / 7;
   border: 3px solid #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   position: relative;
   z-index: 2;
   pointer-events: none;
+  box-sizing: border-box;
+  aspect-ratio: var(--guide-w) / var(--guide-h);
 }
 #v-scan .scan-id span { overflow-wrap: anywhere; }
 #v-scan .scan-map { position: absolute; pointer-events: none; }
@@ -179,12 +180,12 @@ html.scan-tight #scan-align, html.scan-tight #scan-tabs { display: none !importa
 #v-scan .scan-meter i { display: block; height: 100%; width: calc(var(--p) * 1%); background: var(--gold); }
 #v-scan .scan-chart { width: 100%; height: 168px; background: #0f1424; border-radius: 12px; }
 #v-scan .scan-block + .scan-block { margin-top: 14px; }
-html.desktop #v-scan .scan-outline { width: 62%; max-width: 340px; }
+html.desktop #v-scan .scan-outline { max-width: none; }
 html.desktop #v-scan .scan-layout { display: grid; grid-template-columns: minmax(300px, 0.9fr) minmax(320px, 1.1fr); gap: 16px; align-items: start; }
 html.desktop:has(#v-scan.on) main { margin-right: 0; }
 html.desktop:has(#v-scan.on) #panel { display: none; }
 html.phone #v-scan .scan-layout { display: block; }
-html.phone #v-scan .scan-outline { width: 76%; }
+html.phone #v-scan .scan-outline { width: auto; }
 @media (max-width: 840px) {
   /* The camera control hangs under the top bar, and the step line sits on
      the bottom of the photo. Keep the picture, and its border guides, clear. */
@@ -234,7 +235,7 @@ html.phone #v-scan .scan-outline { width: 76%; }
   html.desktop #v-scan.on .scan-capture,
   #v-scan.on .scan-capture { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
   #v-scan.on .scan-finder { flex: 1; min-height: 0; height: auto; border-radius: 0; }
-  #v-scan.on .scan-outline { width: auto; max-width: 78%; height: 68%; }
+  #v-scan.on .scan-outline { width: auto; max-width: none; height: auto; }
 }
 @media (min-width: 900px) {
   #v-scan { max-width: none; }
@@ -249,7 +250,9 @@ html.scan-cam #v-scan.on, #v-scan.on { background: #fff; }
 #v-scan .scan-mode button.on { background: #E10600; color: #FFFFFF; }
 #v-scan .scan-outline {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: auto; height: 68%; aspect-ratio: 59 / 86; max-width: 78%;
+  width: auto; max-width: none;
+  height: min(68cqh, calc(78cqw * var(--guide-h) / var(--guide-w)));
+  aspect-ratio: var(--guide-w) / var(--guide-h);
   border-radius: 16px; border: 3px solid #fff;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, .45);
 }
@@ -516,7 +519,17 @@ html.scan-cam #v-scan.scan-review.on .scan-panel {
 #v-scan .scan-mode button.on { background: #fff; color: #1A1640; }
 #scan-zoom-toggle { background: #14182A; }
 #scan-zoom-toggle button.on { background: #7C5CFF; color: #fff; }
-#v-scan .scan-outline { border-radius: 16px; }
+html.phone #v-scan .scan-outline,
+html.desktop #v-scan .scan-outline,
+#v-scan.on .scan-outline,
+#v-scan .scan-outline {
+  width: auto;
+  max-width: none;
+  height: min(68cqh, calc(78cqw * var(--guide-h) / var(--guide-w)));
+  aspect-ratio: var(--guide-w) / var(--guide-h);
+  border-radius: 16px;
+  box-sizing: border-box;
+}
 #scan-deck,
 html.scan-cam #v-scan.scan-sheet.on #scan-deck {
   background: var(--bg, #06080F);
