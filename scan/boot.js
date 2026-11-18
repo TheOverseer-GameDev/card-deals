@@ -242,6 +242,20 @@ function boot() {
       count += 1;
     }
     ui.thumbs.hidden = count === 0;
+    paintHero();
+  }
+
+  function paintHero() {
+    const host = document.getElementById('scan-hero-art');
+    if (!host) return;
+    host.replaceChildren();
+    const source = slots.front.canvas;
+    if (!source) return;
+    const thumb = document.createElement('canvas');
+    thumb.width = 180;
+    thumb.height = 262;
+    thumb.getContext('2d').drawImage(source, 0, 0, 180, 262);
+    host.append(thumb);
   }
 
   function wire() {
@@ -288,7 +302,18 @@ function boot() {
       }
       section.classList.add('scan-review');
       markTight();
-      ui.psa.scrollIntoView({ block: 'nearest' });
+      const hero = document.getElementById('scan-hero');
+      if (hero) hero.scrollIntoView({ block: 'start' });
+    });
+    ui.again.addEventListener('click', () => {
+      section.classList.remove('scan-review');
+      markTight();
+      openCamera(activeSlot());
+    });
+    ui.retakeMain.addEventListener('click', () => {
+      section.classList.remove('scan-review');
+      setCapture('front');
+      openCamera('front');
     });
     ui.zoom.addEventListener('input', applyView);
     ui.panX.addEventListener('input', applyView);
@@ -1363,7 +1388,7 @@ function boot() {
     }
     ui.identity.append(grid);
     const foil = document.createElement('label');
-    foil.className = 'note';
+    foil.className = 'scan-toggle';
     const foilBox = document.createElement('input');
     foilBox.type = 'checkbox';
     foilBox.id = 'scan-foil-toggle';
@@ -1576,7 +1601,7 @@ function boot() {
     auth.className = 'note';
     auth.textContent = COPY.authenticity;
     ui.psa.append(auth);
-    ui.psa.open = wideResults();
+    ui.psa.open = true;
   }
 
   function renderRetakes() {
@@ -2092,7 +2117,12 @@ function build(section, missingList) {
   historyCsv.id = 'scan-history-csv';
   historyCsv.readOnly = true;
   historyCsv.hidden = true;
-  historyHost.append(historyTitle, historyNote, historyList, historyDelete, historyExport, historyCsv);
+  const historyTools = document.createElement('details');
+  historyTools.id = 'scan-history-tools';
+  const historyToolsSummary = document.createElement('summary');
+  historyToolsSummary.textContent = 'History options';
+  historyTools.append(historyToolsSummary, historyDelete, historyExport, historyCsv);
+  historyHost.append(historyTitle, historyNote, historyList, historyTools);
   const sessionHost = document.createElement('div');
   sessionHost.id = 'scan-session';
   const sessionTitle = document.createElement('h3');
@@ -2101,8 +2131,8 @@ function build(section, missingList) {
   sessionSound.id = 'scan-session-sound';
   sessionSound.type = 'checkbox';
   const sessionSoundLabel = document.createElement('label');
-  sessionSoundLabel.className = 'note';
-  sessionSoundLabel.append(sessionSound, document.createTextNode(' Optional click when a card is confirmed. Off by default. Nothing is uploaded.'));
+  sessionSoundLabel.className = 'scan-toggle';
+  sessionSoundLabel.append(sessionSound, document.createTextNode('Optional click when a card is confirmed. Off by default. Nothing is uploaded.'));
   const sessionList = document.createElement('div');
   sessionList.id = 'scan-session-list';
   sessionHost.append(sessionTitle, sessionSoundLabel, sessionList);
@@ -2233,16 +2263,44 @@ function build(section, missingList) {
     fresh.hidden = false;
     fresh.textContent = health.freshness_note || 'Prices are not current. Stale and failed checks are not buys.';
   }
+  const heroArt = document.createElement('div');
+  heroArt.id = 'scan-hero-art';
+  const heroMain = document.createElement('div');
+  heroMain.className = 'scan-hero-main';
+  const heroKicker = document.createElement('p');
+  heroKicker.className = 'scan-kicker';
+  heroKicker.textContent = 'This scan';
+  heroMain.append(heroKicker, identity, prices, priceLimit, rangeHost, psa, autoCenter, centering);
+  const hero = document.createElement('section');
+  hero.className = 'scan-hero';
+  hero.id = 'scan-hero';
+  hero.append(heroArt, heroMain);
+  const again = button('Scan next card', 'scan-next-card');
+  const retakeMain = button('Retake', 'scan-retake-main', true);
+  const resultActions = document.createElement('div');
+  resultActions.className = 'scan-result-actions';
+  resultActions.append(again, retakeMain);
+  const lookGrid = document.createElement('div');
+  lookGrid.className = 'scan-look-grid';
+  lookGrid.append(edgesHost, defectHost);
+  const identify = document.createElement('section');
+  identify.id = 'scan-identify';
+  identify.className = 'scan-identify';
+  const identifyTitle = document.createElement('h3');
+  identifyTitle.textContent = 'Correct the name';
+  identify.append(
+    identifyTitle, readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
+    summary, labeled('Or search the loaded list', search), results, clearBtn,
+  );
   const panel = document.createElement('div');
   panel.className = 'scan-panel';
   panel.append(
-    fresh,
-    frontNote, autoCenter, frontManual.note, backNote, backAuto, backManual.note, retakes, backQualityBtn, backQuality,
-    controls, suggestNote, suggestBtn, qualityBtn, frontQuality, edgesHost, tiltHost, artHost, defectHost,
-    stainHost, creaseHost, foilHost, markHost, consistencyHost, printHost, rangeHost, worthHost, historyHost, sessionHost,
-    readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
-    summary, labeled('Or search the loaded list', search), results, clearBtn,
-    identity, psa, sold, asks, priceLimit, prices, chartCard, gauges, condition,
+    fresh, hero, resultActions, retakes, lookGrid,
+    tiltHost, artHost, stainHost, creaseHost, foilHost, markHost, consistencyHost, printHost, worthHost,
+    historyHost, sessionHost, identify,
+    frontNote, frontManual.note, backNote, backAuto, backManual.note, backQualityBtn, backQuality,
+    controls, suggestNote, suggestBtn, qualityBtn, frontQuality,
+    sold, asks, chartCard, gauges, condition,
   );
   const layout = document.createElement('div');
   layout.className = 'scan-layout';
@@ -2437,6 +2495,8 @@ function build(section, missingList) {
     frontCam,
     gallery,
     next,
+    again,
+    retakeMain,
     close,
     blocked,
     thumbs,
