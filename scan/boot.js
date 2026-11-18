@@ -170,6 +170,7 @@ function boot() {
   if (ui.tiltHost) ui.tiltHost.addEventListener('tilt-report', () => renderDefects());
   section.addEventListener('scan-official', (event) => rememberOfficial(event.detail));
   wire(ui);
+  setPricePlaceholder();
   clearHarmfulZoom();
   pinNav();
   const followViewport = () => {
@@ -302,17 +303,20 @@ function boot() {
       }
       section.classList.add('scan-review');
       markTight();
-      const hero = document.getElementById('scan-hero');
-      if (hero) hero.scrollIntoView({ block: 'start' });
+      placeCapture();
+      const scroller = section.querySelector('.scan-panel-scroll');
+      if (scroller) scroller.scrollTop = 0;
     });
     ui.again.addEventListener('click', () => {
       section.classList.remove('scan-review');
       markTight();
+      placeCapture();
       openCamera(activeSlot());
     });
     ui.retakeMain.addEventListener('click', () => {
       section.classList.remove('scan-review');
       setCapture('front');
+      placeCapture();
       openCamera('front');
     });
     ui.zoom.addEventListener('input', applyView);
@@ -333,6 +337,7 @@ function boot() {
       applyCropRect();
       runQuality('front');
     });
+    ui.correctName.addEventListener('click', openIdentify);
     ui.readBtn.addEventListener('click', () => readFront());
     ui.cancelBtn.addEventListener('click', () => abort?.abort());
     ui.rematch.addEventListener('click', () => renderMatch(matchText(rows, ui.text.value)));
@@ -346,7 +351,7 @@ function boot() {
     ui.clearBtn.addEventListener('click', () => {
       confirmedKey = null;
       ui.identity.replaceChildren();
-      ui.prices.replaceChildren(text('Confirm a catalog row to see stored prices.'));
+      setPricePlaceholder();
       resetMarket();
     });
     for (const side of ['front', 'back']) {
@@ -996,7 +1001,97 @@ function boot() {
   let lastGrades = null;
   let confirmedName = '';
   let savedToken = '';
+  let liveThumb = null;
   const scanSession = createSession();
+
+  function finishSentence(part) {
+    const text = String(part || '').trim();
+    if (!text) return '';
+    return /[.!?]$/.test(text) ? text : `${text}.`;
+  }
+
+  function recentWhen(at) {
+    const date = new Date(at || Date.now());
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startThen = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const days = Math.round((startToday - startThen) / 86400000);
+    const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    if (days === 0) return `Today ${time}`;
+    if (days === 1) return `Yesterday ${time}`;
+    return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${time}`;
+  }
+
+  function openIdentify() {
+    const sheet = document.getElementById('scan-identify');
+    if (!sheet) return;
+    sheet.hidden = false;
+  }
+
+  function rememberThumb(at) {
+    const source = slots.front.canvas;
+    if (!source) return;
+    const thumb = document.createElement('canvas');
+    thumb.width = 72;
+    thumb.height = 100;
+    thumb.getContext('2d').drawImage(source, 0, 0, 72, 100);
+    liveThumb = { at, thumb };
+  }
+
+  function setPricePlaceholder() {
+    if (!ui.prices) return;
+    ui.prices.replaceChildren();
+    const heading = document.createElement('h3');
+    heading.textContent = 'Stored catalog figures';
+    const cta = document.createElement('button');
+    cta.type = 'button';
+    cta.id = 'scan-confirm-price';
+    cta.className = 'scan-price-cta';
+    cta.textContent = 'Confirm card to see price';
+    cta.addEventListener('click', openIdentify);
+    const note = document.createElement('p');
+    note.className = 'note';
+    note.textContent = 'Confirm a catalog row to see stored prices.';
+    ui.prices.append(heading, cta, note);
+    if (ui.identity && ui.identity.childElementCount === 0) {
+      ui.identity.replaceChildren();
+      const name = document.createElement('h2');
+      name.className = 'scan-hero-name';
+      name.textContent = 'Unnamed card';
+      ui.identity.append(name);
+    }
+  }
+
+  function paintGradeChips(host, headline, confidenceLine) {
+    if (!host) return;
+    let chips = host.querySelector('.scan-chips');
+    if (!chips) {
+      chips = document.createElement('div');
+      chips.className = 'scan-chips';
+      const note = host.querySelector('p');
+      host.insertBefore(chips, note);
+    }
+    chips.replaceChildren();
+    const add = (label, kind) => {
+      const chip = document.createElement('span');
+      chip.className = `scan-chip scan-chip-${kind}`;
+      chip.textContent = label;
+      chips.append(chip);
+    };
+    if (headline === ESTIMATE_UNAVAILABLE) add('Retake needed', 'warn');
+    add(confidenceLine.replace(/\.$/, ''), 'muted');
+    let why = host.querySelector('.scan-why');
+    if (!why) {
+      why = document.createElement('details');
+      why.className = 'scan-why';
+      const summary = document.createElement('summary');
+      summary.textContent = 'Why?';
+      why.append(summary);
+      host.append(why);
+    }
+    const note = host.querySelector('p');
+    if (note && note.parentElement !== why) why.append(note);
+  }
 
   function showCheck(host, text) {
     if (!host) return;
@@ -1071,10 +1166,21 @@ function boot() {
     grid.replaceChildren();
     for (const [key, label] of [['centering', 'Centering'], ['corners', 'Corners'], ['edges', 'Edges'], ['surface', 'Surface']]) {
       const cell = document.createElement('div');
-      cell.className = 'scan-cell';
+      cell.className = 'scan-cell scan-score';
       const score = side[key] && side[key].score;
-      const shown = key === 'centering' && !centeringText ? 'not measured' : (score == null ? 'Unread' : score);
-      cell.textContent = `${label}: ${shown}`;
+      const missing = key === 'centering' && !centeringText;
+      const value = document.createElement('b');
+      value.textContent = missing || score == null ? '—' : String(score);
+      const name = document.createElement('span');
+      name.textContent = label;
+      const bar = document.createElement('i');
+      bar.style.width = missing || score == null ? '0%' : `${Math.max(0, Math.min(10, Number(score))) * 10}%`;
+      cell.append(value, name, bar);
+      if (missing) {
+        const hint = document.createElement('small');
+        hint.textContent = 'Not measured';
+        cell.append(hint);
+      }
       grid.append(cell);
     }
     let headline = centeringText ? range.text : ESTIMATE_UNAVAILABLE;
@@ -1087,7 +1193,11 @@ function boot() {
       });
       if (!estimate.range) headline = ESTIMATE_UNAVAILABLE;
     }
-    showCheck(ui.rangeHost, [headline, range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.', ...rangeNotes].join(' '));
+    const confidenceLine = range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.';
+    const alreadySaid = rangeNotes.some((part) => String(part || '').toLowerCase().includes(confidenceLine.replace(/\.$/, '').toLowerCase()));
+    const explanation = [headline, alreadySaid ? '' : confidenceLine, ...rangeNotes].map(finishSentence).filter(Boolean).join(' ');
+    showCheck(ui.rangeHost, explanation);
+    paintGradeChips(ui.rangeHost, headline, confidenceLine);
     showCheck(ui.worthHost, `Estimate, not a PSA grade. ${worth.text}`);
     const token = `${width}x${height}:${rgba[0]}:${rgba[rgba.length - 1]}:${flat ? 'flat' : 'raw'}`;
     if (token === savedToken) return;
@@ -1095,9 +1205,13 @@ function boot() {
     const summary = [headline]
       .concat(stains.status && stains.status !== 'clear' ? [stains.note] : [])
       .concat(creases.status && creases.status !== 'clear' ? [creases.note] : [])
+      .map(finishSentence)
+      .filter(Boolean)
       .join(' ');
+    const at = Date.now();
+    rememberThumb(at);
     openScanHistory().then((store) => saveScan(store, {
-      at: Date.now(),
+      at,
       version: HISTORY_VERSION,
       name: confirmedName || 'Unnamed card',
       summary,
@@ -1115,10 +1229,39 @@ function boot() {
           : `No scans saved ${where}.`);
       }
       for (const row of rows) {
-        const line = document.createElement('p');
-        const when = new Date(row.at || Date.now()).toLocaleString();
+        const line = document.createElement('article');
         line.className = 'scan-history-row';
-        line.textContent = `${when}. ${row.name || 'Unnamed card'}. ${presentScan(row)}`;
+        const thumb = document.createElement('span');
+        thumb.className = 'scan-history-thumb';
+        const name = row.name || 'Unnamed card';
+        if (liveThumb && row.at === liveThumb.at) {
+          const shot = document.createElement('canvas');
+          shot.width = liveThumb.thumb.width;
+          shot.height = liveThumb.thumb.height;
+          shot.getContext('2d').drawImage(liveThumb.thumb, 0, 0);
+          thumb.append(shot);
+        } else {
+          thumb.textContent = name.replace(/[^A-Za-z0-9 ]/g, '').trim().slice(0, 1).toUpperCase() || '?';
+        }
+        const body = document.createElement('div');
+        const head = document.createElement('div');
+        head.className = 'scan-history-head';
+        const title = document.createElement('strong');
+        title.textContent = name;
+        const chip = document.createElement('span');
+        const summaryText = presentScan(row);
+        const needsRetake = /unavailable|retake/i.test(summaryText);
+        chip.className = needsRetake ? 'scan-chip scan-chip-warn' : 'scan-chip';
+        chip.textContent = needsRetake ? 'Retake needed' : 'Saved';
+        head.append(title, chip);
+        const time = document.createElement('time');
+        time.dateTime = new Date(row.at || Date.now()).toISOString();
+        time.textContent = recentWhen(row.at);
+        const note = document.createElement('p');
+        note.className = 'scan-history-note';
+        note.textContent = summaryText;
+        body.append(head, time, note);
+        line.append(thumb, body);
         ui.historyList.append(line);
       }
     }).catch(() => {
@@ -1294,7 +1437,7 @@ function boot() {
     confirmedName = '';
     lastGrades = null;
     ui.identity.replaceChildren();
-    ui.prices.replaceChildren(text('Confirm a catalog row to see stored prices.'));
+    setPricePlaceholder();
     resetMarket();
     ui.summary.replaceChildren();
     if (result.empty) {
@@ -1387,6 +1530,8 @@ function boot() {
       grid.append(k, v);
     }
     ui.identity.append(grid);
+    const nameSheet = document.getElementById('scan-identify');
+    if (nameSheet) nameSheet.hidden = true;
     const foil = document.createElement('label');
     foil.className = 'scan-toggle';
     const foilBox = document.createElement('input');
@@ -2130,12 +2275,18 @@ function build(section, missingList) {
   const sessionSound = document.createElement('input');
   sessionSound.id = 'scan-session-sound';
   sessionSound.type = 'checkbox';
+  sessionSound.setAttribute('role', 'switch');
   const sessionSoundLabel = document.createElement('label');
-  sessionSoundLabel.className = 'scan-toggle';
-  sessionSoundLabel.append(sessionSound, document.createTextNode('Optional click when a card is confirmed. Off by default. Nothing is uploaded.'));
+  sessionSoundLabel.className = 'scan-switch';
+  const soundText = document.createElement('span');
+  soundText.textContent = 'Sound on confirm';
+  sessionSoundLabel.append(soundText, sessionSound);
+  const soundHint = document.createElement('p');
+  soundHint.className = 'note';
+  soundHint.textContent = 'Off by default. Nothing is uploaded.';
   const sessionList = document.createElement('div');
   sessionList.id = 'scan-session-list';
-  sessionHost.append(sessionTitle, sessionSoundLabel, sessionList);
+  sessionHost.append(sessionTitle, sessionSoundLabel, soundHint, sessionList);
   const backQualityBtn = button('Check back photo', 'scan-back-quality-btn', true);
   const backQuality = document.createElement('div');
   backQuality.id = 'scan-back-quality';
@@ -2270,7 +2421,8 @@ function build(section, missingList) {
   const heroKicker = document.createElement('p');
   heroKicker.className = 'scan-kicker';
   heroKicker.textContent = 'This scan';
-  heroMain.append(heroKicker, identity, prices, priceLimit, rangeHost, psa, autoCenter, centering);
+  const correctName = button('Correct the name', 'scan-correct-name', true);
+  heroMain.append(heroKicker, identity, correctName, priceLimit, prices, rangeHost, psa, autoCenter, centering);
   const hero = document.createElement('section');
   hero.className = 'scan-hero';
   hero.id = 'scan-hero';
@@ -2286,22 +2438,31 @@ function build(section, missingList) {
   const identify = document.createElement('section');
   identify.id = 'scan-identify';
   identify.className = 'scan-identify';
+  identify.hidden = true;
+  const identifyClose = button('Close', 'scan-identify-close', true);
+  identifyClose.addEventListener('click', () => { identify.hidden = true; });
   const identifyTitle = document.createElement('h3');
   identifyTitle.textContent = 'Correct the name';
-  identify.append(
-    identifyTitle, readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
+  const identifyPanel = document.createElement('div');
+  identifyPanel.className = 'scan-sheet-panel';
+  identifyPanel.append(
+    identifyClose, identifyTitle, readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
   );
-  const panel = document.createElement('div');
-  panel.className = 'scan-panel';
-  panel.append(
-    fresh, hero, resultActions, retakes, lookGrid,
+  identify.append(identifyPanel);
+  const panelScroll = document.createElement('div');
+  panelScroll.className = 'scan-panel-scroll';
+  panelScroll.append(
+    fresh, hero, retakes, lookGrid,
     tiltHost, artHost, stainHost, creaseHost, foilHost, markHost, consistencyHost, printHost, worthHost,
-    historyHost, sessionHost, identify,
+    historyHost, sessionHost,
     frontNote, frontManual.note, backNote, backAuto, backManual.note, backQualityBtn, backQuality,
     controls, suggestNote, suggestBtn, qualityBtn, frontQuality,
     sold, asks, chartCard, gauges, condition,
   );
+  const panel = document.createElement('div');
+  panel.className = 'scan-panel';
+  panel.append(panelScroll, resultActions, identify);
   const layout = document.createElement('div');
   layout.className = 'scan-layout';
   layout.append(capture, panel);
@@ -2497,6 +2658,7 @@ function build(section, missingList) {
     next,
     again,
     retakeMain,
+    correctName,
     close,
     blocked,
     thumbs,

@@ -63,20 +63,29 @@ test('the review hero leads, and scan next returns to the camera', async () => {
       const hero = document.getElementById('scan-hero');
       const history = document.getElementById('scan-history');
       const tools = document.getElementById('scan-history-tools');
-      const toggle = document.querySelector('#scan-session .scan-toggle');
+      const toggle = document.querySelector('#scan-session .scan-switch');
       const box = document.getElementById('scan-session-sound');
+      const next = document.getElementById('scan-next-card');
+      const retake = document.getElementById('scan-retake-main');
+      const tabs = document.getElementById('scan-tabs');
+      const nextBox = next.getBoundingClientRect();
+      const retakeBox = retake.getBoundingClientRect();
+      const tabsBox = tabs.getBoundingClientRect();
       return {
         heroFirst: !!(hero && history && hero.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING),
-        hasArt: !!hero.querySelector('#scan-hero-art'),
+        hasArt: !!hero.querySelector('#scan-hero-art canvas'),
         hasGrade: !!hero.querySelector('#scan-psa') && !!hero.querySelector('#scan-grade-range'),
         hasCenter: !!hero.querySelector('#scan-centering') && !!hero.querySelector('#scan-auto-center'),
         hasPrice: !!hero.querySelector('#scan-prices'),
-        next: document.getElementById('scan-next-card')?.textContent || '',
-        retake: document.getElementById('scan-retake-main')?.textContent || '',
+        next: next?.textContent || '',
+        retake: retake?.textContent || '',
         deleteInside: !!(tools && tools.contains(document.getElementById('scan-history-delete'))),
         toggleText: toggle ? toggle.textContent : '',
         boxInToggle: !!(toggle && box && toggle.contains(box)),
+        switchRole: box?.getAttribute('role') || '',
         identifyHasSearch: !!document.querySelector('#scan-identify #scan-search'),
+        identifyHidden: document.getElementById('scan-identify').hidden,
+        actionsInView: nextBox.top >= 0 && nextBox.bottom <= window.innerHeight && retakeBox.bottom <= window.innerHeight && nextBox.bottom <= tabsBox.top + 1,
       };
     });
     assert.equal(layout.heroFirst, true);
@@ -87,9 +96,12 @@ test('the review hero leads, and scan next returns to the camera', async () => {
     assert.equal(layout.next, 'Scan next card');
     assert.equal(layout.retake, 'Retake');
     assert.equal(layout.deleteInside, true);
-    assert.match(layout.toggleText, /Optional click when a card is confirmed/);
+    assert.match(layout.toggleText, /Sound on confirm/);
     assert.equal(layout.boxInToggle, true);
+    assert.equal(layout.switchRole, 'switch');
     assert.equal(layout.identifyHasSearch, true);
+    assert.equal(layout.identifyHidden, true);
+    assert.equal(layout.actionsInView, true);
     await page.locator('#scan-next-card').click();
     await page.waitForFunction(() => !document.getElementById('v-scan').classList.contains('scan-review'));
   } finally {
