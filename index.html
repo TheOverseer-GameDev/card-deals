@@ -1,16 +1,17 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="theme-color" content="#0b0f1a"><script>(function(){var d=document.documentElement,n=navigator,ua=n.userAgent||'',tp=n.maxTouchPoints||0,mm=function(q){return matchMedia(q).matches},sw=Math.min(screen.width,screen.height),
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0"><meta name="theme-color" content="#06080F"><script>(function(){try{var m=localStorage.getItem('cd-theme')||'dark';var light=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.dataset.theme=light?'light':'dark';document.documentElement.dataset.themeMode=m;}catch(e){}})()</script><script>(function(){var d=document.documentElement,n=navigator,ua=n.userAgent||'',tp=n.maxTouchPoints||0,mm=function(q){return matchMedia(q).matches},sw=Math.min(screen.width,screen.height),
 f=localStorage.getItem('view'),ph=(n.userAgentData&&n.userAgentData.mobile)||/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||(tp>0&&sw<900&&mm('(pointer:coarse)'))||(devicePixelRatio>=2&&tp>0&&!mm('(any-pointer:fine)'));
 if(f)ph=f=='phone';d.classList.add(ph?'phone':'desktop');
 if(ph){var v=document.querySelector('meta[name=viewport]');v&&v.setAttribute('content','width=device-width,initial-scale=1,viewport-fit=cover');if(innerWidth>screen.width*1.3)d.style.zoom=innerWidth/screen.width}})()</script><link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><title>Card Deals</title>
 <style>
-:root{--bg:#0b0f1a;--card:#141a2b;--line:#222b44;--tx:#e8ecf6;--mu:#8b95b0;--gold:#d4af37;--up:#3ddc97;--dn:#ff6b6b}
+:root{--bg:#06080F;--card:rgba(255,255,255,.055);--line:rgba(255,255,255,.12);--tx:#F4F6FF;--mu:#C5CAE2;--gold:#C4B5FF;--accent:#7C5CFF;--accent-ink:#C4B5FF;--accent-strong:#4C35C8;--up:#3EE0A6;--dn:#FF6B86;--amber:#FFC15A;--ygo:#7C5CFF;--mtg:#4DA3FF}
+:root[data-theme="light"]{--bg:#F3F4F9;--card:#FFFFFF;--line:rgba(16,20,45,.12);--tx:#0E1124;--mu:#3E4460;--gold:#4C35C8;--accent:#4C35C8;--accent-ink:#4C35C8;--accent-strong:#4C35C8;--up:#0B7A56;--dn:#C42748;--amber:#8A5A00}
 button{font-family:inherit}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
 header{position:sticky;top:0;z-index:5;padding:14px 18px 10px;background:linear-gradient(var(--bg) 70%,transparent)}
 h1{margin:0;font-size:22px;letter-spacing:.3px}h1 b{color:var(--gold)}.sub{color:var(--mu);font-size:12.5px;margin-top:2px}
 main{padding:0 14px}.view{display:none;animation:f .25s ease}.view.on{display:block}@keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
-.banner{background:#3a2a0a;color:#ffd77a;border:1px solid #6b4d12;border-radius:12px;padding:10px 12px;font-size:13.5px;margin:6px 0 12px}
+.banner{background:rgba(255,193,90,.14);color:var(--tx);border:1px solid rgba(255,193,90,.35);border-radius:14px;padding:8px 12px;font-size:13px;margin:6px 0 12px}
 .c{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 12px;transition:transform .15s}.c:active{transform:scale(.99)}
 .top{display:flex;gap:12px;align-items:flex-start}.rk{flex:0 0 34px;height:34px;border-radius:10px;background:#1f2740;color:var(--gold);display:grid;place-items:center;font-weight:700}
 .nm{font-weight:600;font-size:16.5px}.meta{color:var(--mu);font-size:13px;margin-top:3px}.sc{margin-left:auto;text-align:right}.sc b{font-size:20px;color:var(--gold)}.sc small{display:block;color:var(--mu);font-size:11px}
@@ -25,7 +26,7 @@ nav button{flex:1;background:none;border:0;color:var(--mu);padding:10px 0 9px;fo
 nav button span{font-size:21px}nav button.on{color:var(--gold)}.empty{color:var(--mu);text-align:center;padding:40px 10px}
 
 .mut{opacity:.55}.bd{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:#1f2740;color:var(--mu);margin:6px 4px 0 0}.bd.ok{background:#163a2b;color:var(--up)}.bd.bad{background:#3a1616;color:var(--dn)}
-.sm{font-size:11px;color:var(--mu);font-weight:400}#panel{display:none}.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}.chip{border:1px solid var(--line);background:#1a2136;color:var(--mu);border-radius:20px;padding:6px 12px;font-size:12.5px}.chip.on{border-color:var(--gold);color:var(--gold);background:#2a2410}
+.sm{font-size:11px;color:var(--mu);font-weight:400}#panel{display:none}.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}.chip{border:1px solid var(--line);background:#161B2E;color:var(--mu);border-radius:20px;padding:6px 12px;font-size:12.5px}.chip.on{border-color:transparent;color:#1A1640;background:#fff}
 @media(min-width:900px){html.desktop body{padding:0 0 0 210px}
 html.desktop nav{top:0;bottom:0;right:auto;width:210px;flex-direction:column;justify-content:flex-start;padding:90px 10px 0;border-top:0;border-right:1px solid var(--line)}
 html.desktop nav button{flex:0;flex-direction:row;font-size:15px;gap:12px;padding:12px 14px;border-radius:12px;justify-content:flex-start}html.desktop nav button.on{background:#1a2136}
@@ -35,21 +36,35 @@ html.desktop .view>.chips,html.desktop .view>.banner,html.desktop .view>.note,ht
 html.desktop .c .det{display:none}html.desktop #v-trends{grid-template-columns:1fr 1fr}
 html.desktop #panel{display:block;position:fixed;right:0;top:0;bottom:0;width:440px;overflow:auto;padding:22px;border-left:1px solid var(--line);background:#0e1321}
 html.desktop #panel .det{max-height:none}}
-#vt{display:block;width:100%;margin:0 0 10px;padding:11px 14px;border-radius:12px;background:var(--gold);color:#111;font-weight:700;font-size:15px;border:0}
+#vt{display:inline-flex;width:auto;margin:0 8px 8px 0;padding:7px 12px;border-radius:999px;background:#161B2E;color:var(--tx);border:1px solid var(--line);font-weight:650;font-size:13px}
 #health{font-size:12px;margin-top:4px;cursor:pointer;opacity:.9}.hb.ok{color:#3ddc84}.hb.warn{color:#ffb020}.hb.stop{color:#ff5a5a}.hp{display:none;color:#c9d1e0;margin-top:3px}.hb.open .hp{display:block}
 .gt{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#111729;border:1px solid var(--line);border-radius:14px;padding:4px;margin:6px 0 10px}
 .gt button,.st3 button{border:0;background:none;color:var(--mu);font-weight:700;font-size:16px;padding:10px;border-radius:10px;transition:background .2s,color .2s}
-.gt button.on{background:var(--gold);color:#111}.st3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 10px}.st3 button{font-size:14px;background:#141a2b;border:1px solid var(--line)}.st3 button.on{border-color:var(--gold);color:var(--gold)}
+.gt button.on{background:#fff;color:#1A1640}.st3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 10px}.st3 button{font-size:14px;background:transparent;border:0}.st3 button.on{background:rgba(124,92,255,.18);color:var(--accent-ink);border-color:transparent}
 .tools{display:flex;gap:8px;margin:0 0 8px}.tools input,.tools select{flex:1;min-width:0;background:#141a2b;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:9px 10px;font:inherit;font-size:14px}.tools select{flex:0 0 120px}
-.why{font-size:13px;color:#c9d1e0;margin-top:8px}.rl{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;margin-left:6px}.rl.Low{background:#163a2b;color:var(--up)}.rl.Medium{background:#3a2f12;color:#ffc65a}.rl.High{background:#3a1616;color:var(--dn)}
+.why{font-size:13px;color:var(--mu);margin-top:8px}.rl{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;margin-left:6px}.rl.Low{background:rgba(62,224,166,.16);color:var(--up)}.rl.Medium{background:rgba(77,163,255,.16);color:#9EC5FF}.rl.High{background:rgba(255,107,134,.16);color:var(--dn)}
 .mv{font-size:11px;display:block;text-align:center;margin-top:2px}.spark{display:block;width:100%;height:34px;margin-top:8px}
 .vt2{display:block;font-size:10.5px;font-weight:400;opacity:.75}.cnt{color:var(--mu);font-size:12.5px;margin:2px 0 10px}
 .rg{display:flex;gap:4px;flex-wrap:wrap;margin-top:12px}.rg button{background:#141a2b;border:1px solid var(--line);color:var(--mu);border-radius:8px;padding:5px 9px;font-size:12px}.rg button.on{color:var(--gold);border-color:var(--gold)}
 header{position:static}.top>div:first-child{flex:0 0 34px}.btn{height:auto;min-height:46px;padding:6px 8px;text-align:center;line-height:1.2}html.desktop nav{padding-top:130px!important}
 html.desktop #lists .view{display:none}html.desktop #lists .view.on{display:grid}
-</style></head><body>
-<header><button id="vt"></button><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div><div id="health"></div></header>
-<main><div id="lists"><div class="gt"><button data-g="ygo" class="on">Yugioh</button><button data-g="mtg">Magic</button></div>
+html.phone #v-ygo.on,html.phone #v-mtg.on{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}
+html.phone #v-ygo.on>.c,html.phone #v-mtg.on>.c{flex:0 0 88%;scroll-snap-align:start}
+.c-art{height:148px;border-radius:18px;margin:-4px -4px 12px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;padding:14px;background:linear-gradient(160deg,rgba(124,92,255,.55),rgba(17,22,38,.2) 70%);color:#fff}
+.c-art b{font-size:34px;letter-spacing:-.04em;line-height:1}
+.c-art small{font-size:12px;opacity:.85}
+#lists[data-game="mtg"] .c-art{background:linear-gradient(160deg,rgba(77,163,255,.5),rgba(17,22,38,.2) 70%)}
+#lists[data-game="mtg"] .hero{background:radial-gradient(120% 90% at 0% 0%,rgba(77,163,255,.75),transparent 55%),radial-gradient(80% 80% at 100% 20%,rgba(47,184,255,.45),transparent 60%),#12203A}
+:root[data-theme="light"] .chip.on{background:#4C35C8;color:#fff}
+:root[data-theme="light"] .gt button.on{background:linear-gradient(135deg,#5B45E0,#3D8BFF);color:#fff}
+:root[data-theme="light"] .rl.Medium{color:#1E4F93}
+:root[data-theme="light"] #vt{background:#fff}
+:root[data-theme="light"] .chip{background:#fff;color:#3E4460}
+.rq{width:100%;border:1px solid var(--accent-ink);color:var(--accent-ink)}
+.accent{color:var(--accent-ink)}
+</style><link rel="stylesheet" href="styles.css"></head><body>
+<header><button id="vt"></button><button id="theme" type="button">Dark</button><h1>Card <b>Deals</b></h1><div class="sub" id="sub"></div><div id="health"></div></header>
+<main><div id="lists"><div class="hero" id="hero"><div class="hero-label" id="hero-label">Top buys</div><div class="hero-amount num" id="hero-amt">–</div><div class="hero-sub" id="hero-sub"></div></div><div class="gt"><button data-g="ygo" class="on">Yugioh</button><button data-g="mtg">Magic</button></div>
 <div class="st3"><button data-l="top" class="on">Top buys</button><button data-l="risky">Risky buys</button><button data-l="safe">Safe buys</button></div>
 <div class="tools"><input id="q" type="search" placeholder="Search cards"><select id="so"><option value="rank">Sort: rank</option><option value="price">Price ↑</option><option value="ret">Return ↓</option></select></div>
 <div class="chips" id="chips"></div><div class="cnt" id="cnt"></div>
@@ -57,7 +72,7 @@ html.desktop #lists .view{display:none}html.desktop #lists .view.on{display:grid
 <section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
 <aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside>
 <nav><button data-v="lists" class="on"><span>🏆</span>Lists</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="chart.min.js?1793991595" defer></script><script src="data.js?1793991595"></script>
+<script src="chart.min.js?1794120701" defer></script><script src="data.js?1794120701"></script>
 <script>
 const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';'),
 m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
@@ -79,33 +94,39 @@ function liveBuy(l){if(!l||!l.url||l.verified!==true||l.vetted===false||l.buyabl
 const cost=c=>{const o=offer(c);return o&&o.cad_total!=null?+o.cad_total:(c.entry_cad??c.cad_total??null)};
 const ret=c=>c.exp_return_pct??c.ret_pct;
 function spark(a){if(!a||a.length<2)return'';const mn=Math.min(...a),mx=Math.max(...a),w=300,h=34,d=a.map((v,i)=>`${(i/(a.length-1)*w).toFixed(1)},${(h-2-(mx>mn?(v-mn)/(mx-mn):.5)*(h-4)).toFixed(1)}`).join(' ');
- return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="${a[a.length-1]>=a[0]?'#3ddc97':'#ff6b6b'}" stroke-width="2" points="${d}"/></svg>`}
+ return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="${a[a.length-1]>=a[0]?'#3EE0A6':'#FF6B86'}" stroke-width="2" points="${d}"/></svg>`}
 function itemUrl(l){return !!(l&&l.url&&/\/itm\/(?:[^/]+\/)?\d{9,15}(?:\?|$)/.test(l.url)&&!/\/sch\/|_nkw=/.test(l.url))}
 function btn(l,lab,cls){const stamp=l&&l.verified_at?`<span class="vt2">last checked ${ago(l.verified_at)||'–'}</span>`:'';
  if(!itemUrl(l)||!liveBuy(l))return`<a class="btn g">no verified listing${stamp}</a>`;
  return `<a class="btn ${cls}" style="flex-direction:column;gap:0" href="${e(l.url)}" target=_blank rel=noopener>${lab}${l.site?' · '+e(l.site):''} ${l.cad_total!=null?C(l.cad_total):m(l.price)} ↗${stamp}</a>`}
-function card(k,x){const c=D[k].cards[x.i],r=ret(c),pr=c.exp_profit_cad??c.ev_net,mv=x.mv==='new'?'<span class="mv" style="color:var(--gold)">new</span>':x.mv>0?`<span class="mv up">▲${x.mv}</span>`:x.mv<0?`<span class="mv dn">▼${-x.mv}</span>`:'<span class="mv" style="color:var(--mu)">–</span>';
- return `<div class="c" data-k="${k}" data-i="${x.i}"><div class="top"><div><div class="rk">${x.rank}</div>${mv}</div><div style="flex:1;min-width:0"><div class="nm">${e(c.name)}<span class="rl ${x.risk_level}">${x.risk_level} risk</span>${c.rl?'<span class="tag">Reserved List</span>':''}</div>
- <div class="why">${e(x.why)}</div></div><div class="sc"><b>${r!=null?p(r):'–'}</b><small>${pr!=null?(pr>=0?'+':'−')+'C$'+Math.abs(Math.round(pr))+' after fees':'exp. return'}</small></div></div>
+function card(k,x){const c=D[k].cards[x.i],r=ret(c),pr=c.exp_profit_cad??c.ev_net,mv=x.mv==='new'?'<span class="mv accent">new</span>':x.mv>0?`<span class="mv up">▲${x.mv}</span>`:x.mv<0?`<span class="mv dn">▼${-x.mv}</span>`:'<span class="mv">–</span>';
+ const initials=(c.name||'?').replace(/[^A-Za-z0-9 ]/g,'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
+ const code=(c.name.match(/[A-Z0-9]{2,}-[A-Z0-9-]+/)||[''])[0];
+ return `<div class="c" data-k="${k}" data-i="${x.i}"><div class="c-art" aria-hidden="true"><b>${e(initials)}</b><small>${e(code)}</small></div><div class="top"><div><div class="rk">${x.rank}</div>${mv}</div><div style="flex:1;min-width:0"><div class="nm">${e(c.name)}<span class="rl ${x.risk_level}">${x.risk_level} risk</span>${c.rl?'<span class="tag">Reserved List</span>':''}</div>
+ <div class="why">${e(x.why)}</div></div><div class="sc"><b class="num">${r!=null?p(r):'–'}</b><small>${pr!=null?(pr>=0?'+':'−')+'C$'+Math.abs(Math.round(pr))+' after fees':'exp. return'}</small></div></div>
  ${spark(c.spark)}<div class="row"><div class="st"><small>Raw</small><b>${guideCad(c.raw)}</b></div><div class="st"><small>PSA 9</small><b>${guideCad(c.p9)}</b></div><div class="st"><small>PSA 10</small><b>${guideCad(c.p10)}</b></div></div>
  <div class="btns">${btn(c.lr,'Raw','')}${btn(c.lg,'PSA 10','g')}</div>
- <button class="btn g rq" style="width:100%;border:1px solid var(--gold);color:var(--gold);font-size:15px" data-k="${k}" data-i="${x.i}">⭐ Request purchase</button>
+ <button class="btn g rq" data-k="${k}" data-i="${x.i}">Request purchase</button>
  <div class="det"><div class="row"><div class="st"><small>3 mo</small><b>${p(c.t3)}</b></div><div class="st"><small>12 mo</small><b>${p(c.t12)}</b></div><div class="st"><small>Cost all-in</small><b>${C(cost(c))}</b></div></div>
- <div class="rg"></div><canvas height="200"></canvas><div class="note h0"></div><div class="note">Sold-price history from PriceCharting, real data only. Buy links are re-checked to match the exact card and price.${c.url?` <a style="color:var(--gold)" href="${e(c.url)}" target="_blank">Sold data ↗</a>`:''}</div></div></div>`}
+ <div class="rg"></div><canvas height="200"></canvas><div class="note h0"></div><div class="note">Sold-price history from PriceCharting, real data only. Buy links are re-checked to match the exact card and price.${c.url?` <a class="accent" href="${e(c.url)}" target="_blank">Sold data ↗</a>`:''}</div></div></div>`}
 function render(){const k=G,L=(D[k].lists||{})[LS]||[];let xs=L.filter(x=>{const c=D[k].cards[x.i];if(Q&&!c.name.toLowerCase().includes(Q))return false;if(BF!=='all'){const v=cost(c);return v!=null&&v<=+BF}return true});
  if(SO=='price')xs=[...xs].sort((a,b)=>(cost(D[k].cards[a.i])??1e12)-(cost(D[k].cards[b.i])??1e12));if(SO=='ret')xs=[...xs].sort((a,b)=>(ret(D[k].cards[b.i])??-1e9)-(ret(D[k].cards[a.i])??-1e9));
  $('#chips').innerHTML=['all',...BUD].map(t=>`<button class="chip ${BF==String(t)?'on':''}" data-b="${t}">${t==='all'?'All':'≤ C$'+Number(t).toLocaleString()}</button>`).join('');
  $('#cnt').textContent=L.length<50?`${L.length} of 50 qualify, more being researched. Only cards with a verified exact-match listing can rank.`:'50 of 50';
+ const heroAmt=$('#hero-amt'),heroLabel=$('#hero-label'),heroSub=$('#hero-sub');
+ if(heroAmt){const top=xs[0];if(heroLabel)heroLabel.textContent=`${k==='ygo'?'Yu-Gi-Oh':'Magic'} · ${LN[LS]}`;if(!top){heroAmt.textContent='–';if(heroSub)heroSub.textContent='No card qualifies yet.';}else{const hc=D[k].cards[top.i],hr=ret(hc);heroAmt.textContent=hr==null?'–':`${hr>=0?'+':''}${Math.round(hr)}%`;if(heroSub)heroSub.textContent=`${hc.name} · raw ${guideCad(hc.raw)}`;}}
+ const board=$('#lists'); if(board) board.dataset.game=k;
  ['ygo','mtg'].forEach(g=>{$('#v-'+g).classList.toggle('on',g==k);$('#v-'+g).innerHTML=g==k?(xs.length?xs.map(x=>card(k,x)).join(''):`<div class="empty">${L.length?'No matches.':'No cards qualify for '+LN[LS]+' yet.'}</div>`):''})}
 const RG=[['1M',31],['6M',183],['1Y',366],['5Y',1827],['10Y',3653],['All',0]],HC={};
 async function chart(box,c,k){const cv=box.querySelector('canvas');if(!cv||cv.dataset.done||!window.Chart)return;cv.dataset.done=1;
  let H=HC[c.id];if(!H){try{H=HC[c.id]=await (await fetch(`h/${k}/${c.id}.json?`+VER)).json()}catch(_){H={}}}
- const col={raw:'#7aa2ff',p9:'#3ddc97',p10:'#d4af37'},nm={raw:'Raw',p9:'PSA 9',p10:'PSA 10'},keys=Object.keys(col).filter(s=>H[s]&&H[s].length);
+ const light=document.documentElement.dataset.theme==='light',tick=light?'#3E4460':'#C5CAE2',grid=light?'rgba(16,20,45,.08)':'rgba(255,255,255,.08)',ink=light?'#0E1124':'#F4F6FF';
+ const col={raw:'#4DA3FF',p9:'#3EE0A6',p10:'#C4B5FF'},nm={raw:'Raw',p9:'PSA 9',p10:'PSA 10'},keys=Object.keys(col).filter(s=>H[s]&&H[s].length);
  if(!keys.length){cv.replaceWith(Object.assign(document.createElement('div'),{className:'note',textContent:'No price history yet.'}));return}
  const t0=Math.min(...keys.map(s=>H[s][0][0]));
  const money=FX>0?`CAD at ${FX} (${FXD||'Frankfurter'}).`:'Prices USD. CAD unavailable.';
  box.querySelector('.h0').textContent='Earliest real data: '+new Date(t0).toLocaleDateString('en-CA',{year:'numeric',month:'short'})+' (nothing before this is shown or estimated). '+money+' Stored points only. Missing months are not filled.';
- let lg=true,rg=0;const ch=new Chart(cv,{type:'line',data:{datasets:[]},options:{animation:{duration:250},parsing:false,spanGaps:false,scales:{x:{type:'linear',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>new Date(v).toLocaleDateString('en-CA',{month:'short',year:'2-digit'})},grid:{color:'#1a2136'}},y:{type:'logarithmic',ticks:{color:'#8b95b0',maxTicksLimit:5,callback:v=>((FX>0)?'C$':'$')+v},grid:{color:'#1a2136'}}},plugins:{legend:{labels:{color:'#e8ecf6',boxWidth:10}}}}});
+ let lg=true,rg=0;const ch=new Chart(cv,{type:'line',data:{datasets:[]},options:{animation:{duration:250},parsing:false,spanGaps:false,scales:{x:{type:'linear',ticks:{color:tick,maxTicksLimit:5,callback:v=>new Date(v).toLocaleDateString('en-CA',{month:'short',year:'2-digit'})},grid:{color:grid}},y:{type:'logarithmic',ticks:{color:tick,maxTicksLimit:5,callback:v=>((FX>0)?'C$':'$')+v},grid:{color:grid}}},plugins:{legend:{labels:{color:ink,boxWidth:10}}}}});
  function upd(){const end=Math.max(...keys.map(s=>H[s][H[s].length-1][0])),from=rg?end-rg*864e5:0;ch.data.datasets=keys.map(s=>({label:nm[s],data:H[s].filter(q=>q[0]>=from).map(([x,y])=>({x,y:y>0?(FX>0?y*FX:y):null})),borderColor:col[s],pointRadius:rg&&rg<200?2:0,tension:0,spanGaps:false,borderWidth:2}));ch.options.scales.y.type=lg?'logarithmic':'linear';ch.options.scales.y.ticks.callback=v=>((FX>0)?'C$':'$')+v;ch.update();
   box.querySelector('.rg').innerHTML=RG.map(([l,d])=>`<button data-rg="${d}" class="${d==rg?'on':''}">${l}</button>`).join('')+`<button data-lg class="${lg?'on':''}">Log</button>`}
  box.querySelector('.rg').onclick=ev=>{const b=ev.target.closest('button');if(!b)return;ev.stopPropagation();if(b.dataset.lg!==undefined)lg=!lg;else rg=+b.dataset.rg;upd()};upd()}
@@ -117,7 +138,7 @@ $('#v-coll').innerHTML=(D.coll.length?D.coll.map(r=>`<div class="c"><div class="
 $('#v-alerts').innerHTML=D.alerts.length?D.alerts.map(a=>`<a class="c" style="display:block;color:inherit;text-decoration:none" href="${e(a.u)}" target="_blank"><div class="meta">${e(a.g)} · ${e(a.t)}</div><div class="nm">${e(a.name)}</div><div class="meta">${e(a.msg)}</div>${targetBox(a.name)}</a>`).join(''):'<div class="empty">No alerts right now. A CAD target can still be saved from Mine or Wishlist.</div>';
 $('#v-trends').innerHTML='<div class="c"><div class="nm">12-month raw change, ranked cards</div><canvas id="tg" height="300"></canvas></div>';
 let trDone;function trends(){if(trDone||!window.Chart)return;trDone=1;const seen=new Set(),cs=[];['ygo','mtg'].forEach(g=>Object.values(D[g].lists||{}).flat().forEach(x=>{const c=D[g].cards[x.i];if(!seen.has(c.id)){seen.add(c.id);cs.push(c)}}));
- $('#tg').height=cs.length*20+40;new Chart($('#tg'),{type:'bar',data:{labels:cs.map(c=>c.name.slice(0,26)),datasets:[{data:cs.map(c=>c.t12||0),backgroundColor:cs.map(c=>(c.t12||0)>=0?'#3ddc97':'#ff6b6b')}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b95b0'}},y:{ticks:{color:'#e8ecf6',font:{size:10}}}}}})}
+ $('#tg').height=cs.length*20+40;const light=document.documentElement.dataset.theme==='light';new Chart($('#tg'),{type:'bar',data:{labels:cs.map(c=>c.name.slice(0,26)),datasets:[{data:cs.map(c=>c.t12||0),backgroundColor:cs.map(c=>(c.t12||0)>=0?'#3EE0A6':'#FF6B86')}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:light?'#3E4460':'#C5CAE2'}},y:{ticks:{color:light?'#0E1124':'#F4F6FF',font:{size:10}}}}}})}
 $('#q').oninput=ev=>{Q=ev.target.value.trim().toLowerCase();render()};$('#so').onchange=ev=>{SO=ev.target.value;render()};
 document.addEventListener('click',ev=>{const t=ev.target;
  const gb=t.closest('.gt button');if(gb){G=gb.dataset.g;document.querySelectorAll('.gt button').forEach(b=>b.classList.toggle('on',b==gb));render();return}
@@ -128,19 +149,23 @@ document.addEventListener('click',ev=>{const t=ev.target;
  if(t.closest('a')||t.closest('.rg'))return;const c=t.closest('.c[data-k]');if(!c)return;const cd=D[c.dataset.k].cards[c.dataset.i];
  if(desk()){document.querySelectorAll('.c.sel').forEach(z=>z.classList.remove('sel'));c.classList.add('sel');const P=$('#panel');P.innerHTML=c.innerHTML;P.querySelector('.det').style.display='block';chart(P,cd,c.dataset.k);return}
  c.classList.toggle('open');chart(c,cd,c.dataset.k)});
-const PH=document.documentElement.classList.contains('phone');$('#vt').textContent=PH?'🖥 PC view':'📱 Phone view';$('#vt').onclick=()=>{localStorage.setItem('view',PH?'desktop':'phone');location.reload()};
+const PH=document.documentElement.classList.contains('phone');$('#vt').textContent=PH?'PC view':'Phone view';$('#vt').onclick=()=>{localStorage.setItem('view',PH?'desktop':'phone');location.reload()};
+function applyTheme(mode){localStorage.setItem('cd-theme',mode);const light=mode==='light'||(mode==='system'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.dataset.theme=light?'light':'dark';document.documentElement.dataset.themeMode=mode;const meta=document.querySelector('meta[name=theme-color]');if(meta)meta.content=light?'#F3F4F9':'#06080F';const b=$('#theme');if(b)b.textContent=mode==='system'?'Auto':mode==='light'?'Light':'Dark';}
+applyTheme(localStorage.getItem('cd-theme')||'dark');
+$('#theme').onclick=()=>{const order=['dark','light','system'];const cur=localStorage.getItem('cd-theme')||'dark';applyTheme(order[(order.indexOf(cur)+1)%3]);};
+matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{if((localStorage.getItem('cd-theme')||'')==='system')applyTheme('system');});
 const desk=()=>!PH&&matchMedia('(min-width:900px)').matches;
 function loadWish(){try{const v=JSON.parse(localStorage.getItem('wish')||'[]');return Array.isArray(v)?v.filter(w=>w&&typeof w==='object'):[]}catch{return []}}
 let W=loadWish();
-function sv(){localStorage.setItem('wish',JSON.stringify(W));$('#v-wish').innerHTML=(W.length?W.map((w,i)=>`<div class="c"><div class="meta">${e(w.d)}</div><div class="nm">${e(w.n)}</div><div class="meta">${e(w.p)}</div>${targetBox(w.n)}<div class="btns"><button class="btn" data-sh="${i}" style="border:0">Share / copy</button><button class="btn g" data-del="${i}" style="border:0">Remove</button></div></div>`).join(''):'<div class="empty">Tap ⭐ Request purchase on any card to save it here.</div>')+'<div class="note">Saved only on this phone. Sharing just sends text; nothing is bought.</div>'}
+function sv(){localStorage.setItem('wish',JSON.stringify(W));$('#v-wish').innerHTML=(W.length?W.map((w,i)=>`<div class="c"><div class="meta">${e(w.d)}</div><div class="nm">${e(w.n)}</div><div class="meta">${e(w.p)}</div>${targetBox(w.n)}<div class="btns"><button class="btn" data-sh="${i}" style="border:0">Share / copy</button><button class="btn g" data-del="${i}" style="border:0">Remove</button></div></div>`).join(''):'<div class="empty">Tap Request purchase on any card to save it here.</div>')+'<div class="note">Saved only on this phone. Sharing just sends text; nothing is bought.</div>'}
 document.addEventListener('input',ev=>{const t=ev.target.closest('[data-target]');if(!t)return;TARGETS[t.dataset.target]=t.value;saveTargets()});
 document.addEventListener('click',ev=>{if(ev.target.id!=='export-local')return;const cell=v=>{let t=v==null?'':String(v).normalize('NFKC');t=t.replace(/\p{Cf}/gu,'');t=t.replace(/^(?:\p{Z}|\p{Cc})+/u,'');if(/^[=\+\-@\t\r]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"'};const lines=['list,name,detail,target'];(D.coll||[]).forEach(r=>lines.push(['Mine',r.name,r.set_code,TARGETS[r.name]||''].map(cell).join(',')));W.forEach(w=>lines.push(['Wishlist',w.n,w.p,TARGETS[w.n]||''].map(cell).join(',')));const box=$('#local-csv');box.hidden=false;box.value=lines.join('\n')});
-function toast(t){const d=Object.assign(document.createElement('div'),{textContent:t});d.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#d4af37;color:#111;padding:10px 16px;border-radius:20px;font-weight:600;z-index:20;transition:opacity .4s';document.body.appendChild(d);setTimeout(()=>d.style.opacity=0,1600);setTimeout(()=>d.remove(),2100)}
+function toast(t){const d=Object.assign(document.createElement('div'),{textContent:t});d.style.cssText='position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#F4F6FF;color:#0E1124;padding:11px 16px;border-radius:14px;font-weight:650;z-index:40;transition:opacity .4s';document.body.appendChild(d);setTimeout(()=>d.style.opacity=0,1600);setTimeout(()=>d.remove(),2100)}
 async function send(t){try{if(navigator.share){await navigator.share({title:'Card purchase request',text:t});return}}catch(_){return}try{await navigator.clipboard.writeText(t);toast('Copied, paste it to your bot')}catch(_){prompt('Copy this:',t)}}
 function req(c,k){const l=offer(c),p=l?`Live ${l.cad_total!=null?'C$'+(+l.cad_total).toFixed(2):m(l.price)+' USD'}`:`Raw sold ${guideCad(c.raw)}`,t=`Purchase request (${k=='ygo'?'Yu-Gi-Oh':'Magic'}): ${c.name}\nPrint/details: ${l?l.title||'':''}\nPrice: ${p} (raw ${guideCad(c.raw)} / PSA 9 ${guideCad(c.p9)} / PSA 10 ${guideCad(c.p10)})\nBuy zone: ≤ ${guideCad(c.buy)}\nLink: ${l&&itemUrl(l)?l.url:'no verified listing'}\nPlease verify print, condition and total cost in CAD before buying.`;
  W.unshift({n:c.name,p:p,t:t,d:new Date().toLocaleDateString('en-CA')});sv();toast('Added to Wishlist');send(t)}
 sv();
-const VER='1793991595';
+const VER='1794120701';
 (async()=>{try{const r=await fetch('version.json?'+Date.now(),{cache:'no-store'}),j=await r.json();if(j.v!==VER&&!sessionStorage.getItem('rl'+j.v)){sessionStorage.setItem('rl'+j.v,1);if(window.caches)for(const k of await caches.keys())await caches.delete(k);const g=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();g&&await g.update();location.reload()}}catch(_){}})();
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{if(!r||typeof r.update!='function')return;const refresh=()=>r.update().catch(()=>{});refresh();document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()})}).catch(()=>{});
  let rl;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rl&&!sessionStorage.getItem('cc'+VER)){rl=1;sessionStorage.setItem('cc'+VER,1);location.reload()}})}

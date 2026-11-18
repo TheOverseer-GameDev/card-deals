@@ -155,6 +155,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     });
     assert.match(await page.locator('#scan-stage').getAttribute('style'), /scale\(2\)/);
 
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = false; });
     await page.locator('#scan-read').click();
     await page.waitForFunction(() => document.querySelector('#scan-results')?.innerText?.includes('Gemini Elf'));
     assert.match(await page.locator('#scan-progress').innerText(), /Text read on this device/);
@@ -179,6 +180,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await page.locator('#scan-prices').scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(shots, 'desktop-prices.png') });
 
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = false; });
     await page.locator('#scan-clear').click();
     await page.locator('#scan-search').fill('Black Lotus');
     await page.waitForFunction(() => document.querySelectorAll('#scan-results button').length > 1);
@@ -192,6 +194,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     assert.match(await page.locator('#scan-prices').innerText(), /Confirm a catalog row/);
 
     await page.evaluate(() => { globalThis.__ocrText = '<img src=x onerror="window.__xss=1">'; });
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = false; });
     await page.locator('#scan-read').click();
     await page.waitForFunction(() => (document.querySelector('#scan-text')?.value || '').includes('onerror'));
     assert.equal(await page.evaluate(() => window.__xss), undefined);
@@ -199,12 +202,14 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     assert.equal((await page.locator('#v-scan').innerHTML()).includes('onerror'), false);
 
     await page.evaluate(() => { globalThis.__ocrHang = true; });
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = false; });
     await page.locator('#scan-read').click();
     await page.waitForSelector('#scan-cancel:not([hidden])');
     await page.locator('#scan-cancel').click();
     await page.waitForFunction(() => document.querySelector('#scan-progress')?.textContent?.includes('Cancelled'));
     await page.evaluate(() => { globalThis.__ocrHang = false; globalThis.__ocrText = ''; });
 
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = false; });
     await page.locator('#scan-search').fill('Braingeyser');
     await page.locator('#scan-results button', { hasText: 'Braingeyser' }).click();
     await page.waitForFunction(() => document.querySelector('#scan-prices')?.innerText?.includes('PSA 10'));
@@ -240,6 +245,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       buffer: Buffer.alloc(8 * 1024 * 1024 + 1, 1),
     });
     await page.waitForFunction(() => document.querySelector('#scan-front-note')?.textContent?.includes('over 8 MB'));
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = false; });
     assert.equal(await page.locator('#scan-read').isEnabled(), true);
 
     const methods = requests.map((req) => req.method());
@@ -260,6 +266,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
       return urls;
     });
     assert.ok(cached.every((url) => !url.startsWith('blob:')));
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = true; });
     await page.locator('#scan-close').click();
     assert.equal(await page.locator('#v-ygo .c').count(), listCount);
     assert.equal(await page.locator('#scan-cond-corners').inputValue(), 'unset');
@@ -362,6 +369,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     await context.setOffline(true);
     await page.reload();
     await page.locator('nav button[data-v="scan"]').click();
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = false; });
     await page.locator('#scan-search').fill('Gemini Elf');
     await page.locator('#scan-results button', { hasText: 'LON-000' }).click();
     await page.waitForFunction(() => document.querySelector('#scan-prices')?.innerText?.includes('$79.10'));
@@ -440,6 +448,7 @@ test('browser scan flows', { timeout: 180000 }, async (t) => {
     assert.match(psa, /not a PSA certification/);
     assert.doesNotMatch(psa, /confidence/i);
     assert.match(psa, /cannot verify authenticity or alterations/);
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = false; });
     await page.locator('#scan-search').fill('Gemini Elf');
     await page.locator('#scan-results button', { hasText: 'LON-000' }).click();
     await page.waitForFunction(() => document.querySelector('#scan-sold')?.innerText?.includes('Completed sales'));

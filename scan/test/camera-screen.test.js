@@ -118,6 +118,7 @@ test('a front shutter in Front & back returns to a clean live preview on step 2'
         thumbs: document.querySelectorAll('#scan-thumbs canvas').length,
         edgeInk: ink,
         capture: capture ? capture.innerText : '',
+        flash: document.getElementById('scan-capture-flash')?.dataset.fired || '',
       };
     });
     assert.match(state.step, /Step 2 of 2/);
@@ -133,6 +134,7 @@ test('a front shutter in Front & back returns to a clean live preview on step 2'
     assert.ok(state.transform === '' || state.transform === 'scale(1)' || state.transform === 'scale(1)', state.transform);
     assert.doesNotMatch(state.capture, /verified-prices\.json/);
     assert.doesNotMatch(state.capture, /Market shards/);
+    assert.equal(state.flash, '1');
   } finally {
     await browser.close();
     server.close();
@@ -202,6 +204,63 @@ test('the step line is fully visible from 360px through 430px', async () => {
       assert.equal(fault.overlap, false, `${width}px step overlaps ${fault.nextId}`);
       assert.notEqual(fault.whiteSpace, 'nowrap', `${width}px step cannot wrap`);
       assert.match(fault.text, /Step 1 of 2/);
+    }
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});
+
+test('the guide is a portrait card on first paint and after the camera starts', async () => {
+  const feed = flatFeed('/tmp/scan-phase2/guide-aspect.y4m');
+  const browser = await launch(feed);
+  const server = await startServer();
+  const expectRatio = async (page, target, label) => {
+    const state = await page.evaluate(() => {
+      const outline = document.getElementById('scan-outline');
+      const box = outline.getBoundingClientRect();
+      const style = getComputedStyle(outline);
+      return {
+        ratio: box.height ? box.width / box.height : 0,
+        radius: style.borderRadius,
+        w: box.width,
+        h: box.height,
+      };
+    });
+    assert.ok(state.h > 24 && state.w > 24, `${label} guide is ${state.w}x${state.h}`);
+    assert.ok(Math.abs(state.ratio - target) < 0.02, `${label} ratio ${state.ratio} wanted ${target}`);
+    assert.ok(Math.abs(state.ratio - 1) > 0.08, `${label} guide is square`);
+    assert.equal(state.radius, '16px', label);
+  };
+  try {
+    for (const width of [360, 390, 412]) {
+      const page = await (await browser.newContext({
+        viewport: { width, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+        serviceWorkers: 'block',
+      })).newPage();
+      await page.context().grantPermissions(['camera']);
+      await page.goto(`http://127.0.0.1:${server.address().port}/`);
+      await page.locator('nav button[data-v="scan"]').click();
+      await page.waitForSelector('#scan-outline');
+      await expectRatio(page, 59 / 86, `${width}px first paint`);
+      await page.waitForFunction(() => {
+        const video = document.querySelector('#scan-cam-video');
+        return video && video.videoWidth > 2 && !video.hidden;
+      });
+      await expectRatio(page, 59 / 86, `${width}px after camera start`);
+      await page.evaluate(() => {
+        const finder = document.getElementById('scan-finder');
+        finder.style.flex = 'none';
+        finder.style.height = '720px';
+      });
+      await expectRatio(page, 59 / 86, `${width}px tall finder`);
+      await page.setViewportSize({ width, height: 1100 });
+      await expectRatio(page, 59 / 86, `${width}px tall resize`);
+      await page.setViewportSize({ width: Math.max(width, 800), height: 360 });
+      await expectRatio(page, 59 / 86, `${width}px landscape`);
+      await page.close();
     }
   } finally {
     await browser.close();

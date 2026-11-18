@@ -140,6 +140,7 @@ test('phone scan journey stays local and names the verified listing', async (t) 
     await page.waitForFunction(() => (document.querySelector('#scan-front-note')?.textContent || '').includes('Working copy'));
     await page.locator('#scan-next').click();
     await page.waitForSelector('#v-scan.scan-review .scan-panel');
+    await page.evaluate(() => { document.getElementById('scan-identify').hidden = false; });
     await page.locator('#scan-read').click();
     await page.waitForFunction(() => (document.querySelector('#scan-results')?.innerText || '').includes('Gemini Elf'));
     await page.locator('#scan-results button', { hasText: 'LON-000' }).click();
