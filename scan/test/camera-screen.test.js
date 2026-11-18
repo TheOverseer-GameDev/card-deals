@@ -118,6 +118,7 @@ test('a front shutter in Front & back returns to a clean live preview on step 2'
         thumbs: document.querySelectorAll('#scan-thumbs canvas').length,
         edgeInk: ink,
         capture: capture ? capture.innerText : '',
+        flash: document.getElementById('scan-capture-flash')?.dataset.fired || '',
       };
     });
     assert.match(state.step, /Step 2 of 2/);
@@ -133,6 +134,7 @@ test('a front shutter in Front & back returns to a clean live preview on step 2'
     assert.ok(state.transform === '' || state.transform === 'scale(1)' || state.transform === 'scale(1)', state.transform);
     assert.doesNotMatch(state.capture, /verified-prices\.json/);
     assert.doesNotMatch(state.capture, /Market shards/);
+    assert.equal(state.flash, '1');
   } finally {
     await browser.close();
     server.close();

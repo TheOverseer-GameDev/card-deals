@@ -686,3 +686,81 @@ html.scan-cam #v-scan.scan-sheet.on #scan-deck {
 #scan-done { color: #C4B5FF; }
 :root[data-theme="light"] #scan-tabs button.on,
 :root[data-theme="light"] #scan-done { color: #4C35C8; }
+
+#scan-capture-flash {
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  background: #fff; opacity: 0;
+}
+#scan-capture-flash.on { animation: scan-flash .42s ease; }
+@keyframes scan-flash { 0% { opacity: .9; } 100% { opacity: 0; } }
+html.scan-cam #v-scan.scan-review.on .scan-panel {
+  padding: 16px 16px 32px;
+  background:
+    radial-gradient(80% 40% at 0% 0%, rgba(124, 92, 255, .22), transparent 60%),
+    var(--bg, #06080F);
+}
+#v-scan .scan-card,
+#scan-history,
+#scan-edges,
+#scan-grade-range,
+#scan-worth,
+#scan-stains,
+#scan-creases,
+#scan-foil,
+#scan-marks,
+#scan-consistency,
+#scan-print,
+#scan-tilt,
+#scan-artmatch,
+#scan-defects,
+#scan-session {
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 22px;
+  padding: 14px 14px 12px;
+  margin-top: 12px;
+}
+#scan-grade-range > p:first-of-type,
+#v-scan .scan-cell b,
+.cd-cad {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.03em;
+}
+#scan-grade-range > p:first-of-type {
+  font-size: 26px;
+  font-weight: 720;
+  line-height: 1.15;
+  margin-top: 4px;
+}
+#scan-history-list .scan-history-row,
+#v-scan .scan-session {
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 16px;
+  padding: 12px;
+  margin: 8px 0;
+}
+#scan-edges .scan-crops { gap: 10px; }
+#scan-edges .scan-crop canvas { border-radius: 12px; background: #0B0F1C; }
+#scan-history-delete { color: #FF6B86; background: rgba(255, 107, 134, .12); border-radius: 14px; }
+#v-scan .scan-retake { border-radius: 16px; text-align: left; }
+:root[data-theme="light"] #v-scan .scan-card,
+:root[data-theme="light"] #scan-history,
+:root[data-theme="light"] #scan-edges,
+:root[data-theme="light"] #scan-grade-range,
+:root[data-theme="light"] #scan-worth,
+:root[data-theme="light"] #scan-stains,
+:root[data-theme="light"] #scan-creases,
+:root[data-theme="light"] #scan-foil,
+:root[data-theme="light"] #scan-marks,
+:root[data-theme="light"] #scan-consistency,
+:root[data-theme="light"] #scan-print,
+:root[data-theme="light"] #scan-session,
+:root[data-theme="light"] #scan-history-list .scan-history-row {
+  background: #fff;
+  border-color: rgba(16, 20, 45, .1);
+  color: #0E1124;
+}
+@media (prefers-reduced-motion: reduce) {
+  #scan-capture-flash.on { animation: none; opacity: 0; }
+}

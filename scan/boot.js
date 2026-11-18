@@ -1092,6 +1092,7 @@ function boot() {
       for (const row of rows) {
         const line = document.createElement('p');
         const when = new Date(row.at || Date.now()).toLocaleString();
+        line.className = 'scan-history-row';
         line.textContent = `${when}. ${row.name || 'Unnamed card'}. ${presentScan(row)}`;
         ui.historyList.append(line);
       }
@@ -1165,6 +1166,17 @@ function boot() {
     releaseStream();
   });
 
+  function pulseCapture() {
+    const flash = document.getElementById('scan-capture-flash');
+    if (flash) {
+      flash.dataset.fired = '1';
+      flash.classList.remove('on');
+      void flash.offsetWidth;
+      flash.classList.add('on');
+    }
+    try { navigator.vibrate?.(18); } catch { /* This phone has no haptic. */ }
+  }
+
   async function useFrame() {
     const box = captureSize(ui.video.videoWidth, ui.video.videoHeight);
     if (!box) {
@@ -1176,6 +1188,7 @@ function boot() {
     canvas.width = box.width;
     canvas.height = box.height;
     canvas.getContext('2d').drawImage(ui.video, 0, 0, box.width, box.height);
+    pulseCapture();
     const slot = ui.camSlot || activeSlot();
     stopCamera();
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
@@ -1864,7 +1877,10 @@ function build(section, missingList) {
   const outline = document.createElement('div');
   outline.className = 'scan-outline';
   outline.id = 'scan-outline';
-  finder.append(video, viewport, backView, outline);
+  const flash = document.createElement('div');
+  flash.id = 'scan-capture-flash';
+  flash.setAttribute('aria-hidden', 'true');
+  finder.append(video, viewport, backView, outline, flash);
   const liveEdge = mountEdge(finder);
 
   const gallery = button('', 'scan-gallery', true);
