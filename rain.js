@@ -296,7 +296,7 @@
     const span = count * PITCH;
     const columns = [0, 1, 2].map((col) => ({
       x: (viewW / 3) * col + (viewW / 3 - CARD_W) / 2,
-      speed: col === 1 ? 28 : -28,
+      speed: [-22, 36, -16][col],
       cards: Array.from({ length: count }, (_, i) => ({ y: i * PITCH - PITCH, back: 0 })),
       span,
     }));
