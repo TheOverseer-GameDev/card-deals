@@ -13,7 +13,7 @@ import { chromium } from 'playwright-core';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const chrome = ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'].find((item) => fs.existsSync(item));
-const outDir = '/opt/cursor/artifacts/scan-v2/intro-v3';
+const outDir = '/opt/cursor/artifacts/scan-v2/intro-v4';
 const MARKS = [200, 700, 1200, 1800];
 
 function startServer() {
@@ -88,6 +88,8 @@ test('the intro covers the home at 0.2s, 0.7s, 1.2s and 1.8s', async () => {
         }
         const box = intro.getBoundingClientRect();
         const style = getComputedStyle(intro);
+        const sheen = document.querySelector('.intro-sheen');
+        const face = sheen && sheen.parentElement;
         const hit = document.elementFromPoint(195, 400);
         const hero = document.querySelector('.hero-amount');
         const heroBox = hero ? hero.getBoundingClientRect() : null;
@@ -98,6 +100,7 @@ test('the intro covers the home at 0.2s, 0.7s, 1.2s and 1.8s', async () => {
           covers: box.width >= 380 && box.height >= 800 && box.top <= 1,
           hitIntro: !!(hit && (hit === intro || intro.contains(hit))),
           heroCovered: !heroHit || intro.contains(heroHit) || heroHit === intro,
+          clipped: !!(face && face.classList.contains('intro-face') && getComputedStyle(face).overflow === 'hidden' && face.contains(sheen)),
         };
       }, MARKS[i]);
       assert.equal(state.visible, true, `t=${MARKS[i]} intro hidden ${JSON.stringify(state)}`);
@@ -105,6 +108,7 @@ test('the intro covers the home at 0.2s, 0.7s, 1.2s and 1.8s', async () => {
       assert.equal(state.covers, true, `t=${MARKS[i]} does not cover the screen`);
       assert.equal(state.hitIntro, true, `t=${MARKS[i]} the home is in front`);
       assert.equal(state.heroCovered, true, `t=${MARKS[i]} the hero is visible`);
+      assert.equal(state.clipped, true, 'the foil sweep is not clipped to the card');
       await page.screenshot({ path: path.join(outDir, `frame-${i + 1}.png`) });
     }
     const pcm = await page.evaluate(async () => {

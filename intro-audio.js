@@ -28,27 +28,27 @@
     return true;
   }
 
+  function hit(ctx, master, when, freq, hold, level) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(level, when + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + hold);
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(when);
+    osc.stop(when + hold + 0.02);
+  }
+
   function scheduleSting(ctx, when) {
     const master = ctx.createGain();
     master.gain.setValueAtTime(0.0001, when);
-    master.gain.exponentialRampToValueAtTime(0.16, when + 0.03);
-    master.gain.exponentialRampToValueAtTime(0.0001, when + 1.65);
+    master.gain.exponentialRampToValueAtTime(0.2, when + 0.04);
+    master.gain.exponentialRampToValueAtTime(0.0001, when + 1.55);
     master.connect(ctx.destination);
-    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = i % 2 ? 'triangle' : 'sine';
-      osc.frequency.value = freq;
-      const t = when + i * 0.11;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
-      osc.connect(gain);
-      gain.connect(master);
-      osc.start(t);
-      osc.stop(t + 0.46);
-    });
-    const count = Math.floor(ctx.sampleRate * 0.35);
+    const count = Math.floor(ctx.sampleRate * 0.42);
     const buffer = ctx.createBuffer(1, count, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < count; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / count);
@@ -56,16 +56,19 @@
     noise.buffer = buffer;
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(420, when);
-    filter.frequency.exponentialRampToValueAtTime(2200, when + 0.3);
+    filter.frequency.setValueAtTime(280, when);
+    filter.frequency.exponentialRampToValueAtTime(1800, when + 0.42);
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.05, when);
-    noiseGain.gain.exponentialRampToValueAtTime(0.0001, when + 0.36);
+    noiseGain.gain.setValueAtTime(0.0001, when);
+    noiseGain.gain.exponentialRampToValueAtTime(0.08, when + 0.2);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, when + 0.48);
     noise.connect(filter);
     filter.connect(noiseGain);
     noiseGain.connect(master);
     noise.start(when);
-    noise.stop(when + 0.36);
+    noise.stop(when + 0.5);
+    [392, 523.25, 659.25].forEach((freq) => hit(ctx, master, when + 0.52, freq, 0.28, 0.2));
+    [523.25, 783.99, 1046.5].forEach((freq) => hit(ctx, master, when + 1.05, freq, 0.36, 0.24));
   }
 
   function play(ctx) {

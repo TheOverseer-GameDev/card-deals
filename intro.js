@@ -31,19 +31,45 @@
   root.className = reduce ? 'is-reduced' : 'is-full';
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-label', 'Card Deals');
+  const shake = document.createElement('div');
+  shake.className = 'intro-shake';
   const stage = document.createElement('div');
   stage.className = 'intro-stage';
+  const spin = document.createElement('div');
+  spin.className = 'intro-spin';
+  const face = document.createElement('div');
+  face.className = 'intro-face';
   const card = document.createElement('canvas');
   card.className = 'intro-card';
   card.width = 180;
   card.height = 262;
   const sheen = document.createElement('div');
   sheen.className = 'intro-sheen';
+  const holo = document.createElement('div');
+  holo.className = 'intro-holo';
+  face.append(card, sheen, holo);
+  spin.append(face);
+  const streak = document.createElement('div');
+  streak.className = 'intro-streak';
+  const glow = document.createElement('div');
+  glow.className = 'intro-glow';
   const burst = document.createElement('div');
   burst.className = 'intro-burst';
+  const shock = document.createElement('div');
+  shock.className = 'intro-shock';
   const mark = document.createElement('div');
   mark.className = 'intro-mark';
   mark.textContent = 'Card Deals';
+  const glint = document.createElement('div');
+  glint.className = 'intro-glint';
+  mark.append(glint);
+  const sparks = [];
+  for (let i = 0; i < 8; i += 1) {
+    const spark = document.createElement('span');
+    spark.className = 'intro-spark';
+    spark.style.setProperty('--a', `${i * 45}deg`);
+    sparks.push(spark);
+  }
   const tap = document.createElement('button');
   tap.type = 'button';
   tap.id = 'intro-tap';
@@ -52,8 +78,9 @@
   skip.type = 'button';
   skip.id = 'intro-skip';
   skip.textContent = 'Skip';
-  stage.append(card, sheen, burst, mark, tap);
-  root.append(skip, stage);
+  stage.append(streak, glow, burst, shock, spin, ...sparks, mark);
+  shake.append(stage);
+  root.append(skip, tap, shake);
   document.body.append(root);
   drawBack(card.getContext('2d'), card.width, card.height);
   if (window.CardDealsPlatform) window.CardDealsPlatform.handoffSplash();
@@ -123,24 +150,50 @@
   }
 
   requestAnimationFrame(() => root.classList.add('is-run'));
+  if (!window.__holdIntro && !reduce) {
+    setTimeout(() => { if (!ended) root.classList.add('is-out'); }, 1860);
+  }
   if (!window.__holdIntro) timer = setTimeout(finish, duration + 40);
 }());
 
 function drawBack(ctx, w, h) {
-  ctx.fillStyle = '#6e4b2a';
+  ctx.fillStyle = '#07101f';
   ctx.beginPath();
   ctx.roundRect(0, 0, w, h, 16);
   ctx.fill();
-  ctx.fillStyle = '#c4a574';
+  ctx.strokeStyle = '#24365c';
+  ctx.lineWidth = 8;
+  ctx.stroke();
+  ctx.fillStyle = '#10203a';
   ctx.beginPath();
-  ctx.roundRect(14, 14, w - 28, h - 28, 12);
+  ctx.roundRect(12, 12, w - 24, h - 24, 12);
   ctx.fill();
-  const colors = ['#f4f1e6', '#2d6cb5', '#1c1c1c', '#c4473a', '#2f8a49'];
-  colors.forEach((color, i) => {
-    const ang = -Math.PI / 2 + (i / 5) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.arc(w / 2 + Math.cos(ang) * 28, h / 2 + Math.sin(ang) * 36, 12, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  });
+  const cx = w / 2;
+  const cy = h / 2 - 8;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = '#7C5CFF';
+  ctx.fillRect(-28, -28, 56, 56);
+  ctx.rotate(Math.PI / 4);
+  ctx.strokeStyle = '#3DCEC2';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(-34, -34, 68, 68);
+  ctx.restore();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 46);
+  ctx.lineTo(cx + 22, cy);
+  ctx.lineTo(cx, cy + 46);
+  ctx.lineTo(cx - 22, cy);
+  ctx.closePath();
+  ctx.fillStyle = '#1a3c6e';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#3DCEC2';
+  ctx.stroke();
+  ctx.fillStyle = '#F4F6FF';
+  ctx.font = '700 28px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('CD', cx, cy);
 }
