@@ -32,6 +32,8 @@
     {"id": "M18b", "metric": "template and doctor gaps", "better": "lower", "bar": 0},
     {"id": "M19", "metric": "determinism mismatches", "better": "lower", "bar": 0},
     {"id": "M20", "metric": "camera tracks after hide", "better": "lower", "bar": 0},
-    {"id": "E15", "metric": "non-discriminating tests", "better": "lower", "bar": 0}
+    {"id": "E15", "metric": "non-discriminating tests", "better": "lower", "bar": 0},
+    {"id": "M21", "metric": "grade range covers the true grade at each confidence", "better": "higher", "bar": 0.9},
+    {"id": "M22", "metric": "High confidence point within 1 grade", "better": "higher", "bar": 0.85}
   ]
 }

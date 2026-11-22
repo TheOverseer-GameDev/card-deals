@@ -1,12 +1,18 @@
 import { mulberry32 } from '../lib/rng.mjs';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-const FAMILIES = ['S', 'X', 'P', 'BB', 'R', 'T', 'B', 'A', 'D', 'Gl', 'C', 'G', 'O', 'M', 'SL', 'K', 'L'];
+const modules = JSON.parse(readFileSync(fileURLToPath(new URL('../modules.json', import.meta.url)), 'utf8'));
+
+export const CHECKS = modules.checks;
+
+const FAMILIES = ['S', 'X', 'P', 'BB', 'R', 'T', 'B', 'A', 'D', 'Gl', 'C', 'G', 'O', 'M', 'SL', 'K', 'L', ...CHECKS.map((item) => item.family).filter((id) => id !== 'K')];
 
 const COUNTS = { quick: 17, ci: 68, full: 340 };
 
 export function recipes(mode, seed) {
   const rng = mulberry32(seed >>> 0);
-  const n = COUNTS[mode] || COUNTS.quick;
+  const n = Math.max(FAMILIES.length, COUNTS[mode] || COUNTS.quick);
   const list = [];
   for (let i = 0; i < n; i += 1) {
     const family = FAMILIES[i % FAMILIES.length];
@@ -18,11 +24,12 @@ export function recipes(mode, seed) {
 function recipeAt(family, index, rng) {
   const game = index % 5 === 0 ? 'mtg' : 'ygo';
   const [mmW, mmH] = game === 'mtg' ? [63, 88] : [59, 86];
-  let px = family === 'S' ? [3, 5, 8, 10, 12][index % 5] : 8;
+  const planted = CHECKS.find((item) => item.family === family);
+  let px = family === 'S' ? [3, 5, 8, 10, 12][index % 5] : planted ? 8 : 8;
   if (family === 'L') px = 4;
   let cardW = Math.round(mmW * px);
   let cardH = Math.round(mmH * px);
-  let padPx = family === 'X' || family === 'O' ? 0 : Math.round(px * 4);
+  let padPx = family === 'X' || family === 'O' ? 0 : planted ? 16 : Math.round(px * 4);
   if (family === 'X') {
     const shapes = [[300, 300], [300, 400], [400, 300]];
     [cardW, cardH] = shapes[index % 3];
@@ -46,7 +53,7 @@ function recipeAt(family, index, rng) {
     imageBounded: family === 'O',
     multi: family === 'M',
     noCard: false,
-    defects: family === 'K' ? [{ type: 'nick', xMm: 4, yMm: 4 }] : [],
+    defects: planted ? [{ type: planted.id, xMm: planted.xMm, yMm: planted.yMm }] : [],
     glare: family === 'Gl',
     sleeve: family === 'SL',
     degrade: family === 'D' ? 'noise' : '',
