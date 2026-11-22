@@ -6,6 +6,6 @@ scan/tmp/
 # Bench output and npm metadata are not part of the public site.
 # Tests stay in git so the scanner gates can run. They are not precached.
 scan/bench/
-package.json
 package-lock.json
 .pages-rebuild
+bench/out/

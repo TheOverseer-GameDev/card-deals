@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench:quick": "node bench/run.mjs --mode quick --split dev --seed 1",
+    "bench:ci": "node bench/run.mjs --mode ci --split sealed --seed 1",
+    "bench:full": "node bench/run.mjs --mode full --split sealed --seed 1",
+    "bench:baseline": "node bench/run.mjs --mode ci --split sealed --seed 1 --write-baseline"
+  }
+}
