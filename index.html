@@ -11,7 +11,7 @@ button{font-family:inherit}*{box-sizing:border-box;-webkit-tap-highlight-color:t
 header{position:sticky;top:0;z-index:5;padding:14px 18px 10px;background:linear-gradient(var(--bg) 70%,transparent)}
 h1{margin:0;font-size:22px;letter-spacing:.3px}h1 b{color:var(--gold)}.sub{color:var(--mu);font-size:12.5px;margin-top:2px}
 main{padding:0 14px}.view{display:none;animation:f .25s ease}.view.on{display:block}@keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
-.banner{background:rgba(255,193,90,.14);color:var(--tx);border:1px solid rgba(255,193,90,.35);border-radius:14px;padding:8px 12px;font-size:13px;margin:6px 0 12px}
+.banner{background:rgba(11,15,26,.66);color:#F4F6FF;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:8px 12px;font-size:13px;margin:6px 0 12px}
 .c{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 12px;transition:transform .15s}.c:active{transform:scale(.99)}
 .top{display:flex;gap:12px;align-items:flex-start}.rk{flex:0 0 34px;height:34px;border-radius:10px;background:#1f2740;color:var(--gold);display:grid;place-items:center;font-weight:700}
 .nm{font-weight:600;font-size:16.5px}.meta{color:var(--mu);font-size:13px;margin-top:3px}.sc{margin-left:auto;text-align:right}.sc b{font-size:20px;color:var(--gold)}.sc small{display:block;color:var(--mu);font-size:11px}
@@ -70,7 +70,7 @@ html.phone #v-ygo.on>.c,html.phone #v-mtg.on>.c{flex:0 0 88%;scroll-snap-align:s
 <section class="view" id="v-coll"></section><section class="view" id="v-alerts"></section><section class="view" id="v-trends"></section><section class="view" id="v-wish"></section></main>
 <aside id="panel"><div class="empty">Select a card to see its chart and details.</div></aside>
 <nav><button data-v="lists" class="on"><span>🏆</span>Lists</button><button data-v="alerts"><span>🔔</span>Alerts</button><button data-v="coll"><span>🗂️</span>Mine</button><button data-v="wish"><span>⭐</span>Wishlist</button><button data-v="trends"><span>📈</span>Trends</button></nav>
-<script src="platform.js"></script><script src="rain.js"></script><script src="intro-audio.js"></script><script src="intro.js"></script><script src="chart.min.js?1794120709" defer></script><script src="data.js?1794120709"></script>
+<script src="platform.js"></script><script src="rain.js"></script><script src="intro-audio.js"></script><script src="intro.js"></script><script src="chart.min.js?1794120710" defer></script><script src="data.js?1794120710"></script>
 <script>
 const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';'),
 m=v=>v==null||!v?'–':'$'+(v>=1000?Math.round(v).toLocaleString():(+v).toFixed(v<100?2:0)),
@@ -163,7 +163,7 @@ async function send(t){try{if(navigator.share){await navigator.share({title:'Car
 function req(c,k){const l=offer(c),p=l?`Live ${l.cad_total!=null?'C$'+(+l.cad_total).toFixed(2):m(l.price)+' USD'}`:`Raw sold ${guideCad(c.raw)}`,t=`Purchase request (${k=='ygo'?'Yu-Gi-Oh':'Magic'}): ${c.name}\nPrint/details: ${l?l.title||'':''}\nPrice: ${p} (raw ${guideCad(c.raw)} / PSA 9 ${guideCad(c.p9)} / PSA 10 ${guideCad(c.p10)})\nBuy zone: ≤ ${guideCad(c.buy)}\nLink: ${l&&itemUrl(l)?l.url:'no verified listing'}\nPlease verify print, condition and total cost in CAD before buying.`;
  W.unshift({n:c.name,p:p,t:t,d:new Date().toLocaleDateString('en-CA')});sv();toast('Added to Wishlist');send(t)}
 sv();
-const VER='1794120709';
+const VER='1794120710';
 (async()=>{try{const r=await fetch('version.json?'+Date.now(),{cache:'no-store'}),j=await r.json();if(j.v!==VER&&!sessionStorage.getItem('rl'+j.v)){sessionStorage.setItem('rl'+j.v,1);if(window.caches)for(const k of await caches.keys())await caches.delete(k);const g=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();g&&await g.update();location.reload()}}catch(_){}})();
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{if(!r||typeof r.update!='function')return;const refresh=()=>r.update().catch(()=>{});refresh();document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()})}).catch(()=>{});
  let rl;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rl&&!sessionStorage.getItem('cc'+VER)){rl=1;sessionStorage.setItem('cc'+VER,1);location.reload()}})}

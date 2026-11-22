@@ -33,6 +33,14 @@ test('the rain source draws backs in code and names no trademark', () => {
   assert.equal(src.includes('fillText'), false);
   assert.doesNotMatch(src, /Yu-Gi-Oh|Deckmaster|Konami|Wizards|Pokemon|Pokémon|Poké|Gundam|Digimon|Lorcana|Weiss/i);
   assert.equal((src.match(/function /g) || []).length > 0, true);
+  const yellow = [...src.matchAll(/#([0-9a-f]{6})/gi)].filter((match) => {
+    const hex = match[1];
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return r > 170 && g > 120 && b < 130 && r + g > b * 3;
+  });
+  assert.deepEqual(yellow.map((match) => match[0]), []);
 });
 
 test('three columns run opposite in the middle and a wrapped card changes back', async () => {
