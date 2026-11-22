@@ -65,6 +65,7 @@ function stain(rgba, width, card, px) {
   let dark = 0;
   for (let y = art.y0; y < art.y1; y += 2) {
     for (let x = art.x0; x < art.x1; x += 2) {
+      if (inEdition(x, y, card, px)) continue;
       if (base - lum(sample(rgba, width, x, y)) > 70) dark += 4;
     }
   }
@@ -95,6 +96,14 @@ function slanted(rgba, width, card) {
   const bot = edgeX(rgba, width, card, card.y + Math.round(card.h * 0.8));
   if (top < 0 || bot < 0) return false;
   return Math.abs(top - bot) / card.h > 0.04;
+}
+
+function inEdition(x, y, card, px) {
+  const x0 = card.x + Math.round(4 * px);
+  const x1 = card.x + Math.round(14 * px);
+  const y0 = card.y + card.h - Math.round(14 * px);
+  const y1 = card.y + card.h - Math.round(4 * px);
+  return x >= x0 && x < x1 && y >= y0 && y < y1;
 }
 
 function edition(rgba, width, card, px) {
@@ -154,12 +163,13 @@ function whitening(rgba, width, card, px) {
       if (lum(sample(rgba, width, x, y)) > 190) light += 4;
     }
   }
-  if (light / (px * px) > 1) return found('The edge looks whitened.');
+  if (light / (px * px) > 4) return found('The edge looks whitened.');
   return ok('No whitening stood out.');
 }
 
 function ding(rgba, width, card, px) {
   if (slanted(rgba, width, card)) return unchecked('POSE_TILT', 'The card is tilted, so a chip was not judged.');
+  if (warp(rgba, width, card, px).state === 'found') return ok('No ding stood out.');
   const bg = sample(rgba, width, 2, 2);
   const band = Math.round(3 * px);
   let holes = 0;
@@ -214,7 +224,10 @@ function crease(rgba, width, card, px) {
     let run = 0;
     for (let y = art.y0; y < art.y1; y += 1) {
       const p = sample(rgba, width, x, y);
-      if (lum(p) < 130 && p[0] < 150) run += 1;
+      const here = lum(p);
+      const left = lum(sample(rgba, width, Math.max(0, x - Math.round(px * 2)), y));
+      const right = lum(sample(rgba, width, Math.min(width - 1, x + Math.round(px * 2)), y));
+      if (here < 130 && p[0] < 150 && left - here > 18 && right - here > 18) run += 1;
       else run = 0;
       if (run > best) best = run;
     }

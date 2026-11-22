@@ -66,6 +66,7 @@ test('three columns run opposite in the middle and a wrapped card changes back',
         adjacent,
         side,
         state: document.getElementById('card-rain').dataset.state,
+        pace: document.getElementById('card-rain').rain.pace(),
       };
     });
     assert.equal(motion.count, 3);
@@ -76,11 +77,16 @@ test('three columns run opposite in the middle and a wrapped card changes back',
     assert.equal(motion.adjacent, true);
     assert.equal(motion.side, true);
     assert.equal(motion.state, 'run');
+    assert.equal(motion.pace, 1);
     assert.deepEqual([...hosts], [new URL(page.url()).host]);
     await page.locator('nav button[data-v="scan"]').click();
     await page.waitForSelector('html.scan-cam');
-    const hidden = await page.evaluate(() => getComputedStyle(document.getElementById('card-rain')).visibility);
-    assert.equal(hidden, 'hidden');
+    const calm = await page.evaluate(() => ({
+      pace: document.getElementById('card-rain').rain.pace(),
+      visibility: getComputedStyle(document.getElementById('card-rain')).visibility,
+    }));
+    assert.equal(calm.pace, 0.25);
+    assert.equal(calm.visibility, 'visible');
   } finally {
     await browser.close();
     server.close();

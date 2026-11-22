@@ -1283,28 +1283,10 @@ function boot() {
       }
       if (!said) rangeNotes.push('Centering is not measured.');
     }
-    const grid = ui.rangeHost.querySelector('.scan-grid') || ui.rangeHost.insertBefore(document.createElement('div'), ui.rangeHost.querySelector('p'));
-    grid.className = 'scan-grid';
-    grid.replaceChildren();
-    for (const [key, label] of [['centering', 'Centering'], ['corners', 'Corners'], ['edges', 'Edges'], ['surface', 'Surface']]) {
-      const cell = document.createElement('div');
-      cell.className = 'scan-cell scan-score';
-      const score = side[key] && side[key].score;
-      const missing = key === 'centering' && !centeringText;
-      const value = document.createElement('b');
-      value.textContent = missing || score == null ? '—' : String(score);
-      const name = document.createElement('span');
-      name.textContent = label;
-      const bar = document.createElement('i');
-      bar.style.width = missing || score == null ? '0%' : `${Math.max(0, Math.min(10, Number(score))) * 10}%`;
-      cell.append(value, name, bar);
-      if (missing) {
-        const hint = document.createElement('small');
-        hint.textContent = 'Not measured';
-        cell.append(hint);
-      }
-      grid.append(cell);
-    }
+    const gradeHeading = ui.rangeHost.querySelector('h3');
+    if (gradeHeading) gradeHeading.hidden = true;
+    const oldScores = ui.rangeHost.querySelector('.scan-grid');
+    if (oldScores) oldScores.remove();
     const seen = seenChecks(side, centeringText, slots.front.canvas, Boolean(slots.back && slots.back.canvas));
     const bestGrade = gradeEstimate({ hasCard: Boolean(slots.front.canvas), seen });
     let headline = bestGrade.refused

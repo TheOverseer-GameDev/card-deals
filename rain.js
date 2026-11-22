@@ -5,9 +5,11 @@
  */
 (function () {
   const BACKS = 36;
-  const CARD_W = 72;
-  const CARD_H = 104;
-  const PITCH = 132;
+  const SPRITE_W = 180;
+  const SPRITE_H = 262;
+  let cardW = 120;
+  let cardH = 175;
+  let pitch = 182;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   function rounded(ctx, w, h, r) {
@@ -252,10 +254,10 @@
 
   function paintBack(kind, palette) {
     const canvas = document.createElement('canvas');
-    canvas.width = CARD_W;
-    canvas.height = CARD_H;
+    canvas.width = SPRITE_W;
+    canvas.height = SPRITE_H;
     const ctx = canvas.getContext('2d');
-    painters[kind](ctx, CARD_W, CARD_H, palette);
+    painters[kind](ctx, SPRITE_W, SPRITE_H, palette);
     return canvas;
   }
 
@@ -285,19 +287,23 @@
     for (const side of [col - 1, col + 1]) {
       if (side < 0 || side > 2) continue;
       for (const other of columns[side].cards) {
-        if (Math.abs(other.y - y) < PITCH * 0.85) skip.add(other.back);
+        if (Math.abs(other.y - y) < pitch * 0.85) skip.add(other.back);
       }
     }
     return skip;
   }
 
   function layout(viewW, viewH) {
-    const count = Math.ceil(viewH / PITCH) + 2;
-    const span = count * PITCH;
+    const gutter = 4;
+    cardW = (viewW - gutter * 4) / 3;
+    cardH = cardW * (86 / 59);
+    pitch = cardH + gutter;
+    const count = Math.ceil(viewH / pitch) + 2;
+    const span = count * pitch;
     const columns = [0, 1, 2].map((col) => ({
-      x: (viewW / 3) * col + (viewW / 3 - CARD_W) / 2,
+      x: gutter + col * (cardW + gutter),
       speed: [-22, 36, -16][col],
-      cards: Array.from({ length: count }, (_, i) => ({ y: i * PITCH - PITCH, back: 0 })),
+      cards: Array.from({ length: count }, (_, i) => ({ y: i * pitch - pitch, back: 0 })),
       span,
     }));
     for (let col = 0; col < 3; col += 1) {
@@ -346,9 +352,9 @@
       for (let i = 0; i < column.cards.length; i += 1) {
         const card = column.cards[i];
         const before = card.back;
-        card.y += column.speed * (ms / 1000);
+        card.y += column.speed * (ms / 1000) * pace();
         let wrapped = false;
-        if (card.y < -CARD_H) {
+        if (card.y < -cardH) {
           card.y += column.span;
           wrapped = true;
         } else if (card.y > viewH) {
@@ -369,25 +375,41 @@
     for (const column of columns) {
       for (const card of column.cards) {
         const sprite = sprites[card.back];
-        if (sprite) ctx.drawImage(sprite, column.x, card.y, CARD_W, CARD_H);
+        if (sprite) ctx.drawImage(sprite, column.x, card.y, cardW, cardH);
       }
     }
   }
+
+  function pace() {
+    const scan = document.getElementById('v-scan');
+    if (scan && scan.classList.contains('on')) return 0.25;
+    return 1;
+  }
+
+  let onScreen = true;
 
   function loop(now) {
     if (!running) return;
     const dt = loop.last ? now - loop.last : 16;
     loop.last = now;
-    if (document.hidden || liveCamera()) {
+    if (document.hidden || !onScreen) {
+      running = false;
       canvas.dataset.state = 'off';
-      timer = requestAnimationFrame(loop);
       return;
     }
     canvas.dataset.state = 'run';
+    canvas.dataset.pace = String(pace());
     tick(dt);
     draw();
     frames += 1;
     canvas.dataset.frames = String(frames);
+    timer = requestAnimationFrame(loop);
+  }
+
+  function resume() {
+    if (reduce.matches || document.hidden || !onScreen || running) return;
+    running = true;
+    loop.last = 0;
     timer = requestAnimationFrame(loop);
   }
 
@@ -401,6 +423,7 @@
       backs: sprites.length,
       tick,
       draw,
+      pace,
     };
     if (reduce.matches) {
       canvas.dataset.state = 'static';
@@ -418,12 +441,21 @@
       canvas.dataset.state = 'off';
       return;
     }
-    if (!reduce.matches && !running) {
-      running = true;
-      loop.last = 0;
-      timer = requestAnimationFrame(loop);
-    }
+    resume();
   });
+  if (typeof IntersectionObserver === 'function') {
+    const watch = new IntersectionObserver((entries) => {
+      onScreen = entries.some((entry) => entry.isIntersecting);
+      if (!onScreen) {
+        running = false;
+        cancelAnimationFrame(timer);
+        canvas.dataset.state = 'off';
+        return;
+      }
+      resume();
+    });
+    watch.observe(canvas);
+  }
   window.addEventListener('resize', () => {
     resize();
     draw();

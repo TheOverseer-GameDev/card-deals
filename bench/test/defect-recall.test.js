@@ -23,6 +23,10 @@ test('planted backs and marks are found, and a plain card grows none', () => {
       planted += 1;
       const type = item.defects[0].type;
       if (report.results[type].state === 'found') caught += 1;
+      const extras = Object.entries(report.results)
+        .filter(([key, row]) => key !== type && row.state === 'found')
+        .map(([key]) => key);
+      assert.deepEqual(extras, [], `${item.id} also found ${extras.join(',')}`);
       assert.notEqual(report.results[type].state, 'ok');
     } else if (!item.glare) {
       const hits = Object.values(report.results).filter((row) => row.state === 'found');

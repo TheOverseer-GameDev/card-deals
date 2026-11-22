@@ -795,12 +795,12 @@ html.scan-cam #v-scan.scan-review.on .scan-result-actions {
   margin: 0 0 14px;
   padding: 16px;
   border-radius: 28px;
-  color: #fff;
-  background:
-    radial-gradient(120% 90% at 0% 0%, rgba(124, 92, 255, .85), transparent 58%),
-    radial-gradient(80% 80% at 100% 10%, rgba(61, 139, 255, .55), transparent 60%),
-    #1a1640;
-  box-shadow: 0 24px 50px -28px rgba(80, 60, 255, .7);
+  color: #F4F6FF;
+  background: rgba(11, 15, 26, .65);
+  border: 1px solid rgba(255, 255, 255, .18);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: none;
 }
 #scan-hero-art {
   width: 108px;
@@ -862,7 +862,16 @@ html.scan-cam #v-scan.scan-review.on .scan-result-actions {
 .scan-check {
   display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
   min-height: 64px; padding: 8px; border-radius: 14px; text-align: left;
-  background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); color: #fff;
+  background: rgba(11, 15, 26, .65);
+  border: 1px solid rgba(255, 255, 255, .18);
+  color: #F4F6FF;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+:root[data-theme="light"] .scan-check {
+  background: rgba(255, 255, 255, .72);
+  color: #0E1124;
+  border-color: rgba(16, 20, 45, .12);
 }
 .scan-check b { font-size: 14px; font-weight: 650; }
 .scan-improve { font-size: 14px; line-height: 1.4; }
@@ -870,14 +879,15 @@ html.scan-cam #v-scan.scan-review.on .scan-result-actions {
 .scan-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 2px 8px;
+  min-height: 20px;
+  padding: 1px 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, .14);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 650;
-  line-height: 1.2;
+  line-height: 1;
+  white-space: nowrap;
 }
 .scan-chip-warn { background: rgba(255, 193, 90, .22); color: #FFC15A; }
 .scan-why { margin-top: 4px; }
@@ -1036,21 +1046,26 @@ html.scan-cam #v-scan.scan-review.on .scan-result-actions {
   text-align: left;
   line-height: 1.35;
 }
+:root[data-theme="light"] .scan-hero {
+  background: rgba(255, 255, 255, .72);
+  color: #0E1124;
+  border-color: rgba(16, 20, 45, .12);
+}
 :root[data-theme="light"] .scan-hero #scan-grade-range,
 :root[data-theme="light"] .scan-hero #scan-psa,
 :root[data-theme="light"] .scan-hero #scan-prices,
 :root[data-theme="light"] .scan-hero #scan-identity,
 :root[data-theme="light"] .scan-hero #scan-auto-center,
-:root[data-theme="light"] .scan-hero #scan-centering {
-  background: transparent;
-  color: #fff;
-  border: 0;
-}
+:root[data-theme="light"] .scan-hero #scan-centering,
 :root[data-theme="light"] .scan-hero p,
 :root[data-theme="light"] .scan-hero h3,
 :root[data-theme="light"] .scan-hero summary,
-:root[data-theme="light"] .scan-hero .note {
-  color: #fff;
+:root[data-theme="light"] .scan-hero .note,
+:root[data-theme="light"] .scan-hero-name,
+:root[data-theme="light"] #scan-correct-name {
+  background: transparent;
+  color: #0E1124;
+  border: 0;
 }
 .scan-toggle input { width: 22px; height: 22px; flex: none; margin: 0; }
 #scan-history-tools { margin-top: 8px; }
