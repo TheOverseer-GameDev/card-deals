@@ -274,17 +274,26 @@ main { padding: 0 16px 8px; }
   box-shadow: none;
 }
 .c-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   background: rgba(11, 15, 26, .72);
   color: #F4F6FF;
   border: 1px solid rgba(255, 255, 255, .18);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
 }
+.c-art b { color: #F4F6FF; font-size: 42px; }
+.c-art small { color: #C5CAE2; }
 :root[data-theme="light"] .c-art {
   background: rgba(255, 255, 255, .86);
   color: #0E1124;
   border-color: rgba(16, 20, 45, .12);
 }
+:root[data-theme="light"] .c-art b { color: #0E1124; }
+:root[data-theme="light"] .c-art small { color: #3E4460; }
 .hero-label { font-size: 13px; font-weight: 600; color: #F4F6FF; }
 .hero-amount {
   font-size: 48px;
