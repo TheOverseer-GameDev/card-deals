@@ -7,6 +7,8 @@
   const SOUND_KEY = 'cd-sound';
 
   function nativeShell() {
+    const platform = global.CardDealsPlatform;
+    if (platform && typeof platform.nativeShell === 'function') return platform.nativeShell();
     const cap = global.Capacitor;
     if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) return true;
     if (cap && cap.isNative === true) return true;

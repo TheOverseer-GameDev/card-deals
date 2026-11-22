@@ -29,6 +29,7 @@ import { compareTilt } from './tilt.js';
 import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
 import { AUTO_CENTERING, ESTIMATE_UNAVAILABLE } from './engine.js';
+import { captureKind, startNativePreview } from './camera-source.js';
 import { gradeEstimate } from './core/grade.js';
 import { inspect } from './core/inspect.js';
 import { psaEstimate } from './engine.js';
@@ -200,6 +201,7 @@ function boot() {
       savedScroll = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
     }
   }, true);
+  let scanLayerOpen = false;
   document.addEventListener('click', (ev) => {
     const button = ev.target.closest && ev.target.closest('nav button');
     if (!button) return;
@@ -210,10 +212,25 @@ function boot() {
       section.classList.remove('scan-review');
       enterCapture();
       openCamera(activeSlot());
+      if (window.CardDealsPlatform && !scanLayerOpen) {
+        scanLayerOpen = true;
+        window.CardDealsPlatform.push({
+          id: 'scan',
+          close() {
+            scanLayerOpen = false;
+            const lists = document.querySelector('nav button[data-v="lists"]');
+            if (lists) lists.click();
+          },
+        });
+      }
     } else {
       section.classList.remove('scan-review');
       stopCamera();
       leaveCapture();
+      if (scanLayerOpen && window.CardDealsPlatform) {
+        scanLayerOpen = false;
+        window.CardDealsPlatform.drop('scan');
+      }
       idleTimer = window.setTimeout(() => dropReader(), 60000);
     }
   });
@@ -276,7 +293,7 @@ function boot() {
       (activeSlot() === 'back' ? ui.backFile : ui.frontFile).click();
     });
     ui.frontCam.addEventListener('click', () => {
-      if (ui.stream) useFrame();
+      if (ui.stream || ui.nativePreview) useFrame();
       else openCamera(activeSlot());
     });
     ui.camStop.addEventListener('click', () => stopCamera());
@@ -287,9 +304,14 @@ function boot() {
     });
     ui.infoBtn.addEventListener('click', () => {
       ui.infoSheet.hidden = !ui.infoSheet.hidden;
+      const platform = window.CardDealsPlatform;
+      if (!platform) return;
+      if (ui.infoSheet.hidden) platform.drop('scan-info');
+      else platform.push({ id: 'scan-info', close() { ui.infoSheet.hidden = true; } });
     });
     ui.infoClose.addEventListener('click', () => {
       ui.infoSheet.hidden = true;
+      if (window.CardDealsPlatform) window.CardDealsPlatform.drop('scan-info');
     });
     ui.camera.addEventListener('change', () => {
       saveCameraChoice(ui.camera.value);
@@ -807,6 +829,24 @@ function boot() {
     ui.step.hidden = false;
     showLiveFinder();
     const listed = fillCameraList();
+    if (captureKind(window) === 'native') {
+      try {
+        const facing = cameraChoice().facingMode || 'environment';
+        const source = await startNativePreview(window, facing);
+        if (my !== camToken) {
+          await source.stop();
+          return;
+        }
+        ui.nativePreview = source;
+        if (ui.video) ui.video.hidden = true;
+        if (ui.torch) ui.torch.hidden = true;
+        await listed;
+        return;
+      } catch {
+        if (my !== camToken) return;
+        ui.nativePreview = null;
+      }
+    }
     if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
       await listed;
       ui.camMsg.textContent = 'Camera is blocked. Allow it, or choose a photo.';
@@ -1308,6 +1348,7 @@ function boot() {
     const token = `${width}x${height}:${rgba[0]}:${rgba[rgba.length - 1]}:${flat ? 'flat' : 'raw'}`;
     if (token === savedToken) return;
     savedToken = token;
+    if (!bestGrade.refused && window.CardDealsPlatform) window.CardDealsPlatform.haptic('reveal');
     const summary = [headline]
       .concat(!bestGrade.refused && bestGrade.confidence === 'Low' ? ['Retake in even light to improve this estimate.'] : [])
       .concat(stains.status && stains.status !== 'clear' ? [stains.note] : [])
@@ -1403,6 +1444,11 @@ function boot() {
     if (ui.setCaptureProgress) ui.setCaptureProgress(0);
     if (ui.align) ui.align.textContent = 'Align the card in the frame.';
     clearLiveOverlay();
+    if (ui.nativePreview) {
+      const preview = ui.nativePreview;
+      ui.nativePreview = null;
+      preview.stop().catch(() => {});
+    }
     if (ui.stream) {
       for (const track of ui.stream.getTracks()) track.stop();
       ui.stream = null;
@@ -1449,10 +1495,47 @@ function boot() {
       void flash.offsetWidth;
       flash.classList.add('on');
     }
-    try { navigator.vibrate?.(18); } catch { /* This phone has no haptic. */ }
+    if (window.CardDealsPlatform) window.CardDealsPlatform.haptic('capture');
+    else try { navigator.vibrate?.(18); } catch { /* This phone has no haptic. */ }
+  }
+
+  async function frameFromNative() {
+    const raw = await ui.nativePreview.capture();
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('frame'));
+      el.src = `data:image/jpeg;base64,${raw}`;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    return canvas;
   }
 
   async function useFrame() {
+    if (ui.nativePreview) {
+      let canvas = null;
+      try { canvas = await frameFromNative(); } catch { canvas = null; }
+      if (!canvas) {
+        ui.camMsg.textContent = 'The frame could not be copied. You can still use the shutter.';
+        ui.blocked.hidden = false;
+        return;
+      }
+      pulseCapture();
+      const slot = ui.camSlot || activeSlot();
+      stopCamera();
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      releaseCanvas(canvas);
+      if (!blob) {
+        ui.camMsg.textContent = 'The frame could not be copied. You can still upload a photo.';
+        ui.blocked.hidden = false;
+        return;
+      }
+      await loadFile(slot, new File([blob], 'camera.jpg', { type: 'image/jpeg' }), { fromCamera: true });
+      return;
+    }
     const box = captureSize(ui.video.videoWidth, ui.video.videoHeight);
     if (!box) {
       ui.camMsg.textContent = 'The camera has no frame yet.';
@@ -2489,7 +2572,7 @@ function build(section, missingList) {
 
   const limits = document.createElement('p');
   limits.className = 'note';
-  limits.append(document.createTextNode('English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. '));
+  limits.append(document.createTextNode('Photos stay on this phone. The camera and the grade run on the device. English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. '));
   const more = document.createElement('a');
   more.href = 'scan/LIMITATIONS.md';
   more.textContent = 'Full limitations';

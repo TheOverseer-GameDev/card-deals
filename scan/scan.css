@@ -1099,3 +1099,14 @@ html.scan-cam #v-scan.scan-review.on .scan-result-actions {
   background: transparent;
   box-shadow: none;
 }
+html.scan-cam #v-scan .scan-top {
+  padding-top: var(--safe-top, env(safe-area-inset-top, 0px));
+  height: calc(48px + var(--safe-top, env(safe-area-inset-top, 0px)));
+}
+html.scan-tight.scan-cam #v-scan .scan-top {
+  height: calc(36px + var(--safe-top, env(safe-area-inset-top, 0px)));
+}
+html.scan-cam #v-scan .scan-cam-bar,
+html.scan-cam #v-scan.scan-review.on .scan-result-actions {
+  padding-bottom: calc(12px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+}

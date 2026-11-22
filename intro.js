@@ -7,7 +7,10 @@
   const FULL_MS = 2000;
   const FADE_MS = 700;
   const SOUND_KEY = 'cd-sound';
-  if (window.__introPlayed) return;
+  if (window.__introPlayed) {
+    if (window.CardDealsPlatform) window.CardDealsPlatform.handoffSplash();
+    return;
+  }
   window.__introPlayed = true;
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -53,6 +56,7 @@
   root.append(skip, stage);
   document.body.append(root);
   drawBack(card.getContext('2d'), card.width, card.height);
+  if (window.CardDealsPlatform) window.CardDealsPlatform.handoffSplash();
 
   let audio = null;
   let ended = false;

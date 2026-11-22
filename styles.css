@@ -45,6 +45,10 @@
   --r-md: 16px;
   --ease: cubic-bezier(.2, .8, .2, 1);
   --spring: cubic-bezier(.32, 1.25, .4, 1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   color-scheme: dark;
 }
 
@@ -89,12 +93,15 @@ html, body {
   font-family: var(--font);
   font-feature-settings: "cv11", "ss01", "ss03";
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
+a, button, input, select, textarea { touch-action: manipulation; }
 html { background: var(--bg); }
 body {
   font-size: 15px;
   line-height: 1.45;
-  padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  padding-top: var(--safe-top);
+  padding-bottom: calc(108px + var(--safe-bottom));
   background: transparent;
 }
 #card-rain {
@@ -227,7 +234,8 @@ h1 b, .accent { color: var(--accent-ink); }
   padding: 8px 12px;
 }
 #intro-tap { bottom: -36px; }
-#intro-skip { top: 18px; right: 18px; }
+#intro-skip { top: calc(18px + var(--safe-top)); right: calc(18px + var(--safe-right)); }
+html[data-shell="native"] #vt { display: none; }
 #app-intro.is-reduced .intro-card { animation: none; transform: none; opacity: 1; }
 #app-intro.is-reduced .intro-sheen,
 #app-intro.is-reduced .intro-burst { animation: none; opacity: 0; }
@@ -355,9 +363,9 @@ main { padding: 0 16px 8px; }
 
 nav {
   position: fixed;
-  left: 12px;
-  right: 12px;
-  bottom: calc(10px + env(safe-area-inset-bottom));
+  left: calc(12px + var(--safe-left));
+  right: calc(12px + var(--safe-right));
+  bottom: calc(10px + var(--safe-bottom));
   height: 68px;
   width: auto;
   border-radius: 26px;
