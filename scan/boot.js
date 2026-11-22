@@ -896,6 +896,11 @@ function boot() {
         if (ui.align) ui.align.textContent = view.hint;
         if (ui.tightNote) ui.tightNote.textContent = view.hint;
         if (ui.setCaptureProgress) ui.setCaptureProgress(view.progress);
+        if (ui.dev && !ui.dev.hidden) {
+          const lens = ui.camera && ui.camera.selectedOptions[0] ? ui.camera.selectedOptions[0].textContent : 'Rear 1×';
+          const torchOn = ui.torch && ui.torch.getAttribute('aria-pressed') === 'true';
+          ui.dev.textContent = `${lens} · ${torchOn ? 'torch on' : 'torch off'} · ${view.code || 'looking'}`;
+        }
         drawLiveQuad(ui.liveEdge, ui.video, view.quad, view.code);
       },
       onCapture() {
@@ -2594,7 +2599,16 @@ function build(section, missingList) {
   const align = document.createElement('p');
   align.id = 'scan-align';
   align.textContent = 'Align the card in the frame.';
-  capture.append(top, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, frontFile, backFile);
+  const dev = document.createElement('p');
+  dev.id = 'scan-dev';
+  dev.hidden = true;
+  let devFlag = false;
+  try { devFlag = new URLSearchParams(location.search).get('s22') === '1'; } catch { devFlag = false; }
+  if (devFlag) {
+    dev.hidden = false;
+    dev.textContent = 'Rear 1× · torch off';
+  }
+  capture.append(top, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, dev, frontFile, backFile);
   const fresh = document.createElement('p');
   fresh.id = 'scan-freshness';
   fresh.className = 'note';
@@ -2853,6 +2867,7 @@ function build(section, missingList) {
     blocked,
     thumbs,
     torch,
+    dev,
     infoBtn,
     infoClose,
     infoSheet,

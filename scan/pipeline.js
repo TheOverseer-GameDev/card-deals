@@ -2,6 +2,7 @@
  * On-device straighten, centering, and photo grade. No network.
  * A zero guide is null. CAD is never implied from a USD figure.
  */
+import { outermostQuad } from './core/outline.js';
 
 export const NAMES = {
   10: 'Gem Mint',
@@ -596,7 +597,7 @@ export function quadPose(quad) {
   };
 }
 
-export function straighten(rgba, width, height) {
+function straightenCard(rgba, width, height) {
   const located = findQuad(rgba, width, height, 480, 0.18);
   let paper = located.gray ? outerQuad(located.gray, located.width, located.height, located.scale) : null;
   if (paper && located.found && located.quad) {
@@ -693,6 +694,24 @@ export function straighten(rgba, width, height) {
     bowed,
     edgesOk: edgesLevel(picture),
   });
+}
+
+function quadPlausible(quad, width, height) {
+  const xs = quad.map((point) => point.x);
+  const ys = quad.map((point) => point.y);
+  const w = Math.max(...xs) - Math.min(...xs);
+  const h = Math.max(...ys) - Math.min(...ys);
+  if (w < width * 0.2 || h < height * 0.2) return false;
+  if (w > width * 1.35 || h > height * 1.35) return false;
+  const shape = Math.min(w, h) / Math.max(w, h);
+  return shape > 0.45 && shape < 0.9;
+}
+
+export function straighten(rgba, width, height) {
+  const flat = straightenCard(rgba, width, height);
+  const outer = outermostQuad(rgba, width, height);
+  if (outer && flat && quadPlausible(outer, width, height)) flat.quad = outer;
+  return flat;
 }
 
 function edgesReliable(pose, picture) {
