@@ -1116,11 +1116,20 @@ export function psaEstimate(input) {
   }
   const critical = blocked.filter((item) => CRITICAL_REGIONS.includes(item.regionId));
   if (critical.length >= PSA_BLOCK_AT) {
-    const result = unavailableResult(blocked.map((item) => item.line));
-    result.basis = blocked.map((item) => `${item.side === 'back' ? 'Back' : 'Front'} ${item.label}: ${item.why} — not counted as clean`);
-    noteIgnoredClean(front, frontNotes, 'Front', result.basis);
-    if (back) noteIgnoredClean(back, backNotes, 'Back', result.basis);
-    return result;
+    const basis = blocked.map((item) => `${item.side === 'back' ? 'Back' : 'Front'} ${item.label}: ${item.why} — not counted as clean`);
+    noteIgnoredClean(front, frontNotes, 'Front', basis);
+    if (back) noteIgnoredClean(back, backNotes, 'Back', basis);
+    basis.push('Several areas could not be seen, so the range is wider. Unseen areas were not treated as clean.');
+    return {
+      label: PSA_LABEL,
+      range: { low: 4, high: 7 },
+      point: 6,
+      confidence: 'Low',
+      basis,
+      blocked_reasons: blocked.map((item) => item.line),
+      message: 'Most likely PSA 6. Range PSA 4–7.',
+      disclaimer: PSA_DISCLAIMER,
+    };
   }
   let high = 10;
   const basis = [];
@@ -1153,12 +1162,15 @@ export function psaEstimate(input) {
   if (back) noteIgnoredClean(back, backNotes, 'Back', basis);
   high = Math.max(1, Math.min(10, Math.trunc(high)));
   const low = high === 1 ? 1 : high - 1;
+  const confidence = blocked.length ? 'Medium' : 'High';
   return {
     label: PSA_LABEL,
     range: { low, high },
+    point: high,
+    confidence,
     basis,
     blocked_reasons: blocked.map((item) => item.line),
-    message: null,
+    message: `Most likely PSA ${high}. Range PSA ${low}–${high}.`,
     disclaimer: PSA_DISCLAIMER,
   };
 }

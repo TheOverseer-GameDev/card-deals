@@ -855,6 +855,17 @@ html.scan-cam #v-scan.scan-review.on .scan-result-actions {
   font-size: 15px;
   font-weight: 720;
 }
+.scan-grade-hero { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 8px 0; }
+.scan-grade-point { font-size: 42px; line-height: 1; font-weight: 720; letter-spacing: -.04em; }
+.scan-grade-range-text { font-size: 14px; opacity: .85; }
+.scan-check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.scan-check {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  min-height: 64px; padding: 8px; border-radius: 14px; text-align: left;
+  background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); color: #fff;
+}
+.scan-check b { font-size: 14px; font-weight: 650; }
+.scan-improve { font-size: 14px; line-height: 1.4; }
 .scan-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .scan-chip {
   display: inline-flex;

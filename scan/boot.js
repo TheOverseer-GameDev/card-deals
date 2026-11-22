@@ -29,6 +29,8 @@ import { compareTilt } from './tilt.js';
 import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
 import { AUTO_CENTERING, ESTIMATE_UNAVAILABLE } from './engine.js';
+import { gradeEstimate } from './core/grade.js';
+import { inspect } from './core/inspect.js';
 import { psaEstimate } from './engine.js';
 import { estimateBorders, formatGuide, gradePhoto, gradeSide, grayOf, measureCentering, straighten } from './pipeline.js';
 import { mountGuides } from './manual.js';
@@ -1062,6 +1064,126 @@ function boot() {
     }
   }
 
+  function seenChecks(side, centeringText, canvas, hasBack) {
+    const seen = {};
+    seen.centering = centeringText ? { state: 'ok', cap: 9 } : { state: 'unseen' };
+    for (const key of ['corners', 'edges', 'surface']) {
+      const score = side[key] && side[key].score;
+      seen[key] = score == null ? { state: 'unseen' } : { state: 'ok' };
+    }
+    if (!hasBack) seen.back = { state: 'unseen' };
+    let report = null;
+    try {
+      if (canvas && canvas.width > 2) {
+        const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        report = inspect(data.data, canvas.width, canvas.height);
+      }
+    } catch { report = null; }
+    for (const id of ['stain', 'foil', 'edition', 'authenticity', 'print', 'whitening', 'ding', 'scratch', 'dent', 'crease', 'warp', 'glare', 'nick']) {
+      const item = report && report.results ? report.results[id] : null;
+      if (!item || item.state === 'unchecked') seen[id] = { state: 'unseen' };
+      else if (item.state === 'found') seen[id] = { state: 'found' };
+      else seen[id] = { state: 'ok' };
+    }
+    return seen;
+  }
+
+  function paintGradeHero(host, grade) {
+    if (!host) return;
+    let hero = host.querySelector('.scan-grade-hero');
+    if (!hero) {
+      hero = document.createElement('div');
+      hero.className = 'scan-grade-hero';
+      host.prepend(hero);
+    }
+    hero.replaceChildren();
+    if (!grade || grade.refused) return;
+    const num = document.createElement('b');
+    num.className = 'scan-grade-point';
+    num.textContent = String(grade.point);
+    const range = document.createElement('span');
+    range.className = 'scan-grade-range-text';
+    range.textContent = grade.rangeText;
+    const chip = document.createElement('span');
+    chip.className = 'scan-chip';
+    chip.textContent = grade.confidence;
+    hero.append(num, range, chip);
+  }
+
+  function paintCheckGrid(host, seen, grade) {
+    if (!host) return;
+    let grid = host.querySelector('.scan-check-grid');
+    if (!grid) {
+      grid = document.createElement('div');
+      grid.className = 'scan-check-grid';
+      host.append(grid);
+    }
+    grid.replaceChildren();
+    const labels = {
+      centering: 'Centering', corners: 'Corners', edges: 'Edges', surface: 'Surface',
+      whitening: 'Whitening', scratch: 'Scratches', dent: 'Dents', crease: 'Creases',
+      warp: 'Warping', stain: 'Stains', foil: 'Foil wear', print: 'Print quality',
+      edition: 'Edition', authenticity: 'Authenticity',
+    };
+    for (const [id, label] of Object.entries(labels)) {
+      const item = seen[id] || { state: 'unseen' };
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'scan-check';
+      const name = document.createElement('span');
+      name.textContent = label;
+      const chip = document.createElement('span');
+      chip.className = 'scan-chip';
+      chip.textContent = item.state === 'unseen' ? "Couldn't see" : item.state === 'estimated' ? 'Estimated' : 'Measured';
+      const value = document.createElement('b');
+      value.textContent = item.state === 'found' ? 'Issue seen' : item.state === 'ok' ? 'No issue seen' : '—';
+      btn.append(name, value, chip);
+      btn.addEventListener('click', () => openCheckSheet(label, item, grade));
+      grid.append(btn);
+    }
+    let tip = host.querySelector('.scan-improve');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.className = 'scan-improve';
+      host.append(tip);
+    }
+    tip.textContent = !grade || grade.refused || grade.confidence === 'High'
+      ? ''
+      : 'Improve this estimate. Retake in even light so more of the card can be measured.';
+  }
+
+  function openCheckSheet(label, item, grade) {
+    let sheet = document.getElementById('scan-check-sheet');
+    if (!sheet) {
+      sheet = document.createElement('div');
+      sheet.id = 'scan-check-sheet';
+      sheet.className = 'scan-identify';
+      const panel = document.createElement('div');
+      panel.className = 'scan-sheet-panel';
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.textContent = 'Close';
+      close.addEventListener('click', () => { sheet.hidden = true; });
+      const title = document.createElement('h3');
+      title.id = 'scan-check-title';
+      const body = document.createElement('p');
+      body.id = 'scan-check-body';
+      panel.append(close, title, body);
+      sheet.append(panel);
+      const root = document.getElementById('v-scan');
+      if (root) root.append(sheet);
+    }
+    sheet.hidden = false;
+    sheet.querySelector('#scan-check-title').textContent = label;
+    const state = item.state === 'found'
+      ? 'Something stood out in this area.'
+      : item.state === 'ok'
+        ? 'This area was measured. No issue stood out.'
+        : "Couldn't see this area.";
+    const tip = item.state === 'unseen' ? ' Retake with the card flat and evenly lit.' : '';
+    sheet.querySelector('#scan-check-body').textContent = `${state}${tip} ${grade && grade.reason ? grade.reason : ''}`.trim();
+  }
+
   function paintGradeChips(host, headline, confidenceLine) {
     if (!host) return;
     let chips = host.querySelector('.scan-chips');
@@ -1078,7 +1200,7 @@ function boot() {
       chip.textContent = label;
       chips.append(chip);
     };
-    if (headline === ESTIMATE_UNAVAILABLE) add('Retake needed', 'warn');
+    if (headline === ESTIMATE_UNAVAILABLE || confidenceLine.startsWith('Low')) add('Retake needed', 'warn');
     add(confidenceLine.replace(/\.$/, ''), 'muted');
     let why = host.querySelector('.scan-why');
     if (!why) {
@@ -1183,17 +1305,19 @@ function boot() {
       }
       grid.append(cell);
     }
-    let headline = centeringText ? range.text : ESTIMATE_UNAVAILABLE;
-    if (reports.front) {
-      const estimate = psaEstimate({
-        mode,
-        front: reports.front,
-        back: reports.back,
-        notes: { front: readNotes('front'), back: readNotes('back') },
-      });
-      if (!estimate.range) headline = ESTIMATE_UNAVAILABLE;
+    const seen = seenChecks(side, centeringText, slots.front.canvas, Boolean(slots.back && slots.back.canvas));
+    const bestGrade = gradeEstimate({ hasCard: Boolean(slots.front.canvas), seen });
+    let headline = bestGrade.refused
+      ? ESTIMATE_UNAVAILABLE
+      : `${bestGrade.headline} ${bestGrade.rangeText}`;
+    const confidenceLine = bestGrade.refused
+      ? 'Low confidence.'
+      : `${bestGrade.confidence} confidence.`;
+    if (!bestGrade.refused && bestGrade.confidence === 'Low') {
+      rangeNotes.push('Retake in even light to improve this estimate.');
     }
-    const confidenceLine = range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.';
+    paintGradeHero(ui.rangeHost, bestGrade);
+    paintCheckGrid(ui.rangeHost, seen, bestGrade);
     const alreadySaid = rangeNotes.some((part) => String(part || '').toLowerCase().includes(confidenceLine.replace(/\.$/, '').toLowerCase()));
     const explanation = [headline, alreadySaid ? '' : confidenceLine, ...rangeNotes].map(finishSentence).filter(Boolean).join(' ');
     showCheck(ui.rangeHost, explanation);
@@ -1203,6 +1327,7 @@ function boot() {
     if (token === savedToken) return;
     savedToken = token;
     const summary = [headline]
+      .concat(!bestGrade.refused && bestGrade.confidence === 'Low' ? ['Retake in even light to improve this estimate.'] : [])
       .concat(stains.status && stains.status !== 'clear' ? [stains.note] : [])
       .concat(creases.status && creases.status !== 'clear' ? [creases.note] : [])
       .map(finishSentence)

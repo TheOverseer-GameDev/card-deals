@@ -166,7 +166,11 @@ def precache_files():
     scan=next((p for p in candidates if os.path.isfile(os.path.join(p,'boot.js'))), None)
     if not scan: return shell
     names=sorted(n for n in os.listdir(scan) if n.endswith(('.js','.css','.json')))
-    return shell+[f'scan/{n}' for n in names]
+    core=os.path.join(scan,'core')
+    extra=[]
+    if os.path.isdir(core):
+        extra=[f'scan/core/{n}' for n in sorted(os.listdir(core)) if n.endswith('.js')]
+    return shell+[f'scan/{n}' for n in names]+extra
 
 SW=r"""const C='cd3-__V__',F=__FILES__;
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(u=>new Request(u,{cache:'reload'})))))});

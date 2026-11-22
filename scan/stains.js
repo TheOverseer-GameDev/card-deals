@@ -26,9 +26,11 @@ export function findStains(rgba, width, height) {
   const vary = varyN ? Math.sqrt(Math.max(0, varySq / varyN - varyMean * varyMean)) : 0;
   if (vary > 40) {
     return {
-      status: 'clear',
+      status: 'unchecked',
       findings: [],
-      note: 'The picture is too detailed to separate a stain from the printing. Fine marks can still be missed.',
+      reason: 'UNCERTAIN',
+      tip: 'Retake in even light so a stain can be separated from the printing.',
+      note: 'The picture is too detailed to separate a stain from the printing. This area was not called clear.',
     };
   }
   const x0 = Math.round(width * 0.08);
