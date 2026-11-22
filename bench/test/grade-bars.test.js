@@ -41,6 +41,12 @@ test('M21 the true grade stays inside the range at every confidence, and M22 Hig
   }
   const close = levels.High.filter((row) => Math.abs(row.estimate.point - row.truth) <= 1).length / levels.High.length;
   assert.ok(close >= 0.85, `high point ${close}`);
+  const wide = gradeEstimate({ hasCard: true, seen: seenFrom([], ['authenticity', 'crease'], []) });
+  assert.equal(wide.confidence, 'Low');
+  assert.ok(wide.high - wide.low >= 4);
+  assert.equal(wide.point, Math.round((wide.low + wide.high) / 2));
+  assert.notEqual(wide.point, wide.high);
+  assert.match(wide.headline, /PSA \d+–\d+, likely ~\d+\./);
   const empty = gradeEstimate({ hasCard: false, seen: {} });
   assert.equal(empty.refused, true);
   assert.match(empty.message, /No card/);

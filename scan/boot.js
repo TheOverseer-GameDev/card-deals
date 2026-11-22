@@ -734,8 +734,17 @@ function boot() {
     section.style.bottom = 'auto';
     section.style.top = `${((vv ? vv.offsetTop : 0) / z)}px`;
     section.style.left = `${((vv ? vv.offsetLeft : 0) / z)}px`;
+    const review = section.classList.contains('scan-review');
+    const nav = document.querySelector('nav');
+    let navSpace = 0;
+    if (review && nav) {
+      navSpace = (nav.offsetHeight || 76) + 10;
+      nav.style.zIndex = '130';
+    } else if (nav && nav.style.zIndex === '130') {
+      nav.style.zIndex = '';
+    }
     section.style.width = `${((vv ? vv.width : window.innerWidth) / z)}px`;
-    section.style.height = `${((vv ? vv.height : window.innerHeight) / z)}px`;
+    section.style.height = `${((vv ? vv.height : window.innerHeight) / z) - navSpace}px`;
   }
 
   function markTight() {
@@ -763,6 +772,8 @@ function boot() {
 
   function leaveCapture() {
     document.documentElement.classList.remove('scan-cam', 'scan-tight');
+    const nav = document.querySelector('nav');
+    if (nav && nav.style.zIndex === '130') nav.style.zIndex = '';
     section.style.position = '';
     section.style.top = '';
     section.style.left = '';
@@ -1143,16 +1154,20 @@ function boot() {
     }
     hero.replaceChildren();
     if (!grade || grade.refused) return;
+    const wide = grade.confidence === 'Low' && Number.isFinite(grade.low) && Number.isFinite(grade.high) && grade.high - grade.low >= 4;
     const num = document.createElement('b');
-    num.className = 'scan-grade-point';
-    num.textContent = String(grade.point);
-    const range = document.createElement('span');
-    range.className = 'scan-grade-range-text';
-    range.textContent = grade.rangeText;
+    num.className = wide ? 'scan-grade-point is-range' : 'scan-grade-point';
+    num.textContent = wide ? `PSA ${grade.low}–${grade.high}, likely ~${grade.point}` : String(grade.point);
     const chip = document.createElement('span');
     chip.className = 'scan-chip';
     chip.textContent = grade.confidence;
-    hero.append(num, range, chip);
+    hero.append(num, chip);
+    if (!wide && grade.rangeText) {
+      const range = document.createElement('span');
+      range.className = 'scan-grade-range-text';
+      range.textContent = grade.rangeText;
+      hero.insertBefore(range, chip);
+    }
   }
 
   function paintCheckGrid(host, seen, grade) {
@@ -1336,7 +1351,7 @@ function boot() {
     const bestGrade = gradeEstimate({ hasCard: Boolean(slots.front.canvas), seen });
     let headline = bestGrade.refused
       ? ESTIMATE_UNAVAILABLE
-      : `${bestGrade.headline} ${bestGrade.rangeText}`;
+      : [bestGrade.headline, bestGrade.rangeText].filter(Boolean).join(' ');
     const confidenceLine = bestGrade.refused
       ? 'Low confidence.'
       : `${bestGrade.confidence} confidence.`;

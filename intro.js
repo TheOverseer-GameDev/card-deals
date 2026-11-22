@@ -123,7 +123,7 @@
   }
 
   requestAnimationFrame(() => root.classList.add('is-run'));
-  timer = setTimeout(finish, duration + 40);
+  if (!window.__holdIntro) timer = setTimeout(finish, duration + 40);
 }());
 
 function drawBack(ctx, w, h) {

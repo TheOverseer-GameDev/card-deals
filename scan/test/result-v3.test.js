@@ -80,7 +80,7 @@ test('the result screen keeps grade copy, the photo, and the first-viewport acti
       const knob = document.getElementById('scan-session-sound').getBoundingClientRect();
       const next = document.getElementById('scan-next-card').getBoundingClientRect();
       const retake = document.getElementById('scan-retake-main').getBoundingClientRect();
-      const tabs = document.getElementById('scan-tabs').getBoundingClientRect();
+      const tabs = document.querySelector('nav').getBoundingClientRect();
       const scroller = document.querySelector('.scan-panel-scroll');
       return {
         explanation: note.textContent,
@@ -111,7 +111,8 @@ test('the result screen keeps grade copy, the photo, and the first-viewport acti
         actionsAboveTabs: next.top >= 0 && next.bottom <= tabs.top + 1 && retake.bottom <= tabs.top + 1 && next.bottom <= window.innerHeight,
       };
     });
-    assert.match(facts.explanation, /Most likely PSA \d+\. Range PSA \d+–\d+\./);
+    assert.match(facts.explanation, /PSA \d+–\d+, likely ~\d+\./);
+    assert.doesNotMatch(facts.explanation, /Most likely PSA 10/);
     assert.doesNotMatch(facts.explanation, /Estimate unavailable/);
     assert.match(facts.explanation, /Low confidence\./);
     assert.match(facts.explanation, /Centering is not measured\./);

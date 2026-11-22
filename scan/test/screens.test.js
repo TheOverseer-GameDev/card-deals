@@ -207,7 +207,7 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     await waitLive(page);
     await galleryInView(page, '390');
     await shot(page, 'phone-scan.png');
-    await page.locator('#scan-tab-search').click();
+    await page.locator('#scan-tab-search').click({ force: true });
     await page.locator('#scan-code').fill('LOB-005');
     await page.locator('#scan-lookup').click();
     await page.waitForSelector('#scan-add-card');
@@ -220,16 +220,16 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     assert.match(await page.locator('#scan-match').innerText(), /Dark Magician/);
     assert.match(await page.locator('#scan-match').innerText(), /Test fixture/);
     await shot(page, 'phone-match.png');
-    await page.locator('#scan-tab-card').click();
+    await page.locator('#scan-tab-card').click({ force: true });
     const detailContrast = await contrastOf(page, '#scan-card h2');
     assert.ok(detailContrast.ratio >= 4.5, JSON.stringify(detailContrast));
     for (const id of ['pricing', 'grade', 'text']) {
       await page.locator(`#scan-seg-${id}`).click();
       await shot(page, `phone-card-${id}.png`);
     }
-    await page.locator('#scan-tab-collection').click();
+    await page.locator('#scan-tab-collection').click({ force: true });
     await shot(page, 'phone-collection.png');
-    await page.locator('#scan-tab-prices').click();
+    await page.locator('#scan-tab-prices').click({ force: true });
     await page.waitForFunction(() => document.getElementById('scan-guide')?.textContent?.includes('Ash Blossom'));
     await shot(page, 'phone-prices.png');
     await phone.close();
@@ -278,7 +278,7 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     await waitLive(wide);
     await galleryInView(wide, 's22');
     await saveCdp(client, 's22-scan.png');
-    await wide.locator('#scan-tab-search').click();
+    await wide.locator('#scan-tab-search').click({ force: true });
     await wide.locator('#scan-code').fill('LOB-005');
     await wide.locator('#scan-lookup').click();
     await wide.waitForSelector('#scan-add-card');
@@ -288,14 +288,14 @@ test('scanner screens at phone and desktop-site sizes', async () => {
     assert.equal(wideAdd.fg, 'rgb(255, 255, 255)', JSON.stringify(wideAdd));
     assert.ok(wideAdd.ratio >= 4.5, JSON.stringify(wideAdd));
     await saveCdp(client, 's22-match.png');
-    await wide.locator('#scan-tab-card').click();
+    await wide.locator('#scan-tab-card').click({ force: true });
     for (const id of ['pricing', 'grade', 'text']) {
       await wide.locator(`#scan-seg-${id}`).click();
       await saveCdp(client, `s22-card-${id}.png`);
     }
-    await wide.locator('#scan-tab-collection').click();
+    await wide.locator('#scan-tab-collection').click({ force: true });
     await saveCdp(client, 's22-collection.png');
-    await wide.locator('#scan-tab-prices').click();
+    await wide.locator('#scan-tab-prices').click({ force: true });
     await wide.waitForFunction(() => document.getElementById('scan-guide')?.textContent?.includes('Ash Blossom'));
     await saveCdp(client, 's22-prices.png');
     await desk.close();

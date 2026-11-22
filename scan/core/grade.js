@@ -66,6 +66,9 @@ export function gradeEstimate({ hasCard, seen } = {}) {
     low = Math.max(1, point - 1);
     high = point;
   }
+  const span = high - low;
+  const wide = confidence === 'Low' && span >= 4;
+  if (wide) point = Math.round((low + high) / 2);
   return {
     refused: false,
     point,
@@ -73,8 +76,8 @@ export function gradeEstimate({ hasCard, seen } = {}) {
     high,
     confidence,
     reason,
-    headline: `Most likely PSA ${point}.`,
-    rangeText: `Range PSA ${low}–${high}.`,
+    headline: wide ? `PSA ${low}–${high}, likely ~${point}.` : `Most likely PSA ${point}.`,
+    rangeText: wide ? '' : `Range PSA ${low}–${high}.`,
   };
 }
 
