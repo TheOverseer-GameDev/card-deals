@@ -58,56 +58,22 @@
   let ended = false;
   let timer = 0;
   const started = performance.now();
-  window.__intro = { audio: false, started, duration, reduced: reduce };
-
-  function scheduleSting(ctx, when) {
-    const master = ctx.createGain();
-    master.gain.setValueAtTime(0.0001, when);
-    master.gain.exponentialRampToValueAtTime(0.16, when + 0.03);
-    master.gain.exponentialRampToValueAtTime(0.0001, when + 1.65);
-    master.connect(ctx.destination);
-    [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = i % 2 ? 'triangle' : 'sine';
-      osc.frequency.value = freq;
-      const t = when + i * 0.11;
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
-      osc.connect(gain);
-      gain.connect(master);
-      osc.start(t);
-      osc.stop(t + 0.46);
-    });
-    const count = Math.floor(ctx.sampleRate * 0.35);
-    const buffer = ctx.createBuffer(1, count, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < count; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / count);
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(420, when);
-    filter.frequency.exponentialRampToValueAtTime(2200, when + 0.3);
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.05, when);
-    noiseGain.gain.exponentialRampToValueAtTime(0.0001, when + 0.36);
-    noise.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(master);
-    noise.start(when);
-    noise.stop(when + 0.36);
-  }
-
-  window.__scheduleSting = scheduleSting;
+  const audioApi = window.CardDealsAudio;
+  const shell = audioApi && audioApi.nativeShell() ? 'native' : 'browser';
+  window.__intro = { audio: false, started, duration, reduced: reduce, shell };
+  window.__scheduleSting = audioApi && audioApi.scheduleSting;
 
   function playSting() {
-    if (!soundOn() || window.__intro.audio || ended) return;
+    if (!audioApi || window.__intro.audio || ended || !audioApi.outputAllowed()) return;
+    if (shell === 'browser' && !window.__introGesture) return;
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
     audio = new Ctx();
-    scheduleSting(audio, audio.currentTime + 0.02);
+    if (!audioApi.play(audio)) {
+      audio.close().catch(() => {});
+      audio = null;
+      return;
+    }
     window.__intro.audio = true;
     tap.hidden = true;
   }
@@ -126,9 +92,10 @@
     window.__intro.ended = performance.now() - started;
   }
 
-  tap.hidden = !soundOn();
+  tap.hidden = shell === 'native' || !soundOn();
   tap.addEventListener('click', (event) => {
     event.stopPropagation();
+    window.__introGesture = true;
     playSting();
   });
   skip.addEventListener('click', (event) => {
@@ -136,12 +103,14 @@
     finish();
   });
   root.addEventListener('click', () => {
-    if (soundOn() && !window.__intro.audio) {
+    if (shell === 'browser' && soundOn() && !window.__intro.audio) {
+      window.__introGesture = true;
       playSting();
       return;
     }
     finish();
   });
+  if (shell === 'native') playSting();
 
   const sound = document.getElementById('sound');
   if (sound) {

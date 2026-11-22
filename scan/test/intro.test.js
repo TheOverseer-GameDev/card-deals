@@ -29,11 +29,13 @@ function startServer() {
 }
 
 test('intro source is original and local', () => {
-  const src = fs.readFileSync(path.join(root, 'intro.js'), 'utf8');
+  const src = fs.readFileSync(path.join(root, 'intro.js'), 'utf8')
+    + fs.readFileSync(path.join(root, 'intro-audio.js'), 'utf8');
   assert.equal(src.includes('fetch('), false);
   assert.doesNotMatch(src, /Yu-Gi-Oh|Pokemon|Pokémon|Konami|Wizards|Deckmaster/i);
   assert.match(src, /AudioContext/);
   assert.match(src, /Card Deals/);
+  assert.match(src, /nativeShell/);
 });
 
 test('the intro ends within 2.2s, can be skipped, and does not block the scanner', async () => {
@@ -90,6 +92,47 @@ test('sound off is remembered and the sting stays silent', async () => {
     assert.equal(await page.evaluate(() => localStorage.getItem('cd-sound')), 'off');
     await page.locator('#app-intro').click();
     assert.equal(await page.evaluate(() => window.__intro.audio), false);
+  } finally {
+    await browser.close();
+    server.close();
+  }
+});
+
+test('a native shell plays the sting at launch unless sound or the device is off', async () => {
+  const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  const server = await startServer();
+  try {
+    const native = await (await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })).newPage();
+    await native.addInitScript(() => {
+      window.Capacitor = { isNativePlatform: () => true, getPlatform: () => 'android' };
+    });
+    await native.goto(`http://127.0.0.1:${server.address().port}/`);
+    await native.waitForSelector('#app-intro');
+    const played = await native.evaluate(() => ({ shell: window.__intro.shell, audio: window.__intro.audio, tap: document.getElementById('intro-tap').hidden }));
+    assert.equal(played.shell, 'native');
+    assert.equal(played.audio, true);
+    assert.equal(played.tap, true);
+    await native.close();
+
+    const muted = await (await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })).newPage();
+    await muted.addInitScript(() => {
+      window.Capacitor = { isNativePlatform: () => true };
+      localStorage.setItem('cd-sound', 'off');
+    });
+    await muted.goto(`http://127.0.0.1:${server.address().port}/`);
+    await muted.waitForSelector('#app-intro');
+    assert.equal(await muted.evaluate(() => window.__intro.audio), false);
+    await muted.close();
+
+    const silent = await (await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })).newPage();
+    await silent.addInitScript(() => {
+      window.Capacitor = { isNative: true };
+      window.CardDealsNative = { silent: true, volume: 1 };
+    });
+    await silent.goto(`http://127.0.0.1:${server.address().port}/`);
+    await silent.waitForSelector('#app-intro');
+    assert.equal(await silent.evaluate(() => window.__intro.audio), false);
+    await silent.close();
   } finally {
     await browser.close();
     server.close();
