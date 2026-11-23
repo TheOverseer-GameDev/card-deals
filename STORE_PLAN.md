@@ -22,11 +22,11 @@ Card Deals ships as a Google Play app and an Apple App Store app. The page in th
 
 Photos stay on the phone. The info sheet says so.
 
-## Wrapper setup, later
+## Wrapper setup
 
-Do this only when we decide to ship. Do not add the packages for scanner work.
+The draft wrapper is in this repo. It is not signed and it is not published.
 
-1. Add Capacitor to a copy of this static app. `webDir` is this folder. Release builds must not set `server.url` to a hosted site.
+1. Capacitor `webDir` is `www`, filled from this app by `node native/sync-web.mjs`. Release config does not set `server.url`.
 2. Add Android and iOS projects. The WebView background is transparent so the camera preview shows behind the guide.
 3. Copy `store/icon-1024.png`, `store/adaptive-foreground.png`, `store/adaptive-background.png`, and `store/splash.png` into the native icon and splash slots. `icon-192.png` and `icon-512.png` are the same original mark for the preview.
 4. Confirm a cold launch: splash, then the 2 second intro, then home. Sound on plays the sting. Sound off and silent mode do not.

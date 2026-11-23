@@ -1,4 +1,11 @@
 node_modules/
+www/
+android/app/src/main/assets/public/
+ios/App/App/public/
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
 scan/tmp/
 **/__pycache__/
 *.pyc

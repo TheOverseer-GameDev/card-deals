@@ -1,0 +1,18 @@
+{
+  "appId": "app.carddeals.scan",
+  "appName": "Card Deals",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#00000000"
+  },
+  "ios": {
+    "backgroundColor": "#00000000"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#06080F",
+      "showSpinner": false
+    }
+  }
+}
