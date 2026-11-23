@@ -1,0 +1,59 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "Card Deals card-type profile",
+ "type": "object",
+ "required": [
+  "id",
+  "label",
+  "family",
+  "size_mm",
+  "thickness",
+  "surfaces",
+  "centering",
+  "id_features",
+  "data_sources",
+  "status"
+ ],
+ "properties": {
+  "id": {
+   "type": "string",
+   "pattern": "^[a-z0-9-]+$"
+  },
+  "family": {
+   "enum": [
+    "sports",
+    "tcg",
+    "nonsport"
+   ]
+  },
+  "size_mm": {
+   "type": "object",
+   "required": [
+    "w",
+    "h",
+    "tol"
+   ]
+  },
+  "thickness": {
+   "type": "array"
+  },
+  "surfaces": {
+   "type": "array"
+  },
+  "borderless_possible": {
+   "type": "boolean"
+  },
+  "centering": {
+   "type": "object"
+  },
+  "markers": {
+   "type": "object"
+  },
+  "counterfeit_tells": {
+   "type": "array"
+  },
+  "status": {
+   "type": "string"
+  }
+ }
+}

@@ -1,0 +1,26 @@
+{
+  "_about": "Candidate games/categories not yet backed by a verified free catalog source. update_catalog.py probes each weekly and flags it in NEW_SETS.md when a free source shows it. Promote to a real source only after a human checks that source's terms.",
+  "candidates": [
+    {"id": "riftbound", "name": "Riftbound (League of Legends TCG)", "wiki": "Riftbound", "probes": ["https://api.riftcodex.com/api/cards?limit=1"]},
+    {"id": "gundam", "name": "Gundam Card Game", "wiki": "Gundam Card Game", "probes": []},
+    {"id": "dbs-fusion-world", "name": "Dragon Ball Super Card Game Fusion World", "wiki": "Dragon Ball Super Card Game", "probes": []},
+    {"id": "union-arena", "name": "Union Arena", "wiki": "Union Arena", "probes": []},
+    {"id": "weiss-schwarz", "name": "Weiss Schwarz", "wiki": "Weiß Schwarz", "probes": []},
+    {"id": "cardfight-vanguard", "name": "Cardfight!! Vanguard", "wiki": "Cardfight!! Vanguard", "probes": []},
+    {"id": "battle-spirits-saga", "name": "Battle Spirits Saga", "wiki": "Battle Spirits", "probes": []},
+    {"id": "shadowverse-evolve", "name": "Shadowverse: Evolve", "wiki": "Shadowverse", "probes": []},
+    {"id": "hololive-ocg", "name": "hololive OFFICIAL CARD GAME", "wiki": "Hololive Production", "probes": []},
+    {"id": "altered", "name": "Altered TCG", "wiki": "Altered (card game)", "probes": ["https://api.altered.gg/cards?itemsPerPage=1"]},
+    {"id": "final-fantasy-tcg", "name": "Final Fantasy Trading Card Game", "wiki": "Final Fantasy Trading Card Game", "probes": []},
+    {"id": "universus", "name": "UniVersus", "wiki": "UniVersus", "probes": []},
+    {"id": "keyforge", "name": "KeyForge", "wiki": "KeyForge", "probes": []},
+    {"id": "metazoo", "name": "MetaZoo", "wiki": "MetaZoo", "probes": []},
+    {"id": "elestrals", "name": "Elestrals", "wiki": "Elestrals", "probes": []},
+    {"id": "marvel-nonsport", "name": "Marvel trading cards (non-sport)", "wiki": "Marvel trading cards", "probes": []},
+    {"id": "garbage-pail-kids", "name": "Garbage Pail Kids", "wiki": "Garbage Pail Kids", "probes": []},
+    {"id": "star-wars-nonsport", "name": "Topps Star Wars (non-sport)", "wiki": "Star Wars trading cards", "probes": []},
+    {"id": "sports-baseball", "name": "Baseball cards (Topps/Bowman)", "wiki": "Baseball card", "probes": []},
+    {"id": "sports-hockey-opc", "name": "Hockey cards (Upper Deck / O-Pee-Chee)", "wiki": "O-Pee-Chee", "probes": []},
+    {"id": "sports-soccer", "name": "Soccer cards (Topps / Panini)", "wiki": "Panini Group", "probes": []}
+  ]
+}

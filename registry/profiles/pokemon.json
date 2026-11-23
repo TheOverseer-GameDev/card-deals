@@ -1,0 +1,77 @@
+{
+ "id": "pokemon",
+ "label": "Pokémon TCG (EN + Japanese)",
+ "family": "tcg",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "etched",
+  "textured",
+  "reverse-holo",
+  "cosmos",
+  "textured-full-art"
+ ],
+ "borderless_possible": true,
+ "id_features": [
+  "set",
+  "card_no",
+  "rarity",
+  "edition",
+  "language"
+ ],
+ "markers": {
+  "edition": [
+   "1st Edition stamp",
+   "Shadowless"
+  ],
+  "card_no": "\\b\\d{1,3}/\\d{1,3}\\b"
+ },
+ "counterfeit_tells": [
+  "wrong back blue",
+  "glossy paper",
+  "font",
+  "light test"
+ ],
+ "data_sources": {
+  "catalog": "tcgdex + pokemontcg.io (free)",
+  "prices": "ebay-licensed"
+ },
+ "status": "shipped",
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "corner_radius_mm": 3.2,
+ "guide": {
+  "px_corner": 16
+ }
+}

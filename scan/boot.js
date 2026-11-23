@@ -49,6 +49,7 @@ import { addToSession, createSession, cue, sessionTotal, storedCad, toCsv } from
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
 import { drawLiveQuad, formatDevLine, mountEdge, mountRing, startLive } from './live.js';
+import { GUIDE, refreshGuides } from './profiles.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
@@ -138,9 +139,10 @@ function boot() {
 
   const ui = build(section, rows.length === 0);
   function applyGuideShape() {
-    const mtg = ui.game && ui.game.value === 'mtg';
-    section.style.setProperty('--guide-w', mtg ? '63' : '59');
-    section.style.setProperty('--guide-h', mtg ? '88' : '86');
+    const id = ui.game && ui.game.value === 'mtg' ? 'mtg' : 'yugioh';
+    const size = GUIDE[id];
+    section.style.setProperty('--guide-w', String(size.w));
+    section.style.setProperty('--guide-h', String(size.h));
     const outline = ui.outline;
     if (!outline) return;
     outline.style.width = '';
@@ -151,6 +153,7 @@ function boot() {
   }
   if (ui.game) ui.game.addEventListener('change', applyGuideShape);
   applyGuideShape();
+  refreshGuides().then(() => applyGuideShape()).catch(() => {});
   ui.historyDelete.addEventListener('click', () => {
     openScanHistory().then(async (store) => {
       await store.clear();

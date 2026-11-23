@@ -1,0 +1,70 @@
+{
+ "id": "onepiece",
+ "label": "One Piece Card Game",
+ "family": "tcg",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "etched",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "parallel_alt_art",
+  "language"
+ ],
+ "markers": {
+  "set_code": "\\b(OP|ST|EB|PRB|P)-?\\d{2}-\\d{3}\\b"
+ },
+ "counterfeit_tells": [
+  "wrong font/kerning",
+  "washed colour",
+  "no texture on SP/manga art",
+  "light-test core"
+ ],
+ "data_sources": {
+  "catalog": "optcgapi (free)",
+  "prices": "ebay-licensed; TCGplayer only if Mike approves"
+ },
+ "status": "phase1-provisional-mm",
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "corner_radius_mm": 3.2,
+ "guide": {
+  "px_corner": 16
+ }
+}
