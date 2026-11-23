@@ -985,6 +985,51 @@ html.scan-cam #v-scan.scan-review.on .scan-result-actions {
   border-radius: 28px 28px 0 0;
   padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
 }
+#scan-confirm-match {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+#scan-confirm-match .scan-confirm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 650;
+  color: #F4F6FF;
+}
+#scan-confirm-match .scan-confirm-field:last-child { grid-column: 1 / -1; }
+#scan-confirm-match input,
+#scan-confirm-match select {
+  min-height: 44px;
+  margin: 0;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(11, 15, 26, .82);
+  color: #F4F6FF;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 450;
+}
+#scan-add-by-name {
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .1);
+  color: #F4F6FF;
+  font-size: 13px;
+  font-weight: 650;
+}
+:root[data-theme="light"] #scan-confirm-match .scan-confirm-field { color: #0E1124; }
+:root[data-theme="light"] #scan-confirm-match input,
+:root[data-theme="light"] #scan-confirm-match select {
+  background: rgba(255, 255, 255, .92);
+  color: #0E1124;
+  border-color: rgba(16, 20, 45, .16);
+}
 #v-scan label.scan-switch {
   display: flex;
   flex-direction: row;

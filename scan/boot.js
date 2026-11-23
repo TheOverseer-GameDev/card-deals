@@ -1365,7 +1365,7 @@ function boot() {
     paintGradeHero(ui.rangeHost, bestGrade);
     paintCheckGrid(ui.rangeHost, seen, bestGrade);
     const alreadySaid = rangeNotes.some((part) => String(part || '').toLowerCase().includes(confidenceLine.replace(/\.$/, '').toLowerCase()));
-    const explanation = [headline, alreadySaid ? '' : confidenceLine, ...rangeNotes].map(finishSentence).filter(Boolean).join(' ');
+    const explanation = [headline, alreadySaid ? '' : confidenceLine, 'This estimate is not an official grade and this app is not affiliated with PSA.', ...rangeNotes].map(finishSentence).filter(Boolean).join(' ');
     showCheck(ui.rangeHost, explanation);
     paintGradeChips(ui.rangeHost, headline, confidenceLine);
     showCheck(ui.worthHost, `Estimate, not a PSA grade. ${worth.text}`);
@@ -2295,7 +2295,15 @@ function build(section, missingList) {
   camLeft.append(zoomToggle);
   const camRight = document.createElement('div');
   camRight.className = 'scan-cam-side scan-cam-right';
-  camRight.append(gallery, next);
+  const addByName = button('Add by name', 'scan-add-by-name', true);
+  addByName.addEventListener('click', () => {
+    section.classList.add('scan-review');
+    const sheet = document.getElementById('scan-identify');
+    const title = sheet && sheet.querySelector('h3');
+    if (title) title.textContent = 'Confirm the card';
+    if (sheet) sheet.hidden = false;
+  });
+  camRight.append(gallery, addByName, next);
   const camBar = document.createElement('div');
   camBar.className = 'scan-cam-bar';
   const captureRing = mountRing(camBar);
@@ -2522,6 +2530,43 @@ function build(section, missingList) {
   const rematch = button('Match this text', 'scan-rematch', true);
   const summary = document.createElement('div');
   summary.id = 'scan-summary';
+  const confirmSet = document.createElement('input');
+  confirmSet.id = 'scan-confirm-set';
+  confirmSet.placeholder = 'Set';
+  const confirmNumber = document.createElement('input');
+  confirmNumber.id = 'scan-confirm-number';
+  confirmNumber.placeholder = 'Number';
+  const confirmVariant = document.createElement('input');
+  confirmVariant.id = 'scan-confirm-variant';
+  confirmVariant.placeholder = 'Variant';
+  const confirmLanguage = document.createElement('input');
+  confirmLanguage.id = 'scan-confirm-language';
+  confirmLanguage.placeholder = 'Language';
+  const confirmFoil = document.createElement('select');
+  confirmFoil.id = 'scan-confirm-foil';
+  for (const [value, label] of [['', 'Choose'], ['no', 'Not foil'], ['yes', 'Foil']]) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    confirmFoil.append(option);
+  }
+  function confirmField(control, label) {
+    const wrap = document.createElement('label');
+    wrap.className = 'scan-confirm-field';
+    const name = document.createElement('span');
+    name.textContent = label;
+    wrap.append(name, control);
+    return wrap;
+  }
+  const confirmRow = document.createElement('div');
+  confirmRow.id = 'scan-confirm-match';
+  confirmRow.append(
+    confirmField(confirmSet, 'Set'),
+    confirmField(confirmNumber, 'Number'),
+    confirmField(confirmVariant, 'Variant'),
+    confirmField(confirmFoil, 'Foil'),
+    confirmField(confirmLanguage, 'Language'),
+  );
   const search = document.createElement('input');
   search.id = 'scan-search';
   search.type = 'search';
@@ -2665,11 +2710,11 @@ function build(section, missingList) {
   const identifyClose = button('Close', 'scan-identify-close', true);
   identifyClose.addEventListener('click', () => { identify.hidden = true; });
   const identifyTitle = document.createElement('h3');
-  identifyTitle.textContent = 'Correct the name';
+  identifyTitle.textContent = 'Confirm the card';
   const identifyPanel = document.createElement('div');
   identifyPanel.className = 'scan-sheet-panel';
   identifyPanel.append(
-    identifyClose, identifyTitle, readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
+    identifyClose, identifyTitle, confirmRow, readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
   );
   identify.append(identifyPanel);
@@ -2883,6 +2928,7 @@ function build(section, missingList) {
     retakeMain,
     correctName,
     close,
+    identify,
     blocked,
     thumbs,
     torch,
