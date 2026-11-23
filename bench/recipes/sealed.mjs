@@ -11,8 +11,12 @@ const FAMILIES = ['S', 'X', 'P', 'BB', 'R', 'T', 'B', 'A', 'D', 'Gl', 'C', 'G', 
 const COUNTS = { quick: 17, ci: 68, full: 340 };
 
 export function recipes(mode, seed) {
+  return recipesCount(Math.max(FAMILIES.length, COUNTS[mode] || COUNTS.quick), seed);
+}
+
+export function recipesCount(count, seed) {
   const rng = mulberry32(seed >>> 0);
-  const n = Math.max(FAMILIES.length, COUNTS[mode] || COUNTS.quick);
+  const n = Math.max(0, count | 0);
   const list = [];
   for (let i = 0; i < n; i += 1) {
     const family = FAMILIES[i % FAMILIES.length];

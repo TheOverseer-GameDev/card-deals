@@ -696,9 +696,9 @@ function stdev(nums) {
   return Math.sqrt(nums.reduce((s, v) => s + (v - m) * (v - m), 0) / nums.length);
 }
 
-// Automatic centering numbers are off. The manual guides are the measurement.
-// Turn this on only after confident-wrong is 0 on the reviewer's warp harness.
-export const AUTO_CENTERING = false;
+// On after the 6000-card bar: dangerous 0, guided within 2 points, flat readable.
+// assessPhoto still does not invent a number from a gray thumbnail.
+export const AUTO_CENTERING = true;
 
 export function measureCentering(gray, width, height) {
   const fail = { state: 'not-assessable' };
@@ -950,7 +950,7 @@ export function assessPhoto({ gray, width, height, originalWidth, originalHeight
   let glareState = 'not-assessable';
   if (fraction < 0.005) glareState = 'no-large-clipped-highlight';
   else if (fraction <= 0.2) glareState = 'possible-glare';
-  const centering = AUTO_CENTERING ? measureCentering(gray, width, height) : { state: 'not-measured' };
+  const centering = { state: 'not-measured' };
   const regions = {};
   if (gray && width > 0 && height > 0) {
     for (const [id, geom] of Object.entries(REGION_GEOM)) {

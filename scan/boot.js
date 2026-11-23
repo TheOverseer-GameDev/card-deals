@@ -30,10 +30,11 @@ import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
 import { AUTO_CENTERING, ESTIMATE_UNAVAILABLE } from './engine.js';
 import { captureKind, startNativePreview } from './camera-source.js';
+import { readCentering } from './core/center.js';
 import { gradeEstimate } from './core/grade.js';
 import { inspect } from './core/inspect.js';
 import { psaEstimate } from './engine.js';
-import { estimateBorders, formatGuide, gradePhoto, gradeSide, grayOf, measureCentering, straighten } from './pipeline.js';
+import { formatGuide, gradePhoto, gradeSide, grayOf, straighten } from './pipeline.js';
 import { mountGuides } from './manual.js';
 import { findStains } from './stains.js';
 import { findCreases } from './creases.js';
@@ -474,6 +475,7 @@ function boot() {
     if (slot === 'front' && ui.tiltHost && ui.tiltHost.reset) ui.tiltHost.reset();
     try {
       const shot = state.canvas.getContext('2d').getImageData(0, 0, state.canvas.width, state.canvas.height);
+      state.centerReading = AUTO_CENTERING ? readCentering(shot.data, shot.width, shot.height) : null;
       const flat = straighten(shot.data, shot.width, shot.height);
       state.flattened = Boolean(flat.flattened);
       if (flat.flattened) {
@@ -491,11 +493,11 @@ function boot() {
           parallel: !(flat.pose && flat.pose.parallel === false),
           edgesOk: flat.edgesOk !== false,
         };
-        const gray = grayOf(flat.rgba, 500, 700);
         let autoLine = 'Measure centering yourself.';
-        if (AUTO_CENTERING && flat.centeringOk) {
-          const autoText = measureCentering(gray, 500, 700) || '';
-          if (/\d+\.\d+\/\d+\.\d+/.test(autoText)) autoLine = autoText;
+        const reading = state.centerReading;
+        if (reading && reading.state === 'ok' && Number.isFinite(reading.lr)) {
+          const right = 100 - reading.lr;
+          autoLine = `Centering: ${reading.lr.toFixed(1)}/${right.toFixed(1)} left/right.`;
         }
         const autoHost = slot === 'back' ? ui.backAuto : ui.autoCenter;
         const guides = slot === 'back' ? ui.backManual : ui.frontManual;
@@ -503,7 +505,7 @@ function boot() {
         if (guides) {
           guides.onChange = (result) => applyManualCentering(slot, result);
           guides.setBack(slot === 'back');
-          guides.setImage(500, 700, AUTO_CENTERING ? estimateBorders(gray, 500, 700) : null);
+          guides.setImage(500, 700, null);
         }
       } else if (slot === 'front') {
         note.textContent += ' Front is tilted.';
@@ -1310,8 +1312,10 @@ function boot() {
     const gray = grayOf(rgba, width, height);
     const manual = slots.front.manual;
     let centeringText = '';
-    if (AUTO_CENTERING && flat && flat.centeringOk && width === 500 && height === 700) {
-      centeringText = measureCentering(gray, width, height) || '';
+    const stored = slots.front.centerReading;
+    if (AUTO_CENTERING && stored && stored.state === 'ok' && Number.isFinite(stored.lr)) {
+      const right = 100 - stored.lr;
+      centeringText = `Centering: ${stored.lr.toFixed(1)}/${right.toFixed(1)} left/right.`;
     } else if (manual && Number.isFinite(manual.leftPct) && Number.isFinite(manual.topPct)) {
       centeringText = `Centering: ${manual.leftPct.toFixed(1)}/${manual.rightPct.toFixed(1)} left/right. ${manual.topPct.toFixed(1)}/${manual.bottomPct.toFixed(1)} top/bottom.`;
     }
