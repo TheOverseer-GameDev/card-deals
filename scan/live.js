@@ -115,6 +115,6 @@ export function drawLiveQuad(canvas, video, quad, code) {
   });
   ctx.closePath();
   ctx.lineWidth = 2 * dpr;
-  ctx.strokeStyle = code === 'lined-up' ? '#3ddc97' : '#ffb020';
+  ctx.strokeStyle = code === 'lined-up' ? '#3DCEC2' : '#7C5CFF';
   ctx.stroke();
 }

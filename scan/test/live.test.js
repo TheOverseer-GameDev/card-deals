@@ -150,7 +150,7 @@ test('a card-shaped fake camera draws a live outline without a console error', a
     return ink > 20;
   }, null, { timeout: 8000 });
   const hint = await page.locator('#scan-align').innerText();
-  assert.match(hint, /Hold flat|Lined up|Too far|Too close|Tilted|Blurry|Too dark|glare|No card/);
+  assert.match(hint, /Move closer|Reduce glare|Show all four edges|Hold still|Add light|Align the card/);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   assert.equal(overflow, true);
   assert.deepEqual(errors, []);
