@@ -8,6 +8,7 @@ import path from 'path';
 import test from 'node:test';
 import { fileURLToPath } from 'url';
 import { chromium } from 'playwright-core';
+import { formatDevLine } from '../live.js';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const chrome = ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'].find((item) => fs.existsSync(item));
@@ -26,6 +27,12 @@ function startServer() {
   });
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
 }
+
+test('the dev line names the lens, the torch, and a measured frame time', () => {
+  assert.equal(formatDevLine({ lens: 'Rear 1×', torchOn: false }), 'Rear 1× · torch off');
+  assert.equal(formatDevLine({ lens: 'Front', torchOn: true, judgeMs: 12.34 }), 'Front · torch on · 12.3 ms');
+  assert.equal(formatDevLine({ judgeMs: Number.NaN }).includes('ms'), false);
+});
 
 test('the S22 readout is hidden unless the flag is set', async () => {
   const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });

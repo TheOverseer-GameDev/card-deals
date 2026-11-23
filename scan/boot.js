@@ -48,7 +48,7 @@ import { HISTORY_VERSION, openScanHistory, presentScan, saveScan } from './histo
 import { addToSession, createSession, cue, sessionTotal, storedCad, toCsv } from './session.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
-import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
+import { drawLiveQuad, formatDevLine, mountEdge, mountRing, startLive } from './live.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
@@ -912,7 +912,8 @@ function boot() {
         if (ui.dev && !ui.dev.hidden) {
           const lens = ui.camera && ui.camera.selectedOptions[0] ? ui.camera.selectedOptions[0].textContent : 'Rear 1×';
           const torchOn = ui.torch && ui.torch.getAttribute('aria-pressed') === 'true';
-          ui.dev.textContent = `${lens} · ${torchOn ? 'torch on' : 'torch off'} · ${view.code || 'looking'}`;
+          if (Number.isFinite(view.judgeMs)) ui.dev.dataset.ms = String(view.judgeMs);
+          ui.dev.textContent = formatDevLine({ lens, torchOn, judgeMs: view.judgeMs });
         }
         drawLiveQuad(ui.liveEdge, ui.video, view.quad, view.code);
       },
@@ -2670,7 +2671,7 @@ function build(section, missingList) {
   try { devFlag = new URLSearchParams(location.search).get('s22') === '1'; } catch { devFlag = false; }
   if (devFlag) {
     dev.hidden = false;
-    dev.textContent = 'Rear 1× · torch off';
+    dev.textContent = formatDevLine({ lens: 'Rear 1×', torchOn: false });
   }
   capture.append(top, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, dev, frontFile, backFile);
   const fresh = document.createElement('p');
@@ -2788,6 +2789,15 @@ function build(section, missingList) {
       await track.applyConstraints({ advanced: [{ torch: next }] });
       torch.setAttribute('aria-pressed', next ? 'true' : 'false');
     } catch { torch.setAttribute('aria-pressed', 'false'); }
+    if (!dev.hidden) {
+      const lens = camera.selectedOptions[0] ? camera.selectedOptions[0].textContent : 'Rear 1×';
+      const saved = Number(dev.dataset.ms);
+      dev.textContent = formatDevLine({
+        lens,
+        torchOn: torch.getAttribute('aria-pressed') === 'true',
+        judgeMs: Number.isFinite(saved) ? saved : undefined,
+      });
+    }
   }
   async function lookUpCode() {
     const input = document.getElementById('scan-code');

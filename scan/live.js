@@ -7,6 +7,13 @@ import { advanceHold, judgePreview } from './detect.js';
 const SAMPLE_LONG = 192;
 const GAP_MS = 125;
 
+export function formatDevLine({ lens, torchOn, judgeMs } = {}) {
+  const name = lens || 'Rear 1×';
+  const torch = torchOn ? 'torch on' : 'torch off';
+  const timing = Number.isFinite(judgeMs) ? ` · ${judgeMs.toFixed(1)} ms` : '';
+  return `${name} · ${torch}${timing}`;
+}
+
 export function startLive(video, handlers) {
   let stop = false;
   let hold = { since: null, quad: null };
@@ -35,12 +42,14 @@ export function startLive(video, handlers) {
     } catch {
       return;
     }
+    const started = performance.now();
     const judgment = judgePreview(rgba, w, h);
+    const judgeMs = performance.now() - started;
     const quad = judgment.quad
       ? judgment.quad.map((p) => ({ x: p.x / scale, y: p.y / scale }))
       : null;
     hold = advanceHold(hold, { ready: judgment.ready, quad }, now);
-    const view = { ...judgment, quad, progress: hold.progress, fire: hold.fire };
+    const view = { ...judgment, quad, progress: hold.progress, fire: hold.fire, judgeMs };
     if (handlers.onFrame) handlers.onFrame(view);
     if (hold.fire) {
       stop = true;

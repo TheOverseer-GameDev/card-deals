@@ -89,13 +89,16 @@ test('a dark fake camera shows the capture ring and does not fire the shutter', 
     reviewHidden: document.getElementById('scan-next')?.hidden,
     offset: document.querySelector('#scan-capture-ring circle')?.getAttribute('stroke-dashoffset'),
   }));
-  assert.equal(state.ring, true);
-  assert.match(state.hint, /Too dark|No card outline/);
-  assert.equal(state.reviewHidden, true);
-  assert.equal(state.offset, '100.53');
-  assert.deepEqual(errors, []);
-  await browser.close();
-  server.close();
+  try {
+    assert.equal(state.ring, true);
+    assert.match(state.hint, /Add light/);
+    assert.equal(state.reviewHidden, true);
+    assert.equal(state.offset, '100.53');
+    assert.deepEqual(errors, []);
+  } finally {
+    await browser.close();
+    server.close();
+  }
 });
 
 function cardFeed(file) {
