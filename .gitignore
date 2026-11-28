@@ -16,3 +16,4 @@ scan/bench/
 package-lock.json
 .pages-rebuild
 bench/out/
+scripts/fixtures/cache/

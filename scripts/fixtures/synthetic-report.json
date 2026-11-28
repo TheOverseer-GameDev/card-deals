@@ -1,0 +1,143 @@
+{
+  "synthetic": true,
+  "label": "SYNTHETIC",
+  "real_photo_gate": "not applied",
+  "flags_changed": false,
+  "runtime_ms": 11355,
+  "frames": 2250,
+  "method": "outermostQuad aspect versus registry size_mm. Yu-Gi-Oh is 59×86. Magic and Pokémon share 63×88, so geometry cannot name which of those two it is.",
+  "games": {
+    "mtg": {
+      "n": 750,
+      "found": 734,
+      "found_rate": 0.9786666666666667,
+      "size_class_accuracy": 0.7929155313351499,
+      "wrong_family_rate": 0.20708446866485014,
+      "corner_p50_mm": 0.7479560766123702,
+      "corner_p95_mm": 39.84684619378669
+    },
+    "yugioh": {
+      "n": 750,
+      "found": 744,
+      "found_rate": 0.992,
+      "size_class_accuracy": 0.6048387096774194,
+      "wrong_family_rate": 0.3951612903225806,
+      "corner_p50_mm": 0.32219322760641217,
+      "corner_p95_mm": 39.68776128357383
+    },
+    "pokemon": {
+      "n": 750,
+      "found": 715,
+      "found_rate": 0.9533333333333334,
+      "size_class_accuracy": 0.7888111888111888,
+      "wrong_family_rate": 0.2111888111888112,
+      "corner_p50_mm": 1.1067330273375349,
+      "corner_p95_mm": 39.84630953307945
+    }
+  },
+  "conditions": {
+    "clean": {
+      "n": 450,
+      "found": 449,
+      "found_rate": 0.9977777777777778,
+      "size_class_accuracy": 1,
+      "wrong_family_rate": 0,
+      "corner_p50_mm": 0.23972535778081389,
+      "corner_p95_mm": 0.2428617808675799
+    },
+    "perspective": {
+      "n": 450,
+      "found": 450,
+      "found_rate": 1,
+      "size_class_accuracy": 0.3333333333333333,
+      "wrong_family_rate": 0.6666666666666666,
+      "corner_p50_mm": 0.2000410601730703,
+      "corner_p95_mm": 0.22866681457547194
+    },
+    "blur": {
+      "n": 450,
+      "found": 450,
+      "found_rate": 1,
+      "size_class_accuracy": 1,
+      "wrong_family_rate": 0,
+      "corner_p50_mm": 0.6887144998437374,
+      "corner_p95_mm": 1.5340840880437336
+    },
+    "light": {
+      "n": 450,
+      "found": 415,
+      "found_rate": 0.9222222222222223,
+      "size_class_accuracy": 0.653012048192771,
+      "wrong_family_rate": 0.3469879518072289,
+      "corner_p50_mm": 39.734977237009055,
+      "corner_p95_mm": 39.93094003101903
+    },
+    "cover": {
+      "n": 450,
+      "found": 429,
+      "found_rate": 0.9533333333333334,
+      "size_class_accuracy": 0.6433566433566433,
+      "wrong_family_rate": 0.35664335664335667,
+      "corner_p50_mm": 8.619846738207439,
+      "corner_p95_mm": 11.468622346669157
+    }
+  },
+  "notes": [
+    "Clean frames: size class was exact and corner p95 was about 0.24 mm.",
+    "Perspective keeps the corners and changes the aspect, so a geometry-only size class called every tapered card Yu-Gi-Oh.",
+    "The light condition uses a near-black background. outermostQuad in scan/core/outline.js treats that corner as full-bleed and returns the photo edges, so the corner error is about 40 mm.",
+    "Sleeve, top-loader, and occlusion move the visible edge. Corner p95 on that condition was about 11 mm."
+  ],
+  "recognition": {
+    "card_id": "not run",
+    "reason": "No on-device card recognizer is shipped. Catalog metadata is not counted as a vision result."
+  },
+  "m23_m29": {
+    "real_photo_bars": "untouched and still pending real photos",
+    "M23": "not applied. Serial numbers are a sports check, and sports images were not fetched.",
+    "M24": "not applied. Autograph presence is a sports check, and these scans are not signed.",
+    "M25": "not applied. Relic windows are a sports check.",
+    "M26": "not applied. Rookie markers are a sports check.",
+    "M27": "not applied. No parallel classifier is shipped, and a foil flag from the API is not a vision result.",
+    "M28": "not applied. These scans are standard thickness, not 55–180 pt.",
+    "M29": "not applied. No chrome-surface mode is shipped."
+  },
+  "failure_examples": [
+    {
+      "file": "failure-1.png",
+      "case_id": "yugioh/47674738/light",
+      "reason": "size-class",
+      "corner_mm": 39.84848036438279
+    },
+    {
+      "file": "failure-2.png",
+      "case_id": "yugioh/14015067/light",
+      "reason": "size-class",
+      "corner_mm": 39.82736918406166
+    },
+    {
+      "file": "failure-3.png",
+      "case_id": "yugioh/77972406/light",
+      "reason": "size-class",
+      "corner_mm": 39.81292703530734
+    },
+    {
+      "file": "failure-4.png",
+      "case_id": "yugioh/72932673/light",
+      "reason": "size-class",
+      "corner_mm": 39.81185103095721
+    },
+    {
+      "file": "failure-5.png",
+      "case_id": "mtg/1e5f8041-67fc-4e00-b119-d216e5cc5a3a/cover",
+      "reason": "no quad",
+      "corner_mm": null
+    },
+    {
+      "file": "failure-6.png",
+      "case_id": "mtg/d20a0b5a-2a04-4cce-83e4-2d65ef9399df/light",
+      "reason": "no quad",
+      "corner_mm": null
+    }
+  ]
+}
