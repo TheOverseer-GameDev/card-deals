@@ -105,6 +105,25 @@ def rotate(corners, degrees):
     return out
 
 
+def project_corners(card_w, card_h, pitch, yaw, ox, oy):
+    """Pinhole image of a rectangle. Both axes tilt so the aspect can be rectified."""
+    focal = 780.0
+    depth = focal
+    tp = math.radians(pitch)
+    ty = math.radians(yaw)
+    cx = CANVAS[0] / 2 + ox
+    cy = CANVAS[1] / 2 + oy
+    points = []
+    for X, Y in ((-card_w / 2, -card_h / 2), (card_w / 2, -card_h / 2), (card_w / 2, card_h / 2), (-card_w / 2, card_h / 2)):
+        x1 = X * math.cos(ty)
+        z1 = -X * math.sin(ty)
+        y2 = Y * math.cos(tp) - z1 * math.sin(tp)
+        z2 = Y * math.sin(tp) + z1 * math.cos(tp)
+        distance = depth + z2
+        points.append((cx + focal * x1 / distance, cy + focal * y2 / distance))
+    return points
+
+
 def taper(corners, amount):
     tl, tr, br, bl = corners
     return [
@@ -120,11 +139,12 @@ def place_corners(card_w, card_h, condition, rng):
     angle = 0.0
     pinch = 0.0
     if condition == 'perspective':
-        angle = rng.uniform(-7, 7)
-        pinch = rng.uniform(14, 26)
-        ox = rng.uniform(-12, 12)
-        oy = rng.uniform(-10, 10)
-    elif condition == 'blur':
+        pitch = rng.uniform(12, 22)
+        yaw = rng.uniform(8, 16) * rng.choice((-1, 1))
+        ox = rng.uniform(-10, 10)
+        oy = rng.uniform(-8, 8)
+        return project_corners(card_w, card_h, pitch, yaw, ox, oy)
+    if condition == 'blur':
         angle = rng.uniform(-3, 3)
     elif condition == 'light':
         ox = rng.uniform(-16, 16)

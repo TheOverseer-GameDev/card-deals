@@ -3,43 +3,43 @@
   "label": "SYNTHETIC",
   "real_photo_gate": "not applied",
   "flags_changed": false,
-  "runtime_ms": 11355,
+  "runtime_ms": 17627,
   "frames": 2250,
-  "method": "outermostQuad aspect versus registry size_mm. Yu-Gi-Oh is 59×86. Magic and Pokémon share 63×88, so geometry cannot name which of those two it is.",
+  "method": "Size class uses rectifiedAspect on the detected quad. Yu-Gi-Oh is 59×86. Magic and Pokémon share 63×88, so geometry does not name which of those two it is.",
   "games": {
     "mtg": {
       "n": 750,
-      "found": 734,
-      "found_rate": 0.9786666666666667,
-      "size_class_accuracy": 0.7929155313351499,
-      "wrong_family_rate": 0.20708446866485014,
-      "corner_p50_mm": 0.7479560766123702,
-      "corner_p95_mm": 39.84684619378669
+      "found": 740,
+      "found_rate": 0.9866666666666667,
+      "size_class_accuracy": 0.9405405405405406,
+      "wrong_family_rate": 0.05945945945945946,
+      "corner_p50_mm": 0.7039481269328276,
+      "corner_p95_mm": 9.335190728576224
     },
     "yugioh": {
       "n": 750,
-      "found": 744,
-      "found_rate": 0.992,
-      "size_class_accuracy": 0.6048387096774194,
-      "wrong_family_rate": 0.3951612903225806,
-      "corner_p50_mm": 0.32219322760641217,
-      "corner_p95_mm": 39.68776128357383
+      "found": 750,
+      "found_rate": 1,
+      "size_class_accuracy": 0.7986666666666666,
+      "wrong_family_rate": 0.20133333333333334,
+      "corner_p50_mm": 0.327196567604848,
+      "corner_p95_mm": 10.139443587928959
     },
     "pokemon": {
       "n": 750,
-      "found": 715,
-      "found_rate": 0.9533333333333334,
-      "size_class_accuracy": 0.7888111888111888,
-      "wrong_family_rate": 0.2111888111888112,
-      "corner_p50_mm": 1.1067330273375349,
-      "corner_p95_mm": 39.84630953307945
+      "found": 738,
+      "found_rate": 0.984,
+      "size_class_accuracy": 0.994579945799458,
+      "wrong_family_rate": 0.005420054200542005,
+      "corner_p50_mm": 1.1230103977818278,
+      "corner_p95_mm": 10.214073267106658
     }
   },
   "conditions": {
     "clean": {
       "n": 450,
-      "found": 449,
-      "found_rate": 0.9977777777777778,
+      "found": 450,
+      "found_rate": 1,
       "size_class_accuracy": 1,
       "wrong_family_rate": 0,
       "corner_p50_mm": 0.23972535778081389,
@@ -49,10 +49,10 @@
       "n": 450,
       "found": 450,
       "found_rate": 1,
-      "size_class_accuracy": 0.3333333333333333,
-      "wrong_family_rate": 0.6666666666666666,
-      "corner_p50_mm": 0.2000410601730703,
-      "corner_p95_mm": 0.22866681457547194
+      "size_class_accuracy": 0.9977777777777778,
+      "wrong_family_rate": 0.0022222222222222222,
+      "corner_p50_mm": 0.15302540479776827,
+      "corner_p95_mm": 0.16642375227796438
     },
     "blur": {
       "n": 450,
@@ -65,28 +65,37 @@
     },
     "light": {
       "n": 450,
-      "found": 415,
-      "found_rate": 0.9222222222222223,
-      "size_class_accuracy": 0.653012048192771,
-      "wrong_family_rate": 0.3469879518072289,
-      "corner_p50_mm": 39.734977237009055,
-      "corner_p95_mm": 39.93094003101903
+      "found": 450,
+      "found_rate": 1,
+      "size_class_accuracy": 0.9155555555555556,
+      "wrong_family_rate": 0.08444444444444445,
+      "corner_p50_mm": 2.0889624833989195,
+      "corner_p95_mm": 2.497028758174712
     },
     "cover": {
       "n": 450,
-      "found": 429,
-      "found_rate": 0.9533333333333334,
-      "size_class_accuracy": 0.6433566433566433,
-      "wrong_family_rate": 0.35664335664335667,
-      "corner_p50_mm": 8.619846738207439,
-      "corner_p95_mm": 11.468622346669157
+      "found": 428,
+      "found_rate": 0.9511111111111111,
+      "size_class_accuracy": 0.6261682242990654,
+      "wrong_family_rate": 0.37383177570093457,
+      "corner_p50_mm": 8.61095435530371,
+      "corner_p95_mm": 11.707020305982939
     }
   },
+  "game_cue": {
+    "synthetic": true,
+    "enabled": false,
+    "real_photo_bar": "pending",
+    "n": 300,
+    "accuracy": 0.83,
+    "wrong": 45,
+    "abstain": 6,
+    "note": "Yellow border on the front. The flag is off, so the guide does not use this."
+  },
   "notes": [
-    "Clean frames: size class was exact and corner p95 was about 0.24 mm.",
-    "Perspective keeps the corners and changes the aspect, so a geometry-only size class called every tapered card Yu-Gi-Oh.",
-    "The light condition uses a near-black background. outermostQuad in scan/core/outline.js treats that corner as full-bleed and returns the photo edges, so the corner error is about 40 mm.",
-    "Sleeve, top-loader, and occlusion move the visible edge. Corner p95 on that condition was about 11 mm."
+    "Perspective frames are a real camera tilt. Aspect is measured after rectifying that quad.",
+    "A quad that touches the photo edge or covers more than 95% of the frame is rejected. A dark cloth uses an edge-gradient search.",
+    "Magic versus Pokémon stays behind GAME_CUE_ENABLED, which is false."
   ],
   "recognition": {
     "card_id": "not run",
@@ -105,27 +114,27 @@
   "failure_examples": [
     {
       "file": "failure-1.png",
-      "case_id": "yugioh/47674738/light",
+      "case_id": "yugioh/28645123/cover",
       "reason": "size-class",
-      "corner_mm": 39.84848036438279
+      "corner_mm": 12.001234228762918
     },
     {
       "file": "failure-2.png",
-      "case_id": "yugioh/14015067/light",
+      "case_id": "yugioh/33031674/cover",
       "reason": "size-class",
-      "corner_mm": 39.82736918406166
+      "corner_mm": 12.000815259022962
     },
     {
       "file": "failure-3.png",
-      "case_id": "yugioh/77972406/light",
+      "case_id": "yugioh/86578200/cover",
       "reason": "size-class",
-      "corner_mm": 39.81292703530734
+      "corner_mm": 11.992877801292584
     },
     {
       "file": "failure-4.png",
-      "case_id": "yugioh/72932673/light",
+      "case_id": "yugioh/67048711/cover",
       "reason": "size-class",
-      "corner_mm": 39.81185103095721
+      "corner_mm": 11.749037275630343
     },
     {
       "file": "failure-5.png",
@@ -135,7 +144,7 @@
     },
     {
       "file": "failure-6.png",
-      "case_id": "mtg/d20a0b5a-2a04-4cce-83e4-2d65ef9399df/light",
+      "case_id": "mtg/4203df15-dd44-496b-889a-d7a8fe320330/cover",
       "reason": "no quad",
       "corner_mm": null
     }

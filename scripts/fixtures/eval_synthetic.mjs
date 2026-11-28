@@ -7,7 +7,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { outermostQuad } from '../../scan/core/outline.js';
+import { outermostQuad, rectifiedAspect } from '../../scan/core/outline.js';
+import { GAME_CUE_ENABLED, cueGame } from '../../scan/game-cue.js';
 import { encodePNG } from '../../scan/test/png.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -130,6 +131,7 @@ function evaluate(labels) {
   const byGame = {};
   const byCondition = {};
   const failures = [];
+  const cue = { n: 0, correct: 0, wrong: 0, abstain: 0 };
   for (const label of labels) {
     const frame = path.resolve(here, label.frame);
     const { width, height, rgba } = readFrame(frame);
@@ -141,7 +143,7 @@ function evaluate(labels) {
       failures.push({ case_id: label.case_id, reason: 'no quad', mm: null, truth: label.corners, predicted: null });
       continue;
     }
-    const ratio = aspect(predicted);
+    const ratio = rectifiedAspect(predicted, width, height);
     const guessed = ratio == null ? null : sizeClassOf(ratio);
     const error = cornerError(label.corners, predicted, label.size_class);
     for (const row of [game, condition]) {
@@ -149,6 +151,13 @@ function evaluate(labels) {
       if (guessed === label.size_class) row.sizeCorrect += 1;
       else row.wrongFamily += 1;
       if (error.mm != null) row.mm.push(error.mm);
+    }
+    if (label.condition === 'clean' && (label.game === 'mtg' || label.game === 'pokemon')) {
+      const called = cueGame(rgba, width, height, label.corners, 'front');
+      cue.n += 1;
+      if (!called.game) cue.abstain += 1;
+      else if (called.game === label.game) cue.correct += 1;
+      else cue.wrong += 1;
     }
     failures.push({
       case_id: label.case_id,
@@ -163,7 +172,7 @@ function evaluate(labels) {
   for (const [id, row] of Object.entries(byGame)) games[id] = finish(row);
   const conditions = {};
   for (const [id, row] of Object.entries(byCondition)) conditions[id] = finish(row);
-  return { games, conditions, failures };
+  return { games, conditions, failures, cue };
 }
 
 function loadLabels() {
@@ -193,14 +202,23 @@ function main() {
     flags_changed: false,
     runtime_ms: Date.now() - started,
     frames: labels.length,
-    method: 'outermostQuad aspect versus registry size_mm. Yu-Gi-Oh is 59×86. Magic and Pokémon share 63×88, so geometry cannot name which of those two it is.',
+    method: 'Size class uses rectifiedAspect on the detected quad. Yu-Gi-Oh is 59×86. Magic and Pokémon share 63×88, so geometry does not name which of those two it is.',
     games: result.games,
     conditions: result.conditions,
+    game_cue: {
+      synthetic: true,
+      enabled: GAME_CUE_ENABLED,
+      real_photo_bar: 'pending',
+      n: result.cue.n,
+      accuracy: result.cue.n ? result.cue.correct / result.cue.n : null,
+      wrong: result.cue.wrong,
+      abstain: result.cue.abstain,
+      note: 'Yellow border on the front. The flag is off, so the guide does not use this.',
+    },
     notes: [
-      'Clean frames: size class was exact and corner p95 was about 0.24 mm.',
-      'Perspective keeps the corners and changes the aspect, so a geometry-only size class called every tapered card Yu-Gi-Oh.',
-      'The light condition uses a near-black background. outermostQuad in scan/core/outline.js treats that corner as full-bleed and returns the photo edges, so the corner error is about 40 mm.',
-      'Sleeve, top-loader, and occlusion move the visible edge. Corner p95 on that condition was about 11 mm.',
+      'Perspective frames are a real camera tilt. Aspect is measured after rectifying that quad.',
+      'A quad that touches the photo edge or covers more than 95% of the frame is rejected. A dark cloth uses an edge-gradient search.',
+      'Magic versus Pokémon stays behind GAME_CUE_ENABLED, which is false.',
     ],
     recognition: {
       card_id: 'not run',
@@ -225,6 +243,7 @@ function main() {
     runtime_ms: report.runtime_ms,
     games: report.games,
     conditions: report.conditions,
+    game_cue: report.game_cue,
   }, null, 2));
 }
 
