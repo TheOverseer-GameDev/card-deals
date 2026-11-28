@@ -1,0 +1,90 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "alt-art",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "none-free (official HTML or keyed third-party APIs only; watch list — do not use apitcg.com without a terms check)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "dragon-ball",
+ "label": "Dragon Ball Super Card Game / Fusion World",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Official factory mm not found this turn. TAG classifies accepted Dragon Ball TCG as poker-size 2.5 x 3.5 in (https://help.taggrading.com/en/articles/13356059-what-tcg-trading-card-games-can-be-graded-with-tag). ALL_CARDS_SPEC already treats DBS Fusion World as standard TCG sleeves (~63×88). Super Dragon Ball Heroes / Carddass are a different, narrower 'bridge' size and must not use this profile. Confirm factory mm with calipers.",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language",
+  "line"
+ ],
+ "markers": {
+  "line": [
+   "Dragon Ball Super (legacy)",
+   "Fusion World"
+  ]
+ },
+ "back_cues": [
+  "uniform DBS / Fusion World back (line-specific; confirm from a sample)"
+ ],
+ "counterfeit_tells": [
+  "wrong back for the line",
+  "Heroes/Carddass size used on this guide",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG",
+  "ARS"
+ ],
+ "languages": [
+  "en",
+  "ja",
+  "other"
+ ],
+ "grader_notes": "BGS Europe lists Dragon Ball. ARS lists DRAGON BALL SUPER CARD GAME plus many Heroes/Carddass/Divers lines (those Heroes/Carddass lines are NOT this size). TAG: English, plus 'select Dragon Ball TCG' and Japanese-language exceptions that meet TAG sizing; Heroes/Carddass/bridge size is not eligible at TAG."
+}

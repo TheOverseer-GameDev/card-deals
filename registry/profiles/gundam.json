@@ -1,0 +1,80 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "none-free (official HTML only; watch list)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "gundam",
+ "label": "Gundam Card Game",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Official factory mm not published (https://eternis.jp/pages/card-size-list, 6 Nov 2026: 63×88mm相当, 公式記載なし). Assigned the standard TCG sleeve class already used in ALL_CARDS_SPEC / REPORT.md. Confirm with calipers (n>=10) before locking the guide.",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language"
+ ],
+ "back_cues": [
+  "uniform Gundam Card Game back"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG",
+  "ARS"
+ ],
+ "languages": [
+  "en",
+  "ja"
+ ],
+ "grader_notes": "ARS lists GUNDAM CARD GAME (and several legacy Gundam card products; GUNDAM WAR often has size-overcut issues per ARS). TAG accepts Gundam TCG in English only — Japanese-language Gundam is not eligible at TAG."
+}

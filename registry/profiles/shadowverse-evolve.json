@@ -1,0 +1,80 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "none-free (official HTML only; watch list)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "shadowverse-evolve",
+ "label": "Shadowverse: Evolve",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Bushiroad TCG 応用フロアルール ver.1.2.12 (updated 9 Jul 2026): regular-size cards 約63mm×約88mm, listing Shadowverse EVOLVE — https://ws-rose.com/wordpress/wp-content/images/rule/floor_app_ver1-2-12.pdf",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language"
+ ],
+ "back_cues": [
+  "uniform Shadowverse Evolve back; ARS note: white-back / token cards not accepted by ARS"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "token/white-back submitted as a game card",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG",
+  "ARS"
+ ],
+ "languages": [
+  "en",
+  "ja"
+ ],
+ "grader_notes": "ARS lists SHADOWVERSE EVOLVE but excludes 白裏面/トークン (white-back / tokens). TAG language limits apply (English TCG unless an exception is published)."
+}

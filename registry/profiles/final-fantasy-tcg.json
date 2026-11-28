@@ -1,0 +1,83 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "full-art",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "kupodb (free public API, no key; terms 12 Apr 2026: no competing redistribution, no abuse; cache; human terms check before the updater ships set lists)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "final-fantasy-tcg",
+ "label": "Final Fantasy Trading Card Game",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Official factory mm not found this turn. Assigned the standard TCG sleeve class (~63×88). Confirm with calipers before locking the guide.",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language",
+  "element"
+ ],
+ "back_cues": [
+  "uniform FFTCG card back"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG",
+  "ARS"
+ ],
+ "languages": [
+  "en",
+  "ja",
+  "other"
+ ],
+ "grader_notes": "ARS lists ファイナルファンタジー トレーディングカードゲーム. TAG poker-size / language limits apply."
+}

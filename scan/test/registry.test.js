@@ -17,7 +17,9 @@ const root = fileURLToPath(new URL('../..', import.meta.url));
 test('bundled profiles match the schema and the shipped guide sizes', () => {
   const profiles = bundledProfiles();
   const ids = profiles.map((profile) => profile.id);
-  assert.deepEqual(ids, ['mtg', 'onepiece', 'pokemon', 'sports-standard', 'yugioh']);
+  assert.equal(ids.length, 30);
+  assert.ok(ids.includes('lorcana') && ids.includes('digimon') && ids.includes('fleshandblood') && ids.includes('starwars-unlimited'));
+  assert.equal(profiles.filter((profile) => profile.status === 'provisional').length, 25);
   const ygo = profiles.find((profile) => profile.id === 'yugioh');
   const mtg = profiles.find((profile) => profile.id === 'mtg');
   assert.equal(ygo.size_mm.w, GUIDE.yugioh.w);

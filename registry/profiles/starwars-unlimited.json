@@ -1,0 +1,82 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "swu-db (free public JSON; https://www.swu-db.com/api)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "starwars-unlimited",
+ "label": "Star Wars: Unlimited",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "TAG help (2 Jul 2026) classifies SWU as poker-size 2.5 x 3.5 in TCG: https://help.taggrading.com/en/articles/13356059-what-tcg-trading-card-games-can-be-graded-with-tag — factory millimetres not found in an official FFG rules extract this turn; status provisional pending calipers (n>=10)",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language",
+  "aspects"
+ ],
+ "markers": {},
+ "back_cues": [
+  "uniform SWU card back"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "wrong font",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG"
+ ],
+ "languages": [
+  "en",
+  "other"
+ ],
+ "grader_notes": "BGS Europe explicitly lists Star Wars Unlimited. TAG: English poker-size TCG. Not on the ARS title list fetched 27 Nov 2026."
+}

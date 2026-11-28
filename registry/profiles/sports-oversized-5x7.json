@@ -1,0 +1,87 @@
+{
+ "id": "sports-oversized-5x7",
+ "label": "Oversized / box-topper 5×7 class",
+ "family": "sports",
+ "size_mm": {
+  "w": 127.0,
+  "h": 177.8,
+  "tol": 2.0
+ },
+ "size_source": "5×7 in converts to 127.0×177.8 mm. baseball.cards (30 Sep 2026) names box-toppers, oversized and 5×7 cards as a jumbo class that does not fit standard supplies: https://baseball.cards/guides/baseball-card-size-and-dimensions/. Not every jumbo is exactly 5×7 — status is provisional, and any non-5×7 oversize needs its own measurement before a guide is locked. Some non-sport and TCG jumbo/promo cards also use this or a nearby class.",
+ "thickness": [
+  "std-20pt",
+  "chrome-35pt",
+  "relic-55-75pt"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "chrome",
+  "foil"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "id_features": [
+  "year",
+  "brand",
+  "set",
+  "player",
+  "card_no",
+  "parallel",
+  "serial",
+  "auto",
+  "relic"
+ ],
+ "markers": {
+  "serial": "\\b\\d{1,4}/\\d{1,4}\\b"
+ },
+ "back_cues": [
+  "set-specific; often a large version of the parent set back"
+ ],
+ "counterfeit_tells": [
+  "trimmed from a poster or uncut sheet",
+  "wrong stock",
+  "fake slab"
+ ],
+ "data_sources": {
+  "catalog": "none-free (licence pending)",
+  "prices": "ebay-licensed"
+ },
+ "graders": [
+  "PSA",
+  "BGS",
+  "SGC"
+ ],
+ "languages": [
+  "en",
+  "other"
+ ],
+ "grader_notes": "Larger than CGC's published 2-5/8\" × 3-3/4\" cap, so CGC is not eligible on that policy. TAG cannot accept oversized/jumbo. PSA app lists oversized trading cards (supersized, T3, jumbo); PSA chooses the holder. SGC: upcharge possible above 3-1/2\" × 5-1/2\". Confirm BGS current oversized policy before submitting.",
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16,
+  "aspect": 0.7143
+ }
+}

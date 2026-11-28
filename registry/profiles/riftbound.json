@@ -1,0 +1,79 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "Riftcodex API advertised but api.riftcodex.com did not resolve on 22 Nov 2026; weekly watch-list probe only",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "riftbound",
+ "label": "Riftbound (League of Legends TCG)",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Official factory mm not found this turn. Assigned the standard TCG sleeve class already used in ALL_CARDS_SPEC / REPORT.md (~63×88). Confirm with calipers before locking the guide.",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language"
+ ],
+ "back_cues": [
+  "uniform Riftbound card back"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG"
+ ],
+ "languages": [
+  "en",
+  "other"
+ ],
+ "grader_notes": "Appeared on TCGplayer GMV boards (Q3 2026). Not on the ARS title list fetched 27 Nov 2026. Confirm TAG database coverage."
+}

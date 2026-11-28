@@ -1,0 +1,99 @@
+{
+ "id": "nonsport-standard",
+ "label": "Non-sport / entertainment (Garbage Pail Kids, Marvel, Star Wars Topps, and similar 2.5×3.5 issues)",
+ "family": "nonsport",
+ "size_mm": {
+  "w": 63.5,
+  "h": 88.9,
+  "tol": 0.5
+ },
+ "size_source": "Modern licensed non-sport cards share the standard sports footprint 2.5×3.5 in (63.5×88.9 mm). Size class already stated in ALL_CARDS_SPEC.md. Modern sports/non-sport standard: https://baseball.cards/guides/baseball-card-size-and-dimensions/ (updated 30 Sep 2026). Confirm GPK / Marvel / Star Wars subsets that are mini, sticker, acetate or oversized before using this guide.",
+ "thickness": [
+  "std-20pt",
+  "chrome-35pt"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "chrome",
+  "foil",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "id_features": [
+  "year",
+  "brand",
+  "set",
+  "character",
+  "card_no",
+  "parallel",
+  "serial",
+  "auto",
+  "language"
+ ],
+ "brands": [
+  "Topps",
+  "Garbage Pail Kids",
+  "Marvel",
+  "Star Wars",
+  "Upper Deck",
+  "Rittenhouse",
+  "Panini"
+ ],
+ "markers": {
+  "serial": "\\b\\d{1,4}/\\d{1,4}\\b"
+ },
+ "back_cues": [
+  "brand/set-specific entertainment backs (not a single cue; use brand + typography)"
+ ],
+ "counterfeit_tells": [
+  "reprint dot pattern",
+  "wrong stock",
+  "altered serial",
+  "fake slab"
+ ],
+ "data_sources": {
+  "catalog": "none-free (licence pending)",
+  "prices": "ebay-licensed"
+ },
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG"
+ ],
+ "languages": [
+  "en",
+  "other"
+ ],
+ "grader_notes": "CGC (11 Jul 2023) opened all non-sports including Garbage Pail Kids, Mars Attacks, Wacky Packages, Star Trek, from 1879 to today, within its size/thickness caps. TAG (23 Sep 2026) lists Marvel, DC, Garbage Pail Kids, Star Wars, Disney among accepted licensed brands, 1989–present, 2.5×3.5, ≤50pt, no relics. BGS: sports, gaming, and non-sports / Star Wars. ARS is TCG-title-based and is not a general non-sport grader.",
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16,
+  "aspect": 0.7143
+ }
+}

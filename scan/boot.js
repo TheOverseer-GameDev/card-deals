@@ -50,6 +50,7 @@ import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
 import { drawLiveQuad, formatDevLine, mountEdge, mountRing, startLive } from './live.js';
 import { GUIDE, refreshGuides } from './profiles.js';
+import { guideForSelect } from './size-class.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
@@ -139,8 +140,9 @@ function boot() {
 
   const ui = build(section, rows.length === 0);
   function applyGuideShape() {
-    const id = ui.game && ui.game.value === 'mtg' ? 'mtg' : 'yugioh';
-    const size = GUIDE[id];
+    const chosen = guideForSelect(ui.game && ui.game.value);
+    const id = chosen.w === 63 ? 'mtg' : 'yugioh';
+    const size = GUIDE[id] || chosen;
     section.style.setProperty('--guide-w', String(size.w));
     section.style.setProperty('--guide-h', String(size.h));
     const outline = ui.outline;
@@ -151,7 +153,12 @@ function boot() {
     outline.style.aspectRatio = '';
     outline.style.borderRadius = '16px';
   }
-  if (ui.game) ui.game.addEventListener('change', applyGuideShape);
+  if (ui.game) {
+    ui.game.addEventListener('change', () => {
+      ui.game.dataset.userChoice = '1';
+      applyGuideShape();
+    });
+  }
   applyGuideShape();
   refreshGuides().then(() => applyGuideShape()).catch(() => {});
   ui.historyDelete.addEventListener('click', () => {
@@ -2330,7 +2337,15 @@ function build(section, missingList) {
   const game = document.createElement('select');
   game.id = 'scan-game';
   game.setAttribute('aria-label', 'Game');
-  for (const [value, label] of [['all', 'Both'], ['ygo', 'Yu-Gi-Oh'], ['mtg', 'Magic']]) {
+  for (const [value, label] of [
+    ['all', 'Both'],
+    ['ygo', 'Yu-Gi-Oh'],
+    ['mtg', 'Magic'],
+    ['lorcana', 'Lorcana'],
+    ['starwars-unlimited', 'Star Wars Unlimited'],
+    ['digimon', 'Digimon'],
+    ['fleshandblood', 'Flesh and Blood'],
+  ]) {
     game.append(cameraOption(value, label));
   }
   const camera = document.createElement('select');
