@@ -1,0 +1,81 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo"
+ ],
+ "borderless_possible": false,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "none-free as a separate catalog (YGOPRODeck coverage of Rush Duel is unconfirmed this turn; do not assume)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16,
+  "aspect": 0.686
+ },
+ "id": "yugioh-rush-duel",
+ "label": "Yu-Gi-Oh! Rush Duel",
+ "size_mm": {
+  "w": 59,
+  "h": 86,
+  "tol": 0.5
+ },
+ "size_source": "Same small-size class as Yu-Gi-Oh! OCG/TCG (existing yugioh.json 59×86). https://eternis.jp/pages/card-size-list (6 Nov 2026) cites the official Rush Duel product pages for 59×86mm. Confirm factory mm with calipers before locking a separate guide (may share the existing YGO guide).",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "language"
+ ],
+ "back_cues": [
+  "Rush Duel back (distinct from OCG/TCG; confirm from a sample)"
+ ],
+ "counterfeit_tells": [
+  "OCG back on a claimed Rush Duel card",
+  "missing official hologram",
+  "wrong size"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "ARS"
+ ],
+ "languages": [
+  "ja",
+  "en",
+  "ko",
+  "other"
+ ],
+ "grader_notes": "ARS lists 遊戯王 RUSH DUEL. TAG does not accept Yu-Gi-Oh! / bridge sizing."
+}

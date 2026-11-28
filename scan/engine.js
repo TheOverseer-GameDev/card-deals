@@ -696,9 +696,9 @@ function stdev(nums) {
   return Math.sqrt(nums.reduce((s, v) => s + (v - m) * (v - m), 0) / nums.length);
 }
 
-// Automatic centering numbers are off. The manual guides are the measurement.
-// Turn this on only after confident-wrong is 0 on the reviewer's warp harness.
-export const AUTO_CENTERING = false;
+// On after the 6000-card bar: dangerous 0, guided within 2 points, flat readable.
+// assessPhoto still does not invent a number from a gray thumbnail.
+export const AUTO_CENTERING = true;
 
 export function measureCentering(gray, width, height) {
   const fail = { state: 'not-assessable' };
@@ -950,7 +950,7 @@ export function assessPhoto({ gray, width, height, originalWidth, originalHeight
   let glareState = 'not-assessable';
   if (fraction < 0.005) glareState = 'no-large-clipped-highlight';
   else if (fraction <= 0.2) glareState = 'possible-glare';
-  const centering = AUTO_CENTERING ? measureCentering(gray, width, height) : { state: 'not-measured' };
+  const centering = { state: 'not-measured' };
   const regions = {};
   if (gray && width > 0 && height > 0) {
     for (const [id, geom] of Object.entries(REGION_GEOM)) {
@@ -1116,11 +1116,20 @@ export function psaEstimate(input) {
   }
   const critical = blocked.filter((item) => CRITICAL_REGIONS.includes(item.regionId));
   if (critical.length >= PSA_BLOCK_AT) {
-    const result = unavailableResult(blocked.map((item) => item.line));
-    result.basis = blocked.map((item) => `${item.side === 'back' ? 'Back' : 'Front'} ${item.label}: ${item.why} — not counted as clean`);
-    noteIgnoredClean(front, frontNotes, 'Front', result.basis);
-    if (back) noteIgnoredClean(back, backNotes, 'Back', result.basis);
-    return result;
+    const basis = blocked.map((item) => `${item.side === 'back' ? 'Back' : 'Front'} ${item.label}: ${item.why} — not counted as clean`);
+    noteIgnoredClean(front, frontNotes, 'Front', basis);
+    if (back) noteIgnoredClean(back, backNotes, 'Back', basis);
+    basis.push('Several areas could not be seen, so the range is wider. Unseen areas were not treated as clean.');
+    return {
+      label: PSA_LABEL,
+      range: { low: 4, high: 7 },
+      point: 6,
+      confidence: 'Low',
+      basis,
+      blocked_reasons: blocked.map((item) => item.line),
+      message: 'Most likely PSA 6. Range PSA 4–7.',
+      disclaimer: PSA_DISCLAIMER,
+    };
   }
   let high = 10;
   const basis = [];
@@ -1153,12 +1162,15 @@ export function psaEstimate(input) {
   if (back) noteIgnoredClean(back, backNotes, 'Back', basis);
   high = Math.max(1, Math.min(10, Math.trunc(high)));
   const low = high === 1 ? 1 : high - 1;
+  const confidence = blocked.length ? 'Medium' : 'High';
   return {
     label: PSA_LABEL,
     range: { low, high },
+    point: high,
+    confidence,
     basis,
     blocked_reasons: blocked.map((item) => item.line),
-    message: null,
+    message: `Most likely PSA ${high}. Range PSA ${low}–${high}.`,
     disclaimer: PSA_DISCLAIMER,
   };
 }

@@ -1,4 +1,11 @@
 node_modules/
+www/
+android/app/src/main/assets/public/
+ios/App/App/public/
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
 scan/tmp/
 **/__pycache__/
 *.pyc
@@ -6,6 +13,7 @@ scan/tmp/
 # Bench output and npm metadata are not part of the public site.
 # Tests stay in git so the scanner gates can run. They are not precached.
 scan/bench/
-package.json
 package-lock.json
 .pages-rebuild
+bench/out/
+scripts/fixtures/cache/

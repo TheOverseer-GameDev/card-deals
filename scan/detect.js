@@ -114,8 +114,8 @@ export function judgePreview(rgba, width, height) {
   const quad = located.quad || located.candidate || null;
   const meanFrame = average(located.gray);
   if (!quad) {
-    if (meanFrame < 32) return result('too-dark', 'Too dark. Add light.', { mean: meanFrame });
-    return result('no-card', 'No card outline yet.', { mean: meanFrame });
+    if (meanFrame < 32) return result('too-dark', 'Add light.', { mean: meanFrame });
+    return result('no-card', 'Show all four edges.', { mean: meanFrame });
   }
   const scaledQuad = quad.map((p) => ({ x: p.x * located.scale, y: p.y * located.scale }));
   const stats = regionStats(located.gray, located.width, located.height, scaledQuad);
@@ -127,8 +127,8 @@ export function judgePreview(rgba, width, height) {
   const portrait = spanW < spanH ? spanW / (spanH || 1) : spanH / (spanW || 1);
   const nearEdge = quad.some((p) => p.x < width * 0.03 || p.y < height * 0.03 || p.x > width * 0.97 || p.y > height * 0.97);
   const shared = { quad, focus, mean: stats.mean, clipped: stats.clipped, skew, portrait };
-  if (stats.mean < 42) return result('too-dark', 'Too dark. Add light.', shared);
-  if (stats.clipped > 0.06 || stats.mean > 230) return result('too-glary', 'Too much glare. Soften the light.', shared);
+  if (stats.mean < 42) return result('too-dark', 'Add light.', shared);
+  if (stats.clipped > 0.06 || stats.mean > 230) return result('too-glary', 'Reduce glare.', shared);
   // The 160 px preview washes out a blur that is obvious on the photo. A
   // larger copy keeps that blur below the sharp cards without moving the
   // small live sample off the check it already passed.
@@ -136,15 +136,15 @@ export function judgePreview(rgba, width, height) {
   if (!blurred && Math.max(width, height) > 360) {
     blurred = strideFocus(rgba, width, height) < 2200;
   }
-  if (blurred) return result('blurry', 'Blurry. Hold still.', shared);
-  if (skew > 20 || portrait < 0.56 || portrait > 0.9) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
-  if (located.areaFrac < 0.18) return result('too-far', 'Too far. Move closer.', shared);
-  if (located.areaFrac > 0.72 || nearEdge) return result('too-close', 'Too close. Move back so the whole card is in frame.', shared);
+  if (blurred) return result('blurry', 'Hold still.', shared);
+  if (skew > 20 || portrait < 0.56 || portrait > 0.9) return result('tilted', 'Show all four edges.', shared);
+  if (located.areaFrac < 0.18) return result('too-far', 'Move closer.', shared);
+  if (located.areaFrac > 0.72 || nearEdge) return result('too-close', 'Show all four edges.', shared);
   // Lined-up photos in the bench sit inside about 6°. The tilted ones are
   // past 12°. The old 3° cut also rejected lined-up frames.
-  if (Number.isFinite(located.tilt) && located.tilt > 12) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
-  if (!located.found) return result('tilted', 'Tilted. Hold the phone parallel to the card.', shared);
-  return result('lined-up', 'Lined up. Hold steady.', shared);
+  if (Number.isFinite(located.tilt) && located.tilt > 12) return result('tilted', 'Show all four edges.', shared);
+  if (!located.found) return result('tilted', 'Show all four edges.', shared);
+  return result('lined-up', 'Hold still.', shared);
 }
 
 export function quadShift(a, b) {

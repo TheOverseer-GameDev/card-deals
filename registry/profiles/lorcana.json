@@ -1,0 +1,88 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "lorcast (free; https://lorcast.com/docs/api)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "lorcana",
+ "label": "Disney Lorcana",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "https://files.disneylorcana.com/CRUpdate_EN_Oct-2026.pdf rule 1.4.1: a standard Disney Lorcana card measures 2.5\" by 3.5\" (6.3 cm x 8.8 cm)",
+ "id_features": [
+  "set",
+  "card_no",
+  "rarity",
+  "foil",
+  "language"
+ ],
+ "markers": {
+  "back": "Illuminary icon on every standard card back; same back in all regions"
+ },
+ "back_cues": [
+  "Illuminary icon",
+  "uniform Lorcana back (all languages)"
+ ],
+ "counterfeit_tells": [
+  "wrong or missing Illuminary back icon",
+  "wrong font",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG",
+  "ARS"
+ ],
+ "languages": [
+  "en",
+  "de",
+  "fr",
+  "it",
+  "ja",
+  "other"
+ ],
+ "grader_notes": "TAG: poker-size TCG, English (and other TAG language rules). ARS lists Disney LORCANA. BGS Europe explicitly lists Disney Lorcana."
+}

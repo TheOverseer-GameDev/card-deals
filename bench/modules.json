@@ -1,0 +1,18 @@
+{
+  "note": "Every inspection check is required. Each keeps its own flag and its own bar. A miss is a blocker, not a silent off switch.",
+  "checks": [
+    {"id": "stain", "family": "ST", "flag": "CHECK_STAIN", "xMm": 30, "yMm": 42},
+    {"id": "foil", "family": "FW", "flag": "CHECK_FOIL", "xMm": 30, "yMm": 36},
+    {"id": "edition", "family": "EM", "flag": "CHECK_EDITION", "xMm": 8, "yMm": 78},
+    {"id": "authenticity", "family": "AU", "flag": "CHECK_AUTHENTICITY", "xMm": 2, "yMm": 40},
+    {"id": "print", "family": "PQ", "flag": "CHECK_PRINT", "xMm": 30, "yMm": 40},
+    {"id": "whitening", "family": "WH", "flag": "CHECK_WHITENING", "xMm": 2, "yMm": 43},
+    {"id": "ding", "family": "DG", "flag": "CHECK_DING", "xMm": 0.4, "yMm": 6},
+    {"id": "scratch", "family": "SC", "flag": "CHECK_SCRATCH", "xMm": 24, "yMm": 50},
+    {"id": "dent", "family": "DN", "flag": "CHECK_DENT", "xMm": 34, "yMm": 55},
+    {"id": "crease", "family": "CR", "flag": "CHECK_CREASE", "xMm": 28, "yMm": 43},
+    {"id": "warp", "family": "WB", "flag": "CHECK_WARP", "xMm": 0, "yMm": 43},
+    {"id": "glare", "family": "SG", "flag": "CHECK_GLARE", "xMm": 40, "yMm": 18},
+    {"id": "nick", "family": "K", "flag": "CHECK_NICK", "xMm": 3, "yMm": 8}
+  ]
+}

@@ -1,0 +1,74 @@
+{
+ "id": "cabinet-t3",
+ "label": "Cabinet / Turkey Red T3 class (5-3/4 × 8 in)",
+ "family": "sports",
+ "size_mm": {
+  "w": 146.1,
+  "h": 203.2,
+  "tol": 2.0
+ },
+ "size_source": "PSA CardFacts: 1911 T3 Turkey Red cabinet cards measure 5-3/4\" x 8\" — https://www.psacard.com/cardfacts/baseball-cards/1911-t3-turkey-red-cabinets/123 (146.05×203.2 mm). PSA has a dedicated T3 holder (PSA app lists supersized, T3, and jumbo as oversized types).",
+ "thickness": [
+  "cabinet-thick"
+ ],
+ "surfaces": [
+  "paper-litho"
+ ],
+ "borderless_possible": false,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "id_features": [
+  "year",
+  "set",
+  "player",
+  "card_no",
+  "back_variety"
+ ],
+ "back_cues": [
+  "T3 checklist backs or Turkey Red advertisement / no-offer-text varieties"
+ ],
+ "counterfeit_tells": [
+  "modern reprint of cabinet lithographs",
+  "trimmed borders",
+  "fake slab"
+ ],
+ "data_sources": {
+  "catalog": "none-free (licence pending)",
+  "prices": "ebay-licensed"
+ },
+ "graders": [
+  "PSA",
+  "BGS",
+  "SGC"
+ ],
+ "languages": [
+  "en"
+ ],
+ "grader_notes": "CGC published max is 2-5/8\" × 3-3/4\" — T3 is far larger, so CGC is not eligible on the published cap. TAG does not accept oversized/jumbo cards. ARS TCG size caps do not cover cabinets. SGC terms allow an upcharge on cards larger than 3-1/2\" × 5-1/2\". Confirm BGS current oversized policy before submitting; official current BGS size table was not on the public grading page this turn.",
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16,
+  "aspect": 0.719
+ }
+}

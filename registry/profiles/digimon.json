@@ -1,0 +1,85 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "digimoncard.io (free public API; 15 req / 10 s; https://digimoncard.io/api-documentation)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "digimon",
+ "label": "Digimon Card Game",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Bandai Union Arena official notice (15 Feb 2023): product cards are the same card size as ONE PIECE Card Game and Digimon Card Game — https://www.unionarena-tcg.com/jp/news/004.php — factory mm still provisional pending calipers; existing One Piece profile is 63x88",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language"
+ ],
+ "markers": {
+  "set_code": "BT/EX/ST/P prefixes (sets derived from card-number prefixes in updater/SOURCES.md)"
+ },
+ "back_cues": [
+  "uniform Digimon Card Game back"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "wrong font",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG",
+  "ARS"
+ ],
+ "languages": [
+  "en",
+  "ja",
+  "other"
+ ],
+ "grader_notes": "ARS lists DIGIMON CARD GAME and several legacy Digimon card products. TAG: poker-size; English, plus TAG language rules (JP not explicitly listed for Digimon on the 2 Jul 2026 TCG page — confirm before submitting JP to TAG)."
+}

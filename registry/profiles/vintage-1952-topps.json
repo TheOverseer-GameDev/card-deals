@@ -1,0 +1,81 @@
+{
+ "id": "vintage-1952-topps",
+ "label": "Vintage early-1950s sports (1952 Topps class, 2-5/8 × 3-6/8 in)",
+ "family": "sports",
+ "size_mm": {
+  "w": 66.7,
+  "h": 95.3,
+  "tol": 1.0
+ },
+ "size_source": "PSA article (Joe Orlando): in 1952, the Topps cards measured 2-5/8\" by 3-6/8\" versus Bowman's 2-1/8\" by 3-1/8\" — https://www.psacard.com/articles/articleview/10365/new-era-begins-elements-make-1952-topps-baseball-card-set-most-iconic-postwar-age (2-5/8×3-6/8 in = 66.675×95.25 mm). Wider tol because of vintage cutting variance. Topps standardized 2.5×3.5 in 1957 (https://baseball.cards/guides/baseball-card-size-and-dimensions/).",
+ "thickness": [
+  "vintage-paper"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "paper-matte"
+ ],
+ "borderless_possible": false,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "id_features": [
+  "year",
+  "brand",
+  "set",
+  "player",
+  "card_no"
+ ],
+ "brands": [
+  "Topps",
+  "Bowman"
+ ],
+ "back_cues": [
+  "1952 Topps baseball statistics / bio back; series-dependent"
+ ],
+ "counterfeit_tells": [
+  "reprint stock",
+  "trim to look like a smaller modern card",
+  "fake slab",
+  "counterfeit Mantle / high-number backs"
+ ],
+ "data_sources": {
+  "catalog": "none-free (licence pending)",
+  "prices": "ebay-licensed"
+ },
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC"
+ ],
+ "languages": [
+  "en"
+ ],
+ "grader_notes": "CGC maximum listed size is 2-5/8\" × 3-3/4\" (6.6 cm × 9.5 cm) — this class is at that cap. TAG accepts only 2.5×3.5 cards manufactured 1989–present, so TAG is not eligible. PSA app accepts tallboys and oversized holders; PSA chooses the holder.",
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16,
+  "aspect": 0.6999
+ }
+}

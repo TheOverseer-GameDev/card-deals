@@ -66,10 +66,11 @@ test('the result screen keeps grade copy, the photo, and the first-viewport acti
       const why = document.querySelector('#scan-grade-range .scan-why');
       const note = why.querySelector('p');
       const style = getComputedStyle(note);
-      const centering = [...document.querySelectorAll('#scan-grade-range .scan-score')]
-        .find((cell) => cell.querySelector('span')?.textContent === 'Centering');
-      const corners = [...document.querySelectorAll('#scan-grade-range .scan-score')]
-        .find((cell) => cell.querySelector('span')?.textContent === 'Corners');
+      const check = (name) => [...document.querySelectorAll('.scan-check')]
+        .find((cell) => cell.querySelector('span')?.textContent === name);
+      const centering = check('Centering');
+      const corners = check('Corners');
+      const centeringChip = centering.querySelector('.scan-chip');
       const row = document.querySelector('#scan-history-list .scan-history-row');
       const historyNote = row.querySelector('.scan-history-note');
       const noteStyle = getComputedStyle(historyNote);
@@ -79,7 +80,7 @@ test('the result screen keeps grade copy, the photo, and the first-viewport acti
       const knob = document.getElementById('scan-session-sound').getBoundingClientRect();
       const next = document.getElementById('scan-next-card').getBoundingClientRect();
       const retake = document.getElementById('scan-retake-main').getBoundingClientRect();
-      const tabs = document.getElementById('scan-tabs').getBoundingClientRect();
+      const tabs = document.querySelector('nav').getBoundingClientRect();
       const scroller = document.querySelector('.scan-panel-scroll');
       return {
         explanation: note.textContent,
@@ -89,10 +90,10 @@ test('the result screen keeps grade copy, the photo, and the first-viewport acti
         fontWeight: parseInt(style.fontWeight, 10) || 400,
         chips: [...document.querySelectorAll('#scan-grade-range .scan-chip')].map((chip) => chip.textContent),
         centeringValue: centering.querySelector('b').textContent,
-        centeringHint: centering.querySelector('small')?.textContent || '',
-        centeringRaw: centering.textContent,
-        cornersValue: corners.querySelector('b').textContent,
-        cornersBar: corners.querySelector('i').style.width,
+        centeringChip: centeringChip.textContent,
+        centeringNowrap: getComputedStyle(centeringChip).whiteSpace,
+        cornersChip: corners.querySelector('.scan-chip').textContent,
+        scoreGrid: document.querySelectorAll('.scan-score').length,
         heroPixel: [pixel[0], pixel[1], pixel[2]],
         priceCta: document.getElementById('scan-confirm-price')?.textContent || '',
         identifyHidden: document.getElementById('scan-identify').hidden,
@@ -110,7 +111,9 @@ test('the result screen keeps grade copy, the photo, and the first-viewport acti
         actionsAboveTabs: next.top >= 0 && next.bottom <= tabs.top + 1 && retake.bottom <= tabs.top + 1 && next.bottom <= window.innerHeight,
       };
     });
-    assert.match(facts.explanation, /Estimate unavailable — retake required\.\s+\S/);
+    assert.match(facts.explanation, /PSA \d+–\d+, likely ~\d+\./);
+    assert.doesNotMatch(facts.explanation, /Most likely PSA 10/);
+    assert.doesNotMatch(facts.explanation, /Estimate unavailable/);
     assert.match(facts.explanation, /Low confidence\./);
     assert.match(facts.explanation, /Centering is not measured\./);
     assert.doesNotMatch(facts.explanation, /required Low|required Limited|required This/);
@@ -121,10 +124,10 @@ test('the result screen keeps grade copy, the photo, and the first-viewport acti
     assert.ok(facts.chips.includes('Retake needed'));
     assert.ok(facts.chips.includes('Low confidence') || facts.chips.includes('Limited confidence'));
     assert.equal(facts.centeringValue, '—');
-    assert.equal(facts.centeringHint, 'Not measured');
-    assert.doesNotMatch(facts.centeringRaw, /Centering: not measured/);
-    assert.match(facts.cornersValue, /^\d+$/, facts.cornersValue);
-    assert.notEqual(facts.cornersBar, '0%');
+    assert.equal(facts.centeringChip, "Couldn't see");
+    assert.equal(facts.centeringNowrap, 'nowrap');
+    assert.equal(facts.cornersChip, 'Measured');
+    assert.equal(facts.scoreGrid, 0);
     assert.ok(Math.abs(facts.heroPixel[0] - 200) < 8 && Math.abs(facts.heroPixel[1] - 194) < 8, facts.heroPixel.join(','));
     assert.equal(facts.priceCta, 'Confirm card to see price');
     assert.equal(facts.identifyHidden, true);

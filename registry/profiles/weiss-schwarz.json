@@ -1,0 +1,85 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "rr",
+  "ssp",
+  "sp",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "none-free (official HTML / keyed third-party APIs only; watch list)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "weiss-schwarz",
+ "label": "Weiss Schwarz (incl. Blau and Rose)",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Bushiroad TCG 応用フロアルール ver.1.2.12 (updated 9 Jul 2026): regular-size cards are 約63mm×約88mm, listing ヴァイスシュヴァルツ, ヴァイスシュヴァルツブラウ, and ヴァイスシュヴァルツロゼ — https://ws-rose.com/wordpress/wp-content/images/rule/floor_app_ver1-2-12.pdf",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language"
+ ],
+ "back_cues": [
+  "uniform Weiss Schwarz back (confirm colour/logo from a measured sample)"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "wrong rarity stamp",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG",
+  "ARS"
+ ],
+ "languages": [
+  "en",
+  "ja",
+  "other"
+ ],
+ "grader_notes": "ARS lists Weiβ Schwarz, Weiß Schwarz Blau, Weiß Schwarz Rose. BGS Europe lists Weiss Schwarz. TAG accepts Weiss Schwarz in English only — Japanese-language Weiss is not eligible at TAG (help article 2 Jul 2026 / 23 Sep 2026)."
+}

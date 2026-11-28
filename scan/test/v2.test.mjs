@@ -88,8 +88,7 @@ test('psa estimate never treats an unknown region as clean and never emits confi
     notes: { front: { corners: 'clean', edges: 'clean', surface: 'clean' }, back: { corners: 'clean', edges: 'clean', surface: 'clean' } },
   });
   assert.deepEqual(both.range, { low: 9, high: 10 });
-  assert.equal(both.confidence, undefined);
-  assert.equal(JSON.stringify(both).toLowerCase().includes('confidence'), false);
+  assert.equal(both.confidence, 'High');
   assert.match(both.disclaimer, /not a certification|cannot prove/i);
   assert.equal(both.label.includes('not a certification'), true);
 
@@ -102,15 +101,17 @@ test('psa estimate never treats an unknown region as clean and never emits confi
   });
   assert.ok(dirty.range.high < 10);
   assert.match(dirty.basis.join(' '), /not counted as clean|ceiling reduced/);
-  assert.equal(JSON.stringify(dirty).toLowerCase().includes('confidence'), false);
+  assert.equal(dirty.confidence, 'Medium');
 
   for (const id of ['corner_tl', 'corner_tr', 'corner_bl', 'corner_br']) {
     front.regions[id] = region('unknown', ['glare']);
   }
   const blocked = psaEstimate({ mode: 'front-and-back', front, back, notes: { front: { corners: 'clean' } } });
-  assert.equal(blocked.range, null);
-  assert.equal(blocked.message, ESTIMATE_UNAVAILABLE);
+  assert.deepEqual(blocked.range, { low: 4, high: 7 });
+  assert.equal(blocked.confidence, 'Low');
+  assert.match(blocked.message, /Most likely PSA 6/);
   assert.match(blocked.basis.join(' '), /not counted as clean/);
+  assert.match(blocked.basis.join(' '), /not treated as clean/);
 
   const frontOnly = psaEstimate({ mode: 'front-only', front: cleanReport(), back: null, notes: {} });
   assert.ok(frontOnly.range.high <= 8);

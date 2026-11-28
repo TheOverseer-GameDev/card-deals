@@ -1,0 +1,90 @@
+{
+ "id": "tobacco-t206",
+ "label": "Tobacco-size (T206 White Border class)",
+ "family": "sports",
+ "size_mm": {
+  "w": 36.5,
+  "h": 66.7,
+  "tol": 1.6
+ },
+ "size_source": "PSA CardFacts: 1909-1911 T206 White Border cards measure about 1-7/16\" by 2-5/8\" — https://www.psacard.com/cardfacts/baseball-cards/1909-1911-t206-white-border/122 (36.51×66.68 mm). Wide tol: PSA says 'about', and period cutting varies. Do not force other tobacco sets onto this guide without their own sourced size.",
+ "thickness": [
+  "tobacco-thin"
+ ],
+ "surfaces": [
+  "paper-matte",
+  "paper-litho"
+ ],
+ "borderless_possible": false,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "id_features": [
+  "year",
+  "set",
+  "player",
+  "pose",
+  "back_brand"
+ ],
+ "markers": {
+  "back_brand": [
+   "Piedmont",
+   "Sweet Caporal",
+   "Old Mill",
+   "Sovereign",
+   "American Beauty",
+   "Polar Bear",
+   "other ATC brands",
+   "Ty Cobb back"
+  ]
+ },
+ "back_cues": [
+  "period tobacco advertising backs (brand-specific typography; 16+ T206 back varieties)"
+ ],
+ "counterfeit_tells": [
+  "modern reprint stock and printing",
+  "trimmed edges",
+  "rebacked / split backs",
+  "fake Wagner / Plank",
+  "fake slab"
+ ],
+ "data_sources": {
+  "catalog": "none-free (licence pending)",
+  "prices": "ebay-licensed"
+ },
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC"
+ ],
+ "languages": [
+  "en"
+ ],
+ "grader_notes": "SGC is widely used for pre-war tobacco. CGC accepts cards 2-5/8×3-3/4 or smaller, so T206 fits; smaller-than-standard cards may get an inner sleeve. TAG cannot accept cards under 2.5×3.5, including tobacco-size and Topps 206 / Allen & Ginter minis. ARS size caps are TCG mini/regular only. Fragile tobacco may be returned unencapsulated.",
+ "status": "provisional",
+ "guide": {
+  "px_corner": 12,
+  "aspect": 0.5472
+ }
+}

@@ -1,0 +1,120 @@
+{
+  "_about": "Candidate games/categories not yet backed by a verified free catalog source and/or a sourced factory size. update_catalog.py probes each weekly and flags it in NEW_SETS.md when a free source shows it. Promote to a real source only after a human checks that source's terms. Games given a registry profile in Nov 2026 remain listed here only when the catalog is still missing or the size is still unsourced.",
+  "promoted_to_profiles_2026_11_27": [
+    "lorcana",
+    "starwars-unlimited",
+    "fleshandblood",
+    "digimon",
+    "union-arena",
+    "weiss-schwarz",
+    "vanguard",
+    "gundam",
+    "dragon-ball",
+    "shadowverse-evolve",
+    "hololive-ocg",
+    "altered",
+    "final-fantasy-tcg",
+    "battle-spirits",
+    "sorcery",
+    "grand-archive",
+    "riftbound",
+    "duel-masters",
+    "yugioh-rush-duel",
+    "nonsport-standard",
+    "vintage-1952-topps",
+    "tobacco-t206",
+    "caramel-e90",
+    "cabinet-t3",
+    "sports-oversized-5x7"
+  ],
+  "candidates": [
+    {
+      "id": "sports-mini",
+      "name": "Sports / non-sport mini cards (Allen & Ginter mini, Topps 206 mini, and similar)",
+      "wiki": "Allen & Ginter",
+      "probes": [],
+      "gap": "No official or PSA CardFacts millimetre size found this turn. TAG rejects undersize including A&G mini and Topps 206 mini. Do not invent a guide; measure n>=10 or find a sourced size."
+    },
+    {
+      "id": "metazoo",
+      "name": "MetaZoo",
+      "wiki": "MetaZoo",
+      "probes": [],
+      "gap": "CGC marketing has listed MetaZoo. Official factory mm not found (prior HQ URL 404)."
+    },
+    {
+      "id": "universus",
+      "name": "UniVersus",
+      "wiki": "UniVersus",
+      "probes": [],
+      "gap": "No official factory mm and no free terms-checked catalog this turn."
+    },
+    {
+      "id": "keyforge",
+      "name": "KeyForge",
+      "wiki": "KeyForge",
+      "probes": [],
+      "gap": "No official factory mm and no free terms-checked catalog this turn."
+    },
+    {
+      "id": "elestrals",
+      "name": "Elestrals",
+      "wiki": "Elestrals",
+      "probes": [],
+      "gap": "No official factory mm and no free terms-checked catalog this turn."
+    },
+    {
+      "id": "wow-tcg",
+      "name": "World of Warcraft TCG (legacy)",
+      "wiki": "World of Warcraft Trading Card Game",
+      "probes": [],
+      "gap": "No official factory mm found. Do not use unsourced third-party size databases."
+    },
+    {
+      "id": "starwars-ccg",
+      "name": "Star Wars Customizable Card Game (Decipher, legacy)",
+      "wiki": "Star Wars Customizable Card Game",
+      "probes": [],
+      "gap": "Official players-committee sleeve page was blocked (403) this turn. No factory mm locked."
+    },
+    {
+      "id": "lotr-tcg",
+      "name": "The Lord of the Rings TCG",
+      "wiki": "The Lord of the Rings Trading Card Game",
+      "probes": [],
+      "gap": "TAG lists Lord of the Rings as poker-size 2.5×3.5. Which LOTR line, and factory mm, still need confirmation."
+    },
+    {
+      "id": "harry-potter-tcg",
+      "name": "Harry Potter TCG (legacy)",
+      "wiki": "Harry Potter Trading Card Game",
+      "probes": [],
+      "gap": "TAG lists Harry Potter TCG as poker-size 2.5×3.5. Factory mm not independently sourced."
+    },
+    {
+      "id": "dragon-ball-heroes",
+      "name": "Dragon Ball Heroes / Super Dragon Ball Heroes / Carddass (bridge size)",
+      "wiki": "Super Dragon Ball Heroes",
+      "probes": [],
+      "gap": "TAG describes this class as 2.25×3.5 bridge size and does not grade it. ARS does grade Heroes/Carddass lines but warns some Gundam War / older prints run oversize. Do not reuse the dragon-ball (Fusion World) 63×88 profile. Measure before writing a profile."
+    },
+    {
+      "id": "riftbound-api",
+      "name": "Riftbound catalog probe (profile already exists)",
+      "wiki": "Riftbound",
+      "probes": [
+        "https://api.riftcodex.com/api/cards?limit=1"
+      ],
+      "gap": "Profile written; catalog API still unresolved as of 22 Nov 2026."
+    },
+    {
+      "id": "altered-api",
+      "name": "Altered catalog probe (profile already exists)",
+      "wiki": "Altered (card game)",
+      "probes": [
+        "https://api.altered.gg/cards?itemsPerPage=1"
+      ],
+      "gap": "Profile written; public API host did not answer on 22 Nov 2026."
+    }
+  ]
+}

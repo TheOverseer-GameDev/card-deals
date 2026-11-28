@@ -1,0 +1,86 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "cold-foil",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "the-fab-cube GitHub dataset (set facts only; no licence file — do not ship card text without a licence)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "fleshandblood",
+ "label": "Flesh and Blood",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Official LSS article: a card is approximately 88x63mm — https://fabtcg.com/en/articles/back-alley-oracle-13-misprints-alters-proxies-and-tokens/",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "pitch",
+  "foil",
+  "language"
+ ],
+ "markers": {
+  "back": "official Flesh and Blood back-face; some marvel-hero full-art backs and serialized sketch backs exist"
+ },
+ "back_cues": [
+  "official FaB back-face",
+  "rare full-art or serialized sketch backs"
+ ],
+ "counterfeit_tells": [
+  "wrong back-face",
+  "wrong pitch stripe",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG"
+ ],
+ "languages": [
+  "en",
+  "other"
+ ],
+ "grader_notes": "CGC marketing lists Flesh and Blood. TAG: poker-size TCG, English. Not on the ARS title list fetched 27 Nov 2026."
+}

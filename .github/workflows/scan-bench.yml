@@ -1,0 +1,34 @@
+name: scan bench
+on:
+  pull_request:
+  push:
+    branches: ['cursor/scan-*']
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: browser for the scan suites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg ffmpeg
+          wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y /tmp/chrome.deb
+          npm install --no-save --no-audit --no-fund playwright-core
+      - name: procedural bench and scanner suites
+        run: |
+          npm run bench:ci
+          node --test --test-concurrency=1 --test-timeout 180000 bench/test/*.js scan/test/*.js scan/test/*.mjs
+      - name: numbers only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-bench-numbers
+          path: |
+            bench/out/numbers.json
+            bench/out/diff.md

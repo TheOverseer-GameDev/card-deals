@@ -29,8 +29,12 @@ import { compareTilt } from './tilt.js';
 import { matchArtwork } from './artmatch.js';
 import { buildDefectMap } from './defects.js';
 import { AUTO_CENTERING, ESTIMATE_UNAVAILABLE } from './engine.js';
+import { captureKind, startNativePreview } from './camera-source.js';
+import { readCentering } from './core/center.js';
+import { gradeEstimate } from './core/grade.js';
+import { inspect } from './core/inspect.js';
 import { psaEstimate } from './engine.js';
-import { estimateBorders, formatGuide, gradePhoto, gradeSide, grayOf, measureCentering, straighten } from './pipeline.js';
+import { formatGuide, gradePhoto, gradeSide, grayOf, straighten } from './pipeline.js';
 import { mountGuides } from './manual.js';
 import { findStains } from './stains.js';
 import { findCreases } from './creases.js';
@@ -44,7 +48,10 @@ import { HISTORY_VERSION, openScanHistory, presentScan, saveScan } from './histo
 import { addToSession, createSession, cue, sessionTotal, storedCad, toCsv } from './session.js';
 import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
-import { drawLiveQuad, mountEdge, mountRing, startLive } from './live.js';
+import { drawLiveQuad, formatDevLine, mountEdge, mountRing, startLive } from './live.js';
+import { GUIDE, refreshGuides } from './profiles.js';
+import { GAMES, GAME_TIERS, gameById, guideForSelect } from './games.js';
+import { SIZE_CLASSES } from './size-class.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
@@ -134,19 +141,83 @@ function boot() {
 
   const ui = build(section, rows.length === 0);
   function applyGuideShape() {
-    const mtg = ui.game && ui.game.value === 'mtg';
-    section.style.setProperty('--guide-w', mtg ? '63' : '59');
-    section.style.setProperty('--guide-h', mtg ? '88' : '86');
+    const chosen = guideForSelect(ui.game && ui.game.value);
+    const shipped = ui.game && (ui.game.value === 'mtg' || ui.game.value === 'ygo' || ui.game.value === 'yugioh' || !ui.game.value || ui.game.value === 'all');
+    const size = shipped
+      ? (GUIDE[ui.game && ui.game.value === 'mtg' ? 'mtg' : 'yugioh'] || chosen)
+      : chosen;
+    section.style.setProperty('--guide-w', String(size.w));
+    section.style.setProperty('--guide-h', String(size.h));
     const outline = ui.outline;
-    if (!outline) return;
-    outline.style.width = '';
-    outline.style.height = '';
-    outline.style.maxWidth = '';
-    outline.style.aspectRatio = '';
-    outline.style.borderRadius = '16px';
+    if (outline) {
+      outline.style.width = '';
+      outline.style.height = '';
+      outline.style.maxWidth = '';
+      outline.style.aspectRatio = '';
+      outline.style.borderRadius = '16px';
+    }
+    paintGameChrome();
   }
-  if (ui.game) ui.game.addEventListener('change', applyGuideShape);
+  function selectedGame() {
+    const value = ui.game && ui.game.value;
+    if (!value || value === 'all') return { ...gameById('yugioh'), label: 'Both' };
+    if (String(value).startsWith('size:')) {
+      const id = String(value).slice(5);
+      const size = Object.values(SIZE_CLASSES).find((row) => row.id === id);
+      return { id, label: size ? `${size.w}×${size.h} mm` : id, grader: '', provisional: true, tier: 'Size' };
+    }
+    return gameById(value) || gameById('yugioh');
+  }
+  function paintGameChrome() {
+    const game = selectedGame();
+    const open = document.getElementById('scan-game-open');
+    if (open) open.textContent = game.label;
+    const name = document.getElementById('scan-grader-name');
+    const note = document.getElementById('scan-grader-note');
+    if (name) name.textContent = game.label;
+    if (note) {
+      const shared = 'CGC\'s published maximum is 2-5/8 in × 3-3/4 in and 7.25 mm thick. TAG takes 2.5×3.5 in only, from 1989 to the present, and does not take Yu-Gi-Oh size, tobacco, minis, relics, or jumbos.';
+      note.textContent = [shared, game.grader].filter(Boolean).join(' ');
+    }
+    const line = document.getElementById('scan-confirm-game');
+    if (line) line.textContent = game.provisional ? `Game: ${game.label}. Provisional size.` : `Game: ${game.label}.`;
+  }
+  if (ui.game) {
+    ui.game.addEventListener('change', () => {
+      ui.game.dataset.userChoice = '1';
+      applyGuideShape();
+    });
+  }
   applyGuideShape();
+  refreshGuides().then(() => applyGuideShape()).catch(() => {});
+  const addNamed = document.getElementById('scan-session-add');
+  if (addNamed) {
+    addNamed.addEventListener('click', () => {
+      const picked = selectedGame();
+      const typed = (document.getElementById('scan-search').value || '').trim();
+      const entry = addToSession(scanSession, {
+        name: typed || 'Unnamed card',
+        set: document.getElementById('scan-confirm-set').value,
+        number: document.getElementById('scan-confirm-number').value,
+        variant: document.getElementById('scan-confirm-variant').value,
+        game: picked.id,
+        gameLabel: picked.label,
+      });
+      entry.foil = document.getElementById('scan-confirm-foil').value === 'yes';
+      renderSession();
+      const at = Date.now();
+      openScanHistory().then((store) => saveScan(store, {
+        at,
+        version: HISTORY_VERSION,
+        name: entry.name,
+        game: picked.id,
+        gameLabel: picked.label,
+        summary: `${picked.label}. Added by name. No photo was saved.`,
+      })).then(() => refreshHistory()).catch(() => refreshHistory('The name was not saved on this phone.'));
+      const sheet = document.getElementById('scan-identify');
+      if (sheet) sheet.hidden = true;
+    });
+  }
   ui.historyDelete.addEventListener('click', () => {
     openScanHistory().then(async (store) => {
       await store.clear();
@@ -198,6 +269,7 @@ function boot() {
       savedScroll = document.scrollingElement ? document.scrollingElement.scrollTop : window.scrollY;
     }
   }, true);
+  let scanLayerOpen = false;
   document.addEventListener('click', (ev) => {
     const button = ev.target.closest && ev.target.closest('nav button');
     if (!button) return;
@@ -208,10 +280,25 @@ function boot() {
       section.classList.remove('scan-review');
       enterCapture();
       openCamera(activeSlot());
+      if (window.CardDealsPlatform && !scanLayerOpen) {
+        scanLayerOpen = true;
+        window.CardDealsPlatform.push({
+          id: 'scan',
+          close() {
+            scanLayerOpen = false;
+            const lists = document.querySelector('nav button[data-v="lists"]');
+            if (lists) lists.click();
+          },
+        });
+      }
     } else {
       section.classList.remove('scan-review');
       stopCamera();
       leaveCapture();
+      if (scanLayerOpen && window.CardDealsPlatform) {
+        scanLayerOpen = false;
+        window.CardDealsPlatform.drop('scan');
+      }
       idleTimer = window.setTimeout(() => dropReader(), 60000);
     }
   });
@@ -274,7 +361,7 @@ function boot() {
       (activeSlot() === 'back' ? ui.backFile : ui.frontFile).click();
     });
     ui.frontCam.addEventListener('click', () => {
-      if (ui.stream) useFrame();
+      if (ui.stream || ui.nativePreview) useFrame();
       else openCamera(activeSlot());
     });
     ui.camStop.addEventListener('click', () => stopCamera());
@@ -285,9 +372,14 @@ function boot() {
     });
     ui.infoBtn.addEventListener('click', () => {
       ui.infoSheet.hidden = !ui.infoSheet.hidden;
+      const platform = window.CardDealsPlatform;
+      if (!platform) return;
+      if (ui.infoSheet.hidden) platform.drop('scan-info');
+      else platform.push({ id: 'scan-info', close() { ui.infoSheet.hidden = true; } });
     });
     ui.infoClose.addEventListener('click', () => {
       ui.infoSheet.hidden = true;
+      if (window.CardDealsPlatform) window.CardDealsPlatform.drop('scan-info');
     });
     ui.camera.addEventListener('change', () => {
       saveCameraChoice(ui.camera.value);
@@ -450,6 +542,7 @@ function boot() {
     if (slot === 'front' && ui.tiltHost && ui.tiltHost.reset) ui.tiltHost.reset();
     try {
       const shot = state.canvas.getContext('2d').getImageData(0, 0, state.canvas.width, state.canvas.height);
+      state.centerReading = AUTO_CENTERING ? readCentering(shot.data, shot.width, shot.height) : null;
       const flat = straighten(shot.data, shot.width, shot.height);
       state.flattened = Boolean(flat.flattened);
       if (flat.flattened) {
@@ -467,11 +560,11 @@ function boot() {
           parallel: !(flat.pose && flat.pose.parallel === false),
           edgesOk: flat.edgesOk !== false,
         };
-        const gray = grayOf(flat.rgba, 500, 700);
         let autoLine = 'Measure centering yourself.';
-        if (AUTO_CENTERING && flat.centeringOk) {
-          const autoText = measureCentering(gray, 500, 700) || '';
-          if (/\d+\.\d+\/\d+\.\d+/.test(autoText)) autoLine = autoText;
+        const reading = state.centerReading;
+        if (reading && reading.state === 'ok' && Number.isFinite(reading.lr)) {
+          const right = 100 - reading.lr;
+          autoLine = `Centering: ${reading.lr.toFixed(1)}/${right.toFixed(1)} left/right.`;
         }
         const autoHost = slot === 'back' ? ui.backAuto : ui.autoCenter;
         const guides = slot === 'back' ? ui.backManual : ui.frontManual;
@@ -479,7 +572,7 @@ function boot() {
         if (guides) {
           guides.onChange = (result) => applyManualCentering(slot, result);
           guides.setBack(slot === 'back');
-          guides.setImage(500, 700, AUTO_CENTERING ? estimateBorders(gray, 500, 700) : null);
+          guides.setImage(500, 700, null);
         }
       } else if (slot === 'front') {
         note.textContent += ' Front is tilted.';
@@ -710,8 +803,17 @@ function boot() {
     section.style.bottom = 'auto';
     section.style.top = `${((vv ? vv.offsetTop : 0) / z)}px`;
     section.style.left = `${((vv ? vv.offsetLeft : 0) / z)}px`;
+    const review = section.classList.contains('scan-review');
+    const nav = document.querySelector('nav');
+    let navSpace = 0;
+    if (review && nav) {
+      navSpace = (nav.offsetHeight || 76) + 10;
+      nav.style.zIndex = '130';
+    } else if (nav && nav.style.zIndex === '130') {
+      nav.style.zIndex = '';
+    }
     section.style.width = `${((vv ? vv.width : window.innerWidth) / z)}px`;
-    section.style.height = `${((vv ? vv.height : window.innerHeight) / z)}px`;
+    section.style.height = `${((vv ? vv.height : window.innerHeight) / z) - navSpace}px`;
   }
 
   function markTight() {
@@ -739,6 +841,8 @@ function boot() {
 
   function leaveCapture() {
     document.documentElement.classList.remove('scan-cam', 'scan-tight');
+    const nav = document.querySelector('nav');
+    if (nav && nav.style.zIndex === '130') nav.style.zIndex = '';
     section.style.position = '';
     section.style.top = '';
     section.style.left = '';
@@ -805,6 +909,24 @@ function boot() {
     ui.step.hidden = false;
     showLiveFinder();
     const listed = fillCameraList();
+    if (captureKind(window) === 'native') {
+      try {
+        const facing = cameraChoice().facingMode || 'environment';
+        const source = await startNativePreview(window, facing);
+        if (my !== camToken) {
+          await source.stop();
+          return;
+        }
+        ui.nativePreview = source;
+        if (ui.video) ui.video.hidden = true;
+        if (ui.torch) ui.torch.hidden = true;
+        await listed;
+        return;
+      } catch {
+        if (my !== camToken) return;
+        ui.nativePreview = null;
+      }
+    }
     if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
       await listed;
       ui.camMsg.textContent = 'Camera is blocked. Allow it, or choose a photo.';
@@ -854,6 +976,12 @@ function boot() {
         if (ui.align) ui.align.textContent = view.hint;
         if (ui.tightNote) ui.tightNote.textContent = view.hint;
         if (ui.setCaptureProgress) ui.setCaptureProgress(view.progress);
+        if (ui.dev && !ui.dev.hidden) {
+          const lens = ui.camera && ui.camera.selectedOptions[0] ? ui.camera.selectedOptions[0].textContent : 'Rear 1×';
+          const torchOn = ui.torch && ui.torch.getAttribute('aria-pressed') === 'true';
+          if (Number.isFinite(view.judgeMs)) ui.dev.dataset.ms = String(view.judgeMs);
+          ui.dev.textContent = formatDevLine({ lens, torchOn, judgeMs: view.judgeMs });
+        }
         drawLiveQuad(ui.liveEdge, ui.video, view.quad, view.code);
       },
       onCapture() {
@@ -1062,6 +1190,130 @@ function boot() {
     }
   }
 
+  function seenChecks(side, centeringText, canvas, hasBack) {
+    const seen = {};
+    seen.centering = centeringText ? { state: 'ok', cap: 9 } : { state: 'unseen' };
+    for (const key of ['corners', 'edges', 'surface']) {
+      const score = side[key] && side[key].score;
+      seen[key] = score == null ? { state: 'unseen' } : { state: 'ok' };
+    }
+    if (!hasBack) seen.back = { state: 'unseen' };
+    let report = null;
+    try {
+      if (canvas && canvas.width > 2) {
+        const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        report = inspect(data.data, canvas.width, canvas.height);
+      }
+    } catch { report = null; }
+    for (const id of ['stain', 'foil', 'edition', 'authenticity', 'print', 'whitening', 'ding', 'scratch', 'dent', 'crease', 'warp', 'glare', 'nick']) {
+      const item = report && report.results ? report.results[id] : null;
+      if (!item || item.state === 'unchecked') seen[id] = { state: 'unseen' };
+      else if (item.state === 'found') seen[id] = { state: 'found' };
+      else seen[id] = { state: 'ok' };
+    }
+    return seen;
+  }
+
+  function paintGradeHero(host, grade) {
+    if (!host) return;
+    let hero = host.querySelector('.scan-grade-hero');
+    if (!hero) {
+      hero = document.createElement('div');
+      hero.className = 'scan-grade-hero';
+      host.prepend(hero);
+    }
+    hero.replaceChildren();
+    if (!grade || grade.refused) return;
+    const wide = grade.confidence === 'Low' && Number.isFinite(grade.low) && Number.isFinite(grade.high) && grade.high - grade.low >= 4;
+    const num = document.createElement('b');
+    num.className = wide ? 'scan-grade-point is-range' : 'scan-grade-point';
+    num.textContent = wide ? `PSA ${grade.low}–${grade.high}, likely ~${grade.point}` : String(grade.point);
+    const chip = document.createElement('span');
+    chip.className = 'scan-chip';
+    chip.textContent = grade.confidence;
+    hero.append(num, chip);
+    if (!wide && grade.rangeText) {
+      const range = document.createElement('span');
+      range.className = 'scan-grade-range-text';
+      range.textContent = grade.rangeText;
+      hero.insertBefore(range, chip);
+    }
+  }
+
+  function paintCheckGrid(host, seen, grade) {
+    if (!host) return;
+    let grid = host.querySelector('.scan-check-grid');
+    if (!grid) {
+      grid = document.createElement('div');
+      grid.className = 'scan-check-grid';
+      host.append(grid);
+    }
+    grid.replaceChildren();
+    const labels = {
+      centering: 'Centering', corners: 'Corners', edges: 'Edges', surface: 'Surface',
+      whitening: 'Whitening', scratch: 'Scratches', dent: 'Dents', crease: 'Creases',
+      warp: 'Warping', stain: 'Stains', foil: 'Foil wear', print: 'Print quality',
+      edition: 'Edition', authenticity: 'Authenticity',
+    };
+    for (const [id, label] of Object.entries(labels)) {
+      const item = seen[id] || { state: 'unseen' };
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'scan-check';
+      const name = document.createElement('span');
+      name.textContent = label;
+      const chip = document.createElement('span');
+      chip.className = 'scan-chip';
+      chip.textContent = item.state === 'unseen' ? "Couldn't see" : item.state === 'estimated' ? 'Estimated' : 'Measured';
+      const value = document.createElement('b');
+      value.textContent = item.state === 'found' ? 'Issue seen' : item.state === 'ok' ? 'No issue seen' : '—';
+      btn.append(name, value, chip);
+      btn.addEventListener('click', () => openCheckSheet(label, item, grade));
+      grid.append(btn);
+    }
+    let tip = host.querySelector('.scan-improve');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.className = 'scan-improve';
+      host.append(tip);
+    }
+    tip.textContent = !grade || grade.refused || grade.confidence === 'High'
+      ? ''
+      : 'Improve this estimate. Retake in even light so more of the card can be measured.';
+  }
+
+  function openCheckSheet(label, item, grade) {
+    let sheet = document.getElementById('scan-check-sheet');
+    if (!sheet) {
+      sheet = document.createElement('div');
+      sheet.id = 'scan-check-sheet';
+      sheet.className = 'scan-identify';
+      const panel = document.createElement('div');
+      panel.className = 'scan-sheet-panel';
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.textContent = 'Close';
+      close.addEventListener('click', () => { sheet.hidden = true; });
+      const title = document.createElement('h3');
+      title.id = 'scan-check-title';
+      const body = document.createElement('p');
+      body.id = 'scan-check-body';
+      panel.append(close, title, body);
+      sheet.append(panel);
+      const root = document.getElementById('v-scan');
+      if (root) root.append(sheet);
+    }
+    sheet.hidden = false;
+    sheet.querySelector('#scan-check-title').textContent = label;
+    const state = item.state === 'found'
+      ? 'Something stood out in this area.'
+      : item.state === 'ok'
+        ? 'This area was measured. No issue stood out.'
+        : "Couldn't see this area.";
+    const tip = item.state === 'unseen' ? ' Retake with the card flat and evenly lit.' : '';
+    sheet.querySelector('#scan-check-body').textContent = `${state}${tip} ${grade && grade.reason ? grade.reason : ''}`.trim();
+  }
+
   function paintGradeChips(host, headline, confidenceLine) {
     if (!host) return;
     let chips = host.querySelector('.scan-chips');
@@ -1078,7 +1330,7 @@ function boot() {
       chip.textContent = label;
       chips.append(chip);
     };
-    if (headline === ESTIMATE_UNAVAILABLE) add('Retake needed', 'warn');
+    if (headline === ESTIMATE_UNAVAILABLE || confidenceLine.startsWith('Low')) add('Retake needed', 'warn');
     add(confidenceLine.replace(/\.$/, ''), 'muted');
     let why = host.querySelector('.scan-why');
     if (!why) {
@@ -1128,8 +1380,10 @@ function boot() {
     const gray = grayOf(rgba, width, height);
     const manual = slots.front.manual;
     let centeringText = '';
-    if (AUTO_CENTERING && flat && flat.centeringOk && width === 500 && height === 700) {
-      centeringText = measureCentering(gray, width, height) || '';
+    const stored = slots.front.centerReading;
+    if (AUTO_CENTERING && stored && stored.state === 'ok' && Number.isFinite(stored.lr)) {
+      const right = 100 - stored.lr;
+      centeringText = `Centering: ${stored.lr.toFixed(1)}/${right.toFixed(1)} left/right.`;
     } else if (manual && Number.isFinite(manual.leftPct) && Number.isFinite(manual.topPct)) {
       centeringText = `Centering: ${manual.leftPct.toFixed(1)}/${manual.rightPct.toFixed(1)} left/right. ${manual.topPct.toFixed(1)}/${manual.bottomPct.toFixed(1)} top/bottom.`;
     }
@@ -1161,48 +1415,34 @@ function boot() {
       }
       if (!said) rangeNotes.push('Centering is not measured.');
     }
-    const grid = ui.rangeHost.querySelector('.scan-grid') || ui.rangeHost.insertBefore(document.createElement('div'), ui.rangeHost.querySelector('p'));
-    grid.className = 'scan-grid';
-    grid.replaceChildren();
-    for (const [key, label] of [['centering', 'Centering'], ['corners', 'Corners'], ['edges', 'Edges'], ['surface', 'Surface']]) {
-      const cell = document.createElement('div');
-      cell.className = 'scan-cell scan-score';
-      const score = side[key] && side[key].score;
-      const missing = key === 'centering' && !centeringText;
-      const value = document.createElement('b');
-      value.textContent = missing || score == null ? '—' : String(score);
-      const name = document.createElement('span');
-      name.textContent = label;
-      const bar = document.createElement('i');
-      bar.style.width = missing || score == null ? '0%' : `${Math.max(0, Math.min(10, Number(score))) * 10}%`;
-      cell.append(value, name, bar);
-      if (missing) {
-        const hint = document.createElement('small');
-        hint.textContent = 'Not measured';
-        cell.append(hint);
-      }
-      grid.append(cell);
+    const gradeHeading = ui.rangeHost.querySelector('h3');
+    if (gradeHeading) gradeHeading.hidden = true;
+    const oldScores = ui.rangeHost.querySelector('.scan-grid');
+    if (oldScores) oldScores.remove();
+    const seen = seenChecks(side, centeringText, slots.front.canvas, Boolean(slots.back && slots.back.canvas));
+    const bestGrade = gradeEstimate({ hasCard: Boolean(slots.front.canvas), seen });
+    let headline = bestGrade.refused
+      ? ESTIMATE_UNAVAILABLE
+      : [bestGrade.headline, bestGrade.rangeText].filter(Boolean).join(' ');
+    const confidenceLine = bestGrade.refused
+      ? 'Low confidence.'
+      : `${bestGrade.confidence} confidence.`;
+    if (!bestGrade.refused && bestGrade.confidence === 'Low') {
+      rangeNotes.push('Retake in even light to improve this estimate.');
     }
-    let headline = centeringText ? range.text : ESTIMATE_UNAVAILABLE;
-    if (reports.front) {
-      const estimate = psaEstimate({
-        mode,
-        front: reports.front,
-        back: reports.back,
-        notes: { front: readNotes('front'), back: readNotes('back') },
-      });
-      if (!estimate.range) headline = ESTIMATE_UNAVAILABLE;
-    }
-    const confidenceLine = range.confidence === 'low' ? 'Low confidence.' : 'Limited confidence.';
+    paintGradeHero(ui.rangeHost, bestGrade);
+    paintCheckGrid(ui.rangeHost, seen, bestGrade);
     const alreadySaid = rangeNotes.some((part) => String(part || '').toLowerCase().includes(confidenceLine.replace(/\.$/, '').toLowerCase()));
-    const explanation = [headline, alreadySaid ? '' : confidenceLine, ...rangeNotes].map(finishSentence).filter(Boolean).join(' ');
+    const explanation = [headline, alreadySaid ? '' : confidenceLine, 'This estimate is not an official grade and this app is not affiliated with PSA.', ...rangeNotes].map(finishSentence).filter(Boolean).join(' ');
     showCheck(ui.rangeHost, explanation);
     paintGradeChips(ui.rangeHost, headline, confidenceLine);
     showCheck(ui.worthHost, `Estimate, not a PSA grade. ${worth.text}`);
     const token = `${width}x${height}:${rgba[0]}:${rgba[rgba.length - 1]}:${flat ? 'flat' : 'raw'}`;
     if (token === savedToken) return;
     savedToken = token;
+    if (!bestGrade.refused && window.CardDealsPlatform) window.CardDealsPlatform.haptic('reveal');
     const summary = [headline]
+      .concat(!bestGrade.refused && bestGrade.confidence === 'Low' ? ['Retake in even light to improve this estimate.'] : [])
       .concat(stains.status && stains.status !== 'clear' ? [stains.note] : [])
       .concat(creases.status && creases.status !== 'clear' ? [creases.note] : [])
       .map(finishSentence)
@@ -1214,6 +1454,8 @@ function boot() {
       at,
       version: HISTORY_VERSION,
       name: confirmedName || 'Unnamed card',
+      game: selectedGame().id,
+      gameLabel: selectedGame().label,
       summary,
     })).then((result) => refreshHistory(result && result.reason)).catch(() => refreshHistory('The scan was not saved on this phone.'));
   }
@@ -1247,7 +1489,7 @@ function boot() {
         const head = document.createElement('div');
         head.className = 'scan-history-head';
         const title = document.createElement('strong');
-        title.textContent = name;
+        title.textContent = row.gameLabel ? `${name} · ${row.gameLabel}` : name;
         const chip = document.createElement('span');
         const summaryText = presentScan(row);
         const needsRetake = /unavailable|retake/i.test(summaryText);
@@ -1296,6 +1538,11 @@ function boot() {
     if (ui.setCaptureProgress) ui.setCaptureProgress(0);
     if (ui.align) ui.align.textContent = 'Align the card in the frame.';
     clearLiveOverlay();
+    if (ui.nativePreview) {
+      const preview = ui.nativePreview;
+      ui.nativePreview = null;
+      preview.stop().catch(() => {});
+    }
     if (ui.stream) {
       for (const track of ui.stream.getTracks()) track.stop();
       ui.stream = null;
@@ -1342,10 +1589,47 @@ function boot() {
       void flash.offsetWidth;
       flash.classList.add('on');
     }
-    try { navigator.vibrate?.(18); } catch { /* This phone has no haptic. */ }
+    if (window.CardDealsPlatform) window.CardDealsPlatform.haptic('capture');
+    else try { navigator.vibrate?.(18); } catch { /* This phone has no haptic. */ }
+  }
+
+  async function frameFromNative() {
+    const raw = await ui.nativePreview.capture();
+    const img = await new Promise((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error('frame'));
+      el.src = `data:image/jpeg;base64,${raw}`;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    return canvas;
   }
 
   async function useFrame() {
+    if (ui.nativePreview) {
+      let canvas = null;
+      try { canvas = await frameFromNative(); } catch { canvas = null; }
+      if (!canvas) {
+        ui.camMsg.textContent = 'The frame could not be copied. You can still use the shutter.';
+        ui.blocked.hidden = false;
+        return;
+      }
+      pulseCapture();
+      const slot = ui.camSlot || activeSlot();
+      stopCamera();
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      releaseCanvas(canvas);
+      if (!blob) {
+        ui.camMsg.textContent = 'The frame could not be copied. You can still upload a photo.';
+        ui.blocked.hidden = false;
+        return;
+      }
+      await loadFile(slot, new File([blob], 'camera.jpg', { type: 'image/jpeg' }), { fromCamera: true });
+      return;
+    }
     const box = captureSize(ui.video.videoWidth, ui.video.videoHeight);
     if (!box) {
       ui.camMsg.textContent = 'The camera has no frame yet.';
@@ -1585,7 +1869,7 @@ function boot() {
       const block = document.createElement('div');
       block.className = 'scan-session';
       const title = document.createElement('p');
-      title.textContent = item.name;
+      title.textContent = item.gameLabel ? `${item.name} · ${item.gameLabel}` : item.name;
       block.append(title);
       for (const [key, label] of [['qty', 'Quantity'], ['set', 'Set'], ['condition', 'Condition']]) {
         const labelEl = document.createElement('label');
@@ -2081,7 +2365,15 @@ function build(section, missingList) {
   camLeft.append(zoomToggle);
   const camRight = document.createElement('div');
   camRight.className = 'scan-cam-side scan-cam-right';
-  camRight.append(gallery, next);
+  const addByName = button('Add by name', 'scan-add-by-name', true);
+  addByName.addEventListener('click', () => {
+    section.classList.add('scan-review');
+    const sheet = document.getElementById('scan-identify');
+    const title = sheet && sheet.querySelector('h3');
+    if (title) title.textContent = 'Confirm the card';
+    if (sheet) sheet.hidden = false;
+  });
+  camRight.append(gallery, addByName, next);
   const camBar = document.createElement('div');
   camBar.className = 'scan-cam-bar';
   const captureRing = mountRing(camBar);
@@ -2103,10 +2395,83 @@ function build(section, missingList) {
   close.setAttribute('aria-label', 'Close scan');
   const game = document.createElement('select');
   game.id = 'scan-game';
+  game.className = 'scan-game-native';
   game.setAttribute('aria-label', 'Game');
-  for (const [value, label] of [['all', 'Both'], ['ygo', 'Yu-Gi-Oh'], ['mtg', 'Magic']]) {
-    game.append(cameraOption(value, label));
+  game.append(cameraOption('all', 'Both'), cameraOption('ygo', 'Yu-Gi-Oh'), cameraOption('mtg', 'Magic'));
+  for (const row of GAMES) {
+    if (row.id === 'yugioh' || row.id === 'mtg') continue;
+    game.append(cameraOption(row.id, row.label));
   }
+  for (const row of Object.values(SIZE_CLASSES)) game.append(cameraOption(`size:${row.id}`, `${row.w}×${row.h}`));
+  const gameOpen = button('Yu-Gi-Oh', 'scan-game-open', true);
+  const gameSheet = document.createElement('div');
+  gameSheet.id = 'scan-game-sheet';
+  gameSheet.className = 'scan-identify';
+  gameSheet.hidden = true;
+  const gamePanel = document.createElement('div');
+  gamePanel.className = 'scan-sheet-panel';
+  const gameClose = button('Close', 'scan-game-close', true);
+  const gameTitle = document.createElement('h3');
+  gameTitle.textContent = 'Card type';
+  const gameHint = document.createElement('p');
+  gameHint.className = 'note';
+  gameHint.textContent = 'Provisional sizes are not locked. They wait on a caliper sample of at least 10 cards.';
+  gamePanel.append(gameClose, gameTitle, gameHint);
+  function chooseGame(value) {
+    game.value = value;
+    game.dispatchEvent(new Event('change', { bubbles: true }));
+    gameSheet.hidden = true;
+  }
+  for (const tier of GAME_TIERS) {
+    const heading = document.createElement('h3');
+    heading.textContent = tier;
+    gamePanel.append(heading);
+    const list = document.createElement('div');
+    list.className = 'scan-game-list';
+    for (const row of GAMES.filter((item) => item.tier === tier)) {
+      const choice = document.createElement('button');
+      choice.type = 'button';
+      choice.className = 'scan-game-row';
+      choice.dataset.game = row.id === 'yugioh' ? 'ygo' : row.id;
+      const label = document.createElement('span');
+      label.textContent = row.label;
+      choice.append(label);
+      if (row.provisional) {
+        const badge = document.createElement('span');
+        badge.className = 'scan-provisional';
+        badge.textContent = 'Provisional';
+        choice.append(badge);
+      }
+      choice.addEventListener('click', () => chooseGame(choice.dataset.game));
+      list.append(choice);
+    }
+    gamePanel.append(list);
+  }
+  const sizeTitle = document.createElement('h3');
+  sizeTitle.textContent = 'Size class';
+  gamePanel.append(sizeTitle);
+  const sizeList = document.createElement('div');
+  sizeList.className = 'scan-game-list';
+  for (const row of Object.values(SIZE_CLASSES)) {
+    const choice = document.createElement('button');
+    choice.type = 'button';
+    choice.className = 'scan-game-row';
+    const label = document.createElement('span');
+    label.textContent = `${row.w} × ${row.h} mm`;
+    choice.append(label);
+    if (row.provisional) {
+      const badge = document.createElement('span');
+      badge.className = 'scan-provisional';
+      badge.textContent = 'Provisional';
+      choice.append(badge);
+    }
+    choice.addEventListener('click', () => chooseGame(`size:${row.id}`));
+    sizeList.append(choice);
+  }
+  gamePanel.append(sizeList);
+  gameSheet.append(gamePanel);
+  gameOpen.addEventListener('click', () => { gameSheet.hidden = false; });
+  gameClose.addEventListener('click', () => { gameSheet.hidden = true; });
   const camera = document.createElement('select');
   camera.id = 'scan-camera';
   camera.setAttribute('aria-label', 'Camera');
@@ -2121,6 +2486,9 @@ function build(section, missingList) {
   const top = document.createElement('div');
   top.className = 'scan-top';
   top.append(close, modeBar, torch, infoBtn, camera);
+  const gameBar = document.createElement('div');
+  gameBar.id = 'scan-game-bar';
+  gameBar.append(gameOpen);
 
   const frontFile = fileInput('scan-front-file');
   const backFile = fileInput('scan-back-file');
@@ -2308,6 +2676,48 @@ function build(section, missingList) {
   const rematch = button('Match this text', 'scan-rematch', true);
   const summary = document.createElement('div');
   summary.id = 'scan-summary';
+  const confirmSet = document.createElement('input');
+  confirmSet.id = 'scan-confirm-set';
+  confirmSet.placeholder = 'Set';
+  const confirmNumber = document.createElement('input');
+  confirmNumber.id = 'scan-confirm-number';
+  confirmNumber.placeholder = 'Number';
+  const confirmVariant = document.createElement('input');
+  confirmVariant.id = 'scan-confirm-variant';
+  confirmVariant.placeholder = 'Variant';
+  const confirmLanguage = document.createElement('input');
+  confirmLanguage.id = 'scan-confirm-language';
+  confirmLanguage.placeholder = 'Language';
+  const confirmFoil = document.createElement('select');
+  confirmFoil.id = 'scan-confirm-foil';
+  for (const [value, label] of [['', 'Choose'], ['no', 'Not foil'], ['yes', 'Foil']]) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    confirmFoil.append(option);
+  }
+  function confirmField(control, label) {
+    const wrap = document.createElement('label');
+    wrap.className = 'scan-confirm-field';
+    const name = document.createElement('span');
+    name.textContent = label;
+    wrap.append(name, control);
+    return wrap;
+  }
+  const confirmGame = document.createElement('p');
+  confirmGame.id = 'scan-confirm-game';
+  confirmGame.className = 'note';
+  confirmGame.textContent = 'Game: Both.';
+  const addNamed = button('Add to this session', 'scan-session-add');
+  const confirmRow = document.createElement('div');
+  confirmRow.id = 'scan-confirm-match';
+  confirmRow.append(
+    confirmField(confirmSet, 'Set'),
+    confirmField(confirmNumber, 'Number'),
+    confirmField(confirmVariant, 'Variant'),
+    confirmField(confirmFoil, 'Foil'),
+    confirmField(confirmLanguage, 'Language'),
+  );
   const search = document.createElement('input');
   search.id = 'scan-search';
   search.type = 'search';
@@ -2382,7 +2792,7 @@ function build(section, missingList) {
 
   const limits = document.createElement('p');
   limits.className = 'note';
-  limits.append(document.createTextNode('English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. '));
+  limits.append(document.createTextNode('Photos stay on this phone. The camera and the grade run on the device. English text only. Stylized titles, foils, and non-English cards often read wrong. The loaded list is the deal list in this app, not the full Yu-Gi-Oh or Magic catalog. '));
   const more = document.createElement('a');
   more.href = 'scan/LIMITATIONS.md';
   more.textContent = 'Full limitations';
@@ -2404,7 +2814,16 @@ function build(section, missingList) {
   const align = document.createElement('p');
   align.id = 'scan-align';
   align.textContent = 'Align the card in the frame.';
-  capture.append(top, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, frontFile, backFile);
+  const dev = document.createElement('p');
+  dev.id = 'scan-dev';
+  dev.hidden = true;
+  let devFlag = false;
+  try { devFlag = new URLSearchParams(location.search).get('s22') === '1'; } catch { devFlag = false; }
+  if (devFlag) {
+    dev.hidden = false;
+    dev.textContent = formatDevLine({ lens: 'Rear 1×', torchOn: false });
+  }
+  capture.append(top, gameBar, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, dev, frontFile, backFile);
   const fresh = document.createElement('p');
   fresh.id = 'scan-freshness';
   fresh.className = 'note';
@@ -2422,7 +2841,24 @@ function build(section, missingList) {
   heroKicker.className = 'scan-kicker';
   heroKicker.textContent = 'This scan';
   const correctName = button('Correct the name', 'scan-correct-name', true);
-  heroMain.append(heroKicker, identity, correctName, priceLimit, prices, rangeHost, psa, autoCenter, centering);
+  const graders = document.createElement('section');
+  graders.id = 'scan-graders';
+  const graderName = document.createElement('h3');
+  graderName.id = 'scan-grader-name';
+  graderName.textContent = 'Both';
+  const graderNote = document.createElement('p');
+  graderNote.id = 'scan-grader-note';
+  graderNote.className = 'note';
+  graders.append(graderName, graderNote);
+  const catalogPack = document.createElement('section');
+  catalogPack.id = 'scan-catalog-pack';
+  const catalogTitle = document.createElement('h3');
+  catalogTitle.textContent = 'Catalog pack';
+  const catalogNote = document.createElement('p');
+  catalogNote.className = 'note';
+  catalogNote.textContent = 'No catalog host yet. The bundled pack is empty. Scan and grade still work offline, and nothing is downloaded.';
+  catalogPack.append(catalogTitle, catalogNote);
+  heroMain.append(heroKicker, identity, correctName, graders, catalogPack, priceLimit, prices, rangeHost, psa, autoCenter, centering);
   const hero = document.createElement('section');
   hero.className = 'scan-hero';
   hero.id = 'scan-hero';
@@ -2442,11 +2878,11 @@ function build(section, missingList) {
   const identifyClose = button('Close', 'scan-identify-close', true);
   identifyClose.addEventListener('click', () => { identify.hidden = true; });
   const identifyTitle = document.createElement('h3');
-  identifyTitle.textContent = 'Correct the name';
+  identifyTitle.textContent = 'Confirm the card';
   const identifyPanel = document.createElement('div');
   identifyPanel.className = 'scan-sheet-panel';
   identifyPanel.append(
-    identifyClose, identifyTitle, readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
+    identifyClose, identifyTitle, confirmGame, confirmRow, addNamed, readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
   );
   identify.append(identifyPanel);
@@ -2520,6 +2956,15 @@ function build(section, missingList) {
       await track.applyConstraints({ advanced: [{ torch: next }] });
       torch.setAttribute('aria-pressed', next ? 'true' : 'false');
     } catch { torch.setAttribute('aria-pressed', 'false'); }
+    if (!dev.hidden) {
+      const lens = camera.selectedOptions[0] ? camera.selectedOptions[0].textContent : 'Rear 1×';
+      const saved = Number(dev.dataset.ms);
+      dev.textContent = formatDevLine({
+        lens,
+        torchOn: torch.getAttribute('aria-pressed') === 'true',
+        judgeMs: Number.isFinite(saved) ? saved : undefined,
+      });
+    }
   }
   async function lookUpCode() {
     const input = document.getElementById('scan-code');
@@ -2649,7 +3094,7 @@ function build(section, missingList) {
     tabs.append(tab);
   }
   tabs.querySelector('#scan-tab-scan').classList.add('on');
-  section.append(h, layout, deck, tabs);
+  section.append(h, layout, deck, tabs, gameSheet);
   return {
     frontFile,
     backFile,
@@ -2660,9 +3105,11 @@ function build(section, missingList) {
     retakeMain,
     correctName,
     close,
+    identify,
     blocked,
     thumbs,
     torch,
+    dev,
     infoBtn,
     infoClose,
     infoSheet,

@@ -1,0 +1,80 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "none-free (official HTML only; watch list)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "hololive-ocg",
+ "label": "hololive OFFICIAL CARD GAME",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Covered by Bushiroad TCG 応用フロアルール ver.1.2.12 regular-size class (約63mm×約88mm). Secondary mapping: https://eternis.jp/pages/card-size-list (6 Nov 2026) cites that floor-rules PDF for hololive 63×88. Confirm factory mm with calipers before locking the guide.",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language",
+  "oshi"
+ ],
+ "back_cues": [
+  "uniform hololive OCG back"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG",
+  "ARS"
+ ],
+ "languages": [
+  "ja",
+  "en"
+ ],
+ "grader_notes": "ARS lists hololive OFFICIAL CARD GAME. TAG language limits apply."
+}

@@ -1,0 +1,77 @@
+{
+ "id": "yugioh",
+ "label": "Yu-Gi-Oh!",
+ "family": "tcg",
+ "size_mm": {
+  "w": 59,
+  "h": 86,
+  "tol": 0.5
+ },
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "etched",
+  "textured",
+  "ghost",
+  "starlight",
+  "quarter-century"
+ ],
+ "borderless_possible": false,
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "edition",
+  "language"
+ ],
+ "markers": {
+  "edition": [
+   "1st Edition",
+   "Limited Edition",
+   "Unlimited"
+  ],
+  "set_code": "\\b[A-Z0-9]{3,4}-[A-Z]{0,2}\\d{3}\\b"
+ },
+ "counterfeit_tells": [
+  "missing eye-of-anubis hologram",
+  "wrong card-back tone",
+  "blurry set code"
+ ],
+ "data_sources": {
+  "catalog": "ygoprodeck (free)",
+  "prices": "ebay-licensed"
+ },
+ "status": "shipped",
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "corner_radius_mm": 3.2,
+ "guide": {
+  "px_corner": 16
+ }
+}

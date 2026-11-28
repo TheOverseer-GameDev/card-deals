@@ -157,7 +157,7 @@ def precache_files():
     """Every scan module the offline screen imports, plus the app shell.
     Vendor OCR and market shards stay out: they are large and loaded on demand.
     A staged copy of this file may not sit next to scan/; the shell still builds."""
-    shell=['./','index.html','styles.css','fonts/InterVariable.woff2','data.js','chart.min.js','manifest.json','icon-192.png']
+    shell=['./','index.html','styles.css','fonts/InterVariable.woff2','data.js','chart.min.js','manifest.json','icon-192.png','platform.js','intro-audio.js','intro.js','rain.js']
     candidates=[
         os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(B))),'scan'),
         os.path.join(B,'scan'),
@@ -166,7 +166,11 @@ def precache_files():
     scan=next((p for p in candidates if os.path.isfile(os.path.join(p,'boot.js'))), None)
     if not scan: return shell
     names=sorted(n for n in os.listdir(scan) if n.endswith(('.js','.css','.json')))
-    return shell+[f'scan/{n}' for n in names]
+    core=os.path.join(scan,'core')
+    extra=[]
+    if os.path.isdir(core):
+        extra=[f'scan/core/{n}' for n in sorted(os.listdir(core)) if n.endswith('.js')]
+    return shell+[f'scan/{n}' for n in names]+extra
 
 SW=r"""const C='cd3-__V__',F=__FILES__;
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(u=>new Request(u,{cache:'reload'})))))});

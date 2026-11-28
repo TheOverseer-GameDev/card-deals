@@ -1,0 +1,88 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo",
+  "textured"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "none-free (official HTML only; watch list)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "union-arena",
+ "label": "Union Arena",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "corner_radius_mm": 3.0,
+ "size_source": "Bandai official notice (15 Feb 2023): same card size as ONE PIECE Card Game and Digimon Card Game; retail corners are 角R3mm (early event/promo cards were 角R1mm, later reissued with a * mark) — https://www.unionarena-tcg.com/jp/news/004.php",
+ "id_features": [
+  "set_code",
+  "card_no",
+  "rarity",
+  "foil",
+  "language"
+ ],
+ "markers": {
+  "corner_variant": [
+   "R3mm retail",
+   "R1mm early promo (asterisk reprint exists)"
+  ]
+ },
+ "back_cues": [
+  "uniform Union Arena back"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "wrong corner radius on a claimed retail copy",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG",
+  "ARS"
+ ],
+ "languages": [
+  "en",
+  "ja"
+ ],
+ "grader_notes": "ARS lists UNION ARENA. TAG: English poker-size TCG; Japanese-language Union Arena not listed as a TAG exception (TAG JP exceptions are Pokémon, One Piece, select Dragon Ball). Confirm JP submissions with TAG."
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Card Deals</string>
+    <string name="title_activity_main">Card Deals</string>
+    <string name="package_name">app.carddeals.scan</string>
+    <string name="custom_url_scheme">app.carddeals.scan</string>
+</resources>

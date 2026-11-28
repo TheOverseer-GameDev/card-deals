@@ -1,0 +1,80 @@
+{
+ "family": "tcg",
+ "thickness": [
+  "std-tcg"
+ ],
+ "surfaces": [
+  "paper-gloss",
+  "matte",
+  "foil",
+  "holo"
+ ],
+ "borderless_possible": true,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "data_sources": {
+  "catalog": "api.altered.gg (public API host was unresponsive on 22 Nov 2026; still on the weekly watch-list probe)",
+  "prices": "ebay-licensed"
+ },
+ "status": "provisional",
+ "guide": {
+  "px_corner": 16
+ },
+ "id": "altered",
+ "label": "Altered TCG",
+ "size_mm": {
+  "w": 63,
+  "h": 88,
+  "tol": 0.5
+ },
+ "size_source": "Official factory mm not found this turn. Assigned the standard TCG sleeve class (~63×88). Unique unique-card / QR extras must not change the size class until measured. Confirm with calipers before locking the guide.",
+ "id_features": [
+  "set",
+  "card_no",
+  "rarity",
+  "foil",
+  "language",
+  "unique"
+ ],
+ "back_cues": [
+  "uniform Altered card back"
+ ],
+ "counterfeit_tells": [
+  "wrong back",
+  "light-test core"
+ ],
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC",
+  "TAG"
+ ],
+ "languages": [
+  "en",
+  "fr",
+  "other"
+ ],
+ "grader_notes": "Not on the ARS title list fetched 27 Nov 2026. Confirm TAG database coverage before treating TAG as a sure acceptor."
+}

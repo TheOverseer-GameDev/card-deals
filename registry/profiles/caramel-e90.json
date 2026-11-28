@@ -1,0 +1,77 @@
+{
+ "id": "caramel-e90",
+ "label": "Caramel-size (E90-1 American Caramel class)",
+ "family": "sports",
+ "size_mm": {
+  "w": 38.1,
+  "h": 69.9,
+  "tol": 1.6
+ },
+ "size_source": "PSA CardFacts: 1909-11 American Caramel E90-1 cards are each 1-1/2\" by 2-3/4\" — https://www.psacard.com/cardfacts/baseball-cards/1909-11-american-caramel-e90-1/113 (38.1×69.85 mm). This is close to, but not the same as, T206 (1-7/16×2-5/8). Do not merge the two guides. Other E-series caramel sets may differ — measure or source each set.",
+ "thickness": [
+  "caramel-thin"
+ ],
+ "surfaces": [
+  "paper-matte",
+  "paper-litho"
+ ],
+ "borderless_possible": false,
+ "centering": {
+  "PSA": {
+   "10": [
+    55,
+    75
+   ],
+   "9": [
+    60,
+    90
+   ],
+   "8": [
+    65,
+    90
+   ],
+   "7": [
+    70,
+    90
+   ]
+  },
+  "CGC": "official-if-published",
+  "BGS": "unofficial",
+  "SGC": "unofficial"
+ },
+ "id_features": [
+  "year",
+  "set",
+  "player",
+  "pose",
+  "team"
+ ],
+ "back_cues": [
+  "American Caramel advertising backs"
+ ],
+ "counterfeit_tells": [
+  "modern reprint stock",
+  "trimmed edges",
+  "fake Joe Jackson rookie",
+  "fake slab"
+ ],
+ "data_sources": {
+  "catalog": "none-free (licence pending)",
+  "prices": "ebay-licensed"
+ },
+ "graders": [
+  "PSA",
+  "BGS",
+  "CGC",
+  "SGC"
+ ],
+ "languages": [
+  "en"
+ ],
+ "grader_notes": "Same grader posture as tobacco-size: PSA/BGS/CGC/SGC yes; TAG no (undersize, pre-1989); ARS no.",
+ "status": "provisional",
+ "guide": {
+  "px_corner": 12,
+  "aspect": 0.5451
+ }
+}

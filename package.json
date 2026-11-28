@@ -1,0 +1,25 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench:quick": "node bench/run.mjs --mode quick --split dev --seed 1",
+    "bench:ci": "node bench/run.mjs --mode ci --split sealed --seed 1",
+    "bench:full": "node bench/run.mjs --mode full --split sealed --seed 1",
+    "bench:baseline": "node bench/run.mjs --mode ci --split sealed --seed 1 --write-baseline",
+    "native:sync": "node native/sync-web.mjs && npx cap sync"
+  },
+  "devDependencies": {
+    "@capacitor-community/camera-preview": "8.0.2",
+    "@capacitor-community/sqlite": "8.1.1",
+    "@capacitor/android": "8.6.2",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/cli": "8.6.2",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.6.2",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4",
+    "playwright-core": "1.65.1"
+  }
+}
