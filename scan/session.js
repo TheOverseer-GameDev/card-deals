@@ -30,6 +30,8 @@ export function addToSession(session, item) {
     foil: false,
     qty: 1,
     condition: (item && item.condition) || '',
+    game: (item && item.game) || '',
+    gameLabel: (item && item.gameLabel) || '',
     cad: Number.isFinite(cad) && cad > 0 ? Math.round(cad * 100) / 100 : null,
   });
   return session.items[session.items.length - 1];

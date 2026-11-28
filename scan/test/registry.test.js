@@ -11,6 +11,8 @@ import { fileURLToPath } from 'node:url';
 import { bundledProfiles, loadProfiles } from '../../registry/load.mjs';
 import { importCatalog, memoryCatalog, openCatalog } from '../../catalog/import.mjs';
 import { GUIDE } from '../profiles.js';
+import { GAMES, guideForSelect } from '../games.js';
+import { GAME_CUE_ENABLED } from '../game-cue.js';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -32,6 +34,28 @@ test('bundled profiles match the schema and the shipped guide sizes', () => {
     assert.equal(profile.centering.BGS, 'unofficial');
     assert.equal(profile.centering.SGC, 'unofficial');
   }
+});
+
+test('the picker lists every profile and leaves the shipped guides alone', () => {
+  const profiles = bundledProfiles();
+  assert.equal(GAMES.length, profiles.length);
+  for (const profile of profiles) {
+    const row = GAMES.find((item) => item.id === profile.id);
+    assert.ok(row, profile.id);
+    assert.equal(row.w, profile.size_mm.w);
+    assert.equal(row.h, profile.size_mm.h);
+    assert.equal(row.provisional, String(profile.status).includes('provisional'));
+  }
+  assert.deepEqual(guideForSelect('ygo'), { w: 59, h: 86 });
+  assert.deepEqual(guideForSelect('mtg'), { w: 63, h: 88 });
+  assert.deepEqual(guideForSelect('all'), { w: 59, h: 86 });
+  assert.deepEqual(guideForSelect('lorcana'), { w: 63, h: 88 });
+  assert.deepEqual(guideForSelect('tobacco-t206'), { w: 36.5, h: 66.7 });
+  assert.deepEqual(guideForSelect('caramel-e90'), { w: 38.1, h: 69.9 });
+  assert.deepEqual(guideForSelect('size:cabinet-t3'), { w: 146.1, h: 203.2 });
+  assert.equal(GUIDE.yugioh.w, 59);
+  assert.equal(GUIDE.mtg.h, 88);
+  assert.equal(GAME_CUE_ENABLED, false);
 });
 
 test('a dummy profile loads with no change to the loader', () => {

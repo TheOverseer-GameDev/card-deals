@@ -50,7 +50,8 @@ import { collectionList, cardScreen, matchCard, priceRows } from './screens.js';
 import { FEED_FAIL, priceFeed, refreshSaved } from './library.js';
 import { drawLiveQuad, formatDevLine, mountEdge, mountRing, startLive } from './live.js';
 import { GUIDE, refreshGuides } from './profiles.js';
-import { guideForSelect } from './size-class.js';
+import { GAMES, GAME_TIERS, gameById, guideForSelect } from './games.js';
+import { SIZE_CLASSES } from './size-class.js';
 
 /** Device id only. Never a photo. v2 had no camera list because the preview stayed hidden until the shutter, and getUserMedia was not paired with enumerateDevices. */
 const CAMERA_KEY = 'card-scan-camera';
@@ -141,17 +142,45 @@ function boot() {
   const ui = build(section, rows.length === 0);
   function applyGuideShape() {
     const chosen = guideForSelect(ui.game && ui.game.value);
-    const id = chosen.w === 63 ? 'mtg' : 'yugioh';
-    const size = GUIDE[id] || chosen;
+    const shipped = ui.game && (ui.game.value === 'mtg' || ui.game.value === 'ygo' || ui.game.value === 'yugioh' || !ui.game.value || ui.game.value === 'all');
+    const size = shipped
+      ? (GUIDE[ui.game && ui.game.value === 'mtg' ? 'mtg' : 'yugioh'] || chosen)
+      : chosen;
     section.style.setProperty('--guide-w', String(size.w));
     section.style.setProperty('--guide-h', String(size.h));
     const outline = ui.outline;
-    if (!outline) return;
-    outline.style.width = '';
-    outline.style.height = '';
-    outline.style.maxWidth = '';
-    outline.style.aspectRatio = '';
-    outline.style.borderRadius = '16px';
+    if (outline) {
+      outline.style.width = '';
+      outline.style.height = '';
+      outline.style.maxWidth = '';
+      outline.style.aspectRatio = '';
+      outline.style.borderRadius = '16px';
+    }
+    paintGameChrome();
+  }
+  function selectedGame() {
+    const value = ui.game && ui.game.value;
+    if (!value || value === 'all') return { ...gameById('yugioh'), label: 'Both' };
+    if (String(value).startsWith('size:')) {
+      const id = String(value).slice(5);
+      const size = Object.values(SIZE_CLASSES).find((row) => row.id === id);
+      return { id, label: size ? `${size.w}×${size.h} mm` : id, grader: '', provisional: true, tier: 'Size' };
+    }
+    return gameById(value) || gameById('yugioh');
+  }
+  function paintGameChrome() {
+    const game = selectedGame();
+    const open = document.getElementById('scan-game-open');
+    if (open) open.textContent = game.label;
+    const name = document.getElementById('scan-grader-name');
+    const note = document.getElementById('scan-grader-note');
+    if (name) name.textContent = game.label;
+    if (note) {
+      const shared = 'CGC\'s published maximum is 2-5/8 in × 3-3/4 in and 7.25 mm thick. TAG takes 2.5×3.5 in only, from 1989 to the present, and does not take Yu-Gi-Oh size, tobacco, minis, relics, or jumbos.';
+      note.textContent = [shared, game.grader].filter(Boolean).join(' ');
+    }
+    const line = document.getElementById('scan-confirm-game');
+    if (line) line.textContent = game.provisional ? `Game: ${game.label}. Provisional size.` : `Game: ${game.label}.`;
   }
   if (ui.game) {
     ui.game.addEventListener('change', () => {
@@ -161,6 +190,34 @@ function boot() {
   }
   applyGuideShape();
   refreshGuides().then(() => applyGuideShape()).catch(() => {});
+  const addNamed = document.getElementById('scan-session-add');
+  if (addNamed) {
+    addNamed.addEventListener('click', () => {
+      const picked = selectedGame();
+      const typed = (document.getElementById('scan-search').value || '').trim();
+      const entry = addToSession(scanSession, {
+        name: typed || 'Unnamed card',
+        set: document.getElementById('scan-confirm-set').value,
+        number: document.getElementById('scan-confirm-number').value,
+        variant: document.getElementById('scan-confirm-variant').value,
+        game: picked.id,
+        gameLabel: picked.label,
+      });
+      entry.foil = document.getElementById('scan-confirm-foil').value === 'yes';
+      renderSession();
+      const at = Date.now();
+      openScanHistory().then((store) => saveScan(store, {
+        at,
+        version: HISTORY_VERSION,
+        name: entry.name,
+        game: picked.id,
+        gameLabel: picked.label,
+        summary: `${picked.label}. Added by name. No photo was saved.`,
+      })).then(() => refreshHistory()).catch(() => refreshHistory('The name was not saved on this phone.'));
+      const sheet = document.getElementById('scan-identify');
+      if (sheet) sheet.hidden = true;
+    });
+  }
   ui.historyDelete.addEventListener('click', () => {
     openScanHistory().then(async (store) => {
       await store.clear();
@@ -1397,6 +1454,8 @@ function boot() {
       at,
       version: HISTORY_VERSION,
       name: confirmedName || 'Unnamed card',
+      game: selectedGame().id,
+      gameLabel: selectedGame().label,
       summary,
     })).then((result) => refreshHistory(result && result.reason)).catch(() => refreshHistory('The scan was not saved on this phone.'));
   }
@@ -1430,7 +1489,7 @@ function boot() {
         const head = document.createElement('div');
         head.className = 'scan-history-head';
         const title = document.createElement('strong');
-        title.textContent = name;
+        title.textContent = row.gameLabel ? `${name} · ${row.gameLabel}` : name;
         const chip = document.createElement('span');
         const summaryText = presentScan(row);
         const needsRetake = /unavailable|retake/i.test(summaryText);
@@ -1810,7 +1869,7 @@ function boot() {
       const block = document.createElement('div');
       block.className = 'scan-session';
       const title = document.createElement('p');
-      title.textContent = item.name;
+      title.textContent = item.gameLabel ? `${item.name} · ${item.gameLabel}` : item.name;
       block.append(title);
       for (const [key, label] of [['qty', 'Quantity'], ['set', 'Set'], ['condition', 'Condition']]) {
         const labelEl = document.createElement('label');
@@ -2336,18 +2395,83 @@ function build(section, missingList) {
   close.setAttribute('aria-label', 'Close scan');
   const game = document.createElement('select');
   game.id = 'scan-game';
+  game.className = 'scan-game-native';
   game.setAttribute('aria-label', 'Game');
-  for (const [value, label] of [
-    ['all', 'Both'],
-    ['ygo', 'Yu-Gi-Oh'],
-    ['mtg', 'Magic'],
-    ['lorcana', 'Lorcana'],
-    ['starwars-unlimited', 'Star Wars Unlimited'],
-    ['digimon', 'Digimon'],
-    ['fleshandblood', 'Flesh and Blood'],
-  ]) {
-    game.append(cameraOption(value, label));
+  game.append(cameraOption('all', 'Both'), cameraOption('ygo', 'Yu-Gi-Oh'), cameraOption('mtg', 'Magic'));
+  for (const row of GAMES) {
+    if (row.id === 'yugioh' || row.id === 'mtg') continue;
+    game.append(cameraOption(row.id, row.label));
   }
+  for (const row of Object.values(SIZE_CLASSES)) game.append(cameraOption(`size:${row.id}`, `${row.w}×${row.h}`));
+  const gameOpen = button('Yu-Gi-Oh', 'scan-game-open', true);
+  const gameSheet = document.createElement('div');
+  gameSheet.id = 'scan-game-sheet';
+  gameSheet.className = 'scan-identify';
+  gameSheet.hidden = true;
+  const gamePanel = document.createElement('div');
+  gamePanel.className = 'scan-sheet-panel';
+  const gameClose = button('Close', 'scan-game-close', true);
+  const gameTitle = document.createElement('h3');
+  gameTitle.textContent = 'Card type';
+  const gameHint = document.createElement('p');
+  gameHint.className = 'note';
+  gameHint.textContent = 'Provisional sizes are not locked. They wait on a caliper sample of at least 10 cards.';
+  gamePanel.append(gameClose, gameTitle, gameHint);
+  function chooseGame(value) {
+    game.value = value;
+    game.dispatchEvent(new Event('change', { bubbles: true }));
+    gameSheet.hidden = true;
+  }
+  for (const tier of GAME_TIERS) {
+    const heading = document.createElement('h3');
+    heading.textContent = tier;
+    gamePanel.append(heading);
+    const list = document.createElement('div');
+    list.className = 'scan-game-list';
+    for (const row of GAMES.filter((item) => item.tier === tier)) {
+      const choice = document.createElement('button');
+      choice.type = 'button';
+      choice.className = 'scan-game-row';
+      choice.dataset.game = row.id === 'yugioh' ? 'ygo' : row.id;
+      const label = document.createElement('span');
+      label.textContent = row.label;
+      choice.append(label);
+      if (row.provisional) {
+        const badge = document.createElement('span');
+        badge.className = 'scan-provisional';
+        badge.textContent = 'Provisional';
+        choice.append(badge);
+      }
+      choice.addEventListener('click', () => chooseGame(choice.dataset.game));
+      list.append(choice);
+    }
+    gamePanel.append(list);
+  }
+  const sizeTitle = document.createElement('h3');
+  sizeTitle.textContent = 'Size class';
+  gamePanel.append(sizeTitle);
+  const sizeList = document.createElement('div');
+  sizeList.className = 'scan-game-list';
+  for (const row of Object.values(SIZE_CLASSES)) {
+    const choice = document.createElement('button');
+    choice.type = 'button';
+    choice.className = 'scan-game-row';
+    const label = document.createElement('span');
+    label.textContent = `${row.w} × ${row.h} mm`;
+    choice.append(label);
+    if (row.provisional) {
+      const badge = document.createElement('span');
+      badge.className = 'scan-provisional';
+      badge.textContent = 'Provisional';
+      choice.append(badge);
+    }
+    choice.addEventListener('click', () => chooseGame(`size:${row.id}`));
+    sizeList.append(choice);
+  }
+  gamePanel.append(sizeList);
+  gameSheet.append(gamePanel);
+  gameOpen.addEventListener('click', () => { gameSheet.hidden = false; });
+  gameClose.addEventListener('click', () => { gameSheet.hidden = true; });
   const camera = document.createElement('select');
   camera.id = 'scan-camera';
   camera.setAttribute('aria-label', 'Camera');
@@ -2362,6 +2486,9 @@ function build(section, missingList) {
   const top = document.createElement('div');
   top.className = 'scan-top';
   top.append(close, modeBar, torch, infoBtn, camera);
+  const gameBar = document.createElement('div');
+  gameBar.id = 'scan-game-bar';
+  gameBar.append(gameOpen);
 
   const frontFile = fileInput('scan-front-file');
   const backFile = fileInput('scan-back-file');
@@ -2577,6 +2704,11 @@ function build(section, missingList) {
     wrap.append(name, control);
     return wrap;
   }
+  const confirmGame = document.createElement('p');
+  confirmGame.id = 'scan-confirm-game';
+  confirmGame.className = 'note';
+  confirmGame.textContent = 'Game: Both.';
+  const addNamed = button('Add to this session', 'scan-session-add');
   const confirmRow = document.createElement('div');
   confirmRow.id = 'scan-confirm-match';
   confirmRow.append(
@@ -2691,7 +2823,7 @@ function build(section, missingList) {
     dev.hidden = false;
     dev.textContent = formatDevLine({ lens: 'Rear 1×', torchOn: false });
   }
-  capture.append(top, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, dev, frontFile, backFile);
+  capture.append(top, gameBar, finder, align, step, tightNote, blocked, thumbs, camBar, infoSheet, dev, frontFile, backFile);
   const fresh = document.createElement('p');
   fresh.id = 'scan-freshness';
   fresh.className = 'note';
@@ -2709,7 +2841,24 @@ function build(section, missingList) {
   heroKicker.className = 'scan-kicker';
   heroKicker.textContent = 'This scan';
   const correctName = button('Correct the name', 'scan-correct-name', true);
-  heroMain.append(heroKicker, identity, correctName, priceLimit, prices, rangeHost, psa, autoCenter, centering);
+  const graders = document.createElement('section');
+  graders.id = 'scan-graders';
+  const graderName = document.createElement('h3');
+  graderName.id = 'scan-grader-name';
+  graderName.textContent = 'Both';
+  const graderNote = document.createElement('p');
+  graderNote.id = 'scan-grader-note';
+  graderNote.className = 'note';
+  graders.append(graderName, graderNote);
+  const catalogPack = document.createElement('section');
+  catalogPack.id = 'scan-catalog-pack';
+  const catalogTitle = document.createElement('h3');
+  catalogTitle.textContent = 'Catalog pack';
+  const catalogNote = document.createElement('p');
+  catalogNote.className = 'note';
+  catalogNote.textContent = 'No catalog host yet. The bundled pack is empty. Scan and grade still work offline, and nothing is downloaded.';
+  catalogPack.append(catalogTitle, catalogNote);
+  heroMain.append(heroKicker, identity, correctName, graders, catalogPack, priceLimit, prices, rangeHost, psa, autoCenter, centering);
   const hero = document.createElement('section');
   hero.className = 'scan-hero';
   hero.id = 'scan-hero';
@@ -2733,7 +2882,7 @@ function build(section, missingList) {
   const identifyPanel = document.createElement('div');
   identifyPanel.className = 'scan-sheet-panel';
   identifyPanel.append(
-    identifyClose, identifyTitle, confirmRow, readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
+    identifyClose, identifyTitle, confirmGame, confirmRow, addNamed, readRow, progress, labeled('Text from the photo. Edit it if it is wrong.', textArea), rematch,
     summary, labeled('Or search the loaded list', search), results, clearBtn,
   );
   identify.append(identifyPanel);
@@ -2945,7 +3094,7 @@ function build(section, missingList) {
     tabs.append(tab);
   }
   tabs.querySelector('#scan-tab-scan').classList.add('on');
-  section.append(h, layout, deck, tabs);
+  section.append(h, layout, deck, tabs, gameSheet);
   return {
     frontFile,
     backFile,

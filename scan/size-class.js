@@ -14,8 +14,6 @@ export const SIZE_CLASSES = {
   'cabinet-t3': { id: 'cabinet-t3', w: 146.1, h: 203.2, provisional: true },
 };
 
-const TIER_A = ['lorcana', 'starwars-unlimited', 'digimon', 'fleshandblood'];
-
 export function classForSize(width, height) {
   let best = null;
   let bestDist = Infinity;
@@ -30,8 +28,4 @@ export function classForSize(width, height) {
   return best;
 }
 
-/** Pixels for the camera guide. Existing games keep the sizes already on screen. */
-export function guideForSelect(value) {
-  if (value === 'mtg' || TIER_A.includes(value)) return { w: 63, h: 88 };
-  return { w: 59, h: 86 };
-}
+export { guideForSelect } from './games.js';
